@@ -95,7 +95,7 @@ Conventions (shared with the siblings): CRLF on disk
 (`.gitattributes` `* text=auto eol=crlf`; Git Bash `sed -i` silently
 writes LF, so edit with Python writing CRLF, or restore with
 `rm <file>; git checkout -- <file>`). Commit straight to `master`, with
-no feature branches. There's no GitHub remote yet.
+no feature branches. Remote: `origin` is https://github.com/Evasion3356/Rampagio.git.
 
 ## Features
 
