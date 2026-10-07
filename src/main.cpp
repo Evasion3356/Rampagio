@@ -1,7 +1,7 @@
 /*
 	Entry point. Registers ScriptMain as a ScriptHookRDR2 script thread and
 	wires up the keyboard handler, same pattern as ChallengeCheat's main.cpp.
-	The F7 menu is the whole mod, so the keyboard handler is registered in
+	The F5 menu is the whole mod, so the keyboard handler is registered in
 	Release too.
 */
 

@@ -38,10 +38,10 @@ instead of restarting. `GenerateDefaultIni` writes
 `tests\LogFallbackTests.vcxproj` (build Debug, run
 `bin\Debug\LogFallbackTests.exe`).
 
-Menu key: **F7** by default (`[General] MenuKey` in `Rampagio.ini`). The
-siblings already use F5, F8, F9, F10, F11 and F12, and any of them may be
-loaded at the same time. Controls: NUMPAD 8/2 to move, NUMPAD 5 to select,
-NUMPAD 0/Backspace/F7 to go back.
+Menu key: **F5** by default (`[General] MenuKey` in `Rampagio.ini`), the
+same key Rampage uses, at the user's request. Don't load Rampage and
+Rampagio together with default keys. Controls: NUMPAD 8/2 to move,
+NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
 
 ## Layout
 

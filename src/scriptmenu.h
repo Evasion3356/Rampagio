@@ -2,9 +2,8 @@
 	Adapted from the ScriptHookRDR2 SDK's NativeTrainer sample menu framework
 	(Alexander Blade, http://dev-c.com), same vendored copy PokerCheat/
 	BlackjackCheat/DominoCheat use. Only change from the original: the
-	toggle key is configurable (Rampagio.ini, default F7 -- F5/F8/F9/F10/
-	F11/F12 are already claimed by the sibling mods, all plausibly loaded
-	into the game at the same time). The extra item types marked
+	toggle key is configurable (Rampagio.ini, default F5, the same as
+	Rampage). The extra item types marked
 	"ChallengeCheat addition" came over with the copy from ChallengeCheat.
 */
 
@@ -344,7 +343,7 @@ struct MenuInputButtonState
 class MenuInput
 {
 public:
-	// Toggle key comes from Rampagio.ini's [General] MenuKey (default F7,
+	// Toggle key comes from Rampagio.ini's [General] MenuKey (default F5,
 	// see Config.h).
 	static bool MenuSwitchPressed()
 	{

@@ -1,7 +1,7 @@
 /*
 	Lightweight INI-backed config, same inipp-based load/rewrite pattern as
 	ChallengeCheat's own Config (this file started as a copy of it). The INI
-	is a user-facing setting in Release too, since the F7 menu is the mod's
+	is a user-facing setting in Release too, since the F5 menu is the mod's
 	whole interface.
 
 	Rampagio.ini lives next to the .asi, or in
@@ -26,9 +26,9 @@ namespace Config
 	{
 		// Virtual-key code that opens/closes the menu. INI key: [General]
 		// MenuKey, a keycap-style name (see KeyNames.h).
-		// Default F7: F5/F8/F9/F10/F11/F12 are already claimed by the
-		// sibling ASI mods, which may all be loaded at once.
-		DWORD MenuKey = VK_F7;
+		// Default F5, the key Rampage uses, so Rampagio can stand in for
+		// it. Don't load both with the defaults.
+		DWORD MenuKey = VK_F5;
 
 		// How many "units" of text fit on one line of the wrapped rank
 		// objective (a Latin/Cyrillic character = 1, a CJK/Hangul/kana one =

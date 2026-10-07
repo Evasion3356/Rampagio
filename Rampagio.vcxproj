@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- As in ChallengeCheat, keyboard.cpp and scriptmenu.cpp are built in
-         Release too: the F7 menu is this mod's whole interface. -->
+         Release too: the F5 menu is this mod's whole interface. -->
     <ClCompile Include="src\keyboard.cpp" />
     <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\KeyNames.cpp" />
