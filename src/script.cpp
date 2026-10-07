@@ -25,6 +25,7 @@ namespace
 		MenuBase* root = Ui::Root();
 		Menus::BuildPlayer(root);
 		Menus::BuildHorse(root);
+		Menus::BuildWeapons(root);
 		Menus::BuildTeleport(root);
 		Menus::BuildWorld(root);
 	}

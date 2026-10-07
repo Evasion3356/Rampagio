@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 5 done, 2 partial, 160 pending.
+Submenus: 6 done, 6 partial, 155 pending.
 
 ## Debug
 
@@ -215,14 +215,14 @@ Submenus: 5 done, 2 partial, 160 pending.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubWeaponModifiers | 5 | Pending |  |
+| SubWeaponModifiers | 5 | Partial | Weapon > Weapon Modifiers: weapon model swap and weapon skill stats pending |
 | SubWeaponVisuals | 12 | Pending |  |
-| SubWeapons | 33 | Pending |  |
+| SubWeapons | 33 | Partial | Weapon: Always Kill Cam, Thunder Hawk, Rope Gun, Portal Gun, Debug Gun pending |
 | SubWeaponsAimbot | 7 | Pending |  |
-| SubWeaponsAmmunition | 5 | Pending |  |
+| SubWeaponsAmmunition | 5 | Partial | Weapon > Ammunition: Drop Ammo pending |
 | SubWeaponsBullets | 8 | Pending |  |
-| SubWeaponsGive | 0 | Pending |  |
-| SubWeaponsManage | 10 | Pending |  |
+| SubWeaponsGive | 0 | Done | Weapon > Manage Weapons > Give Weapon |
+| SubWeaponsManage | 10 | Partial | Weapon > Manage Weapons: Give Favourite, Upgrade Weapon, Add Component, Get Duplicate Model pending |
 
 ## World
 

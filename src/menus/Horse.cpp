@@ -112,7 +112,7 @@ namespace
 		const Ped m = Mount();
 		if (!m)
 			return;
-		const Vector3 rot = CAM::GET_GAMEPLAY_CAM_ROT(2);
+		const Vector3 rot = CAMERA::GET_GAMEPLAY_CAM_ROT(2);
 		const float yaw = rot.z * 0.0174532925f, pitch = rot.x * 0.0174532925f;
 		const float fx = -sinf(yaw) * cosf(pitch), fy = cosf(yaw) * cosf(pitch), fz = sinf(pitch);
 		const float rx = cosf(yaw), ry = sinf(yaw);

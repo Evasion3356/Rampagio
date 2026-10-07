@@ -5,6 +5,7 @@
 #pragma once
 
 #include "script.h"
+#include "ExtraNatives.h"
 #include "..\external\RDR-Classes\rage\joaat.hpp"
 
 #include <string>
