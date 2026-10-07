@@ -1,5 +1,10 @@
 #include "GameUtil.h"
 
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <iterator>
+
 namespace GameUtil
 {
 	bool IsOnline()
@@ -116,6 +121,72 @@ namespace GameUtil
 			return false;
 		const char* result = MISC::GET_ONSCREEN_KEYBOARD_RESULT();
 		text = result ? result : "";
+		return true;
+	}
+
+	Hash ParseHash(const std::string& text)
+	{
+		if (text.empty())
+			return 0;
+		char* end = nullptr;
+		if (text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
+		{
+			const unsigned long value = std::strtoul(text.c_str() + 2, &end, 16);
+			if (*end == '\0')
+				return static_cast<Hash>(value);
+		}
+		else if (std::isdigit(static_cast<unsigned char>(text[0])))
+		{
+			const unsigned long value = std::strtoul(text.c_str(), &end, 10);
+			if (*end == '\0')
+				return static_cast<Hash>(value);
+		}
+		return Joaat(text);
+	}
+
+	ItemGuid CharacterGuid(int inventoryId)
+	{
+		ItemGuid root;
+		ItemGuid character;
+		INVENTORY::INVENTORY_GET_GUID_FROM_ITEMID(inventoryId, root.Ptr(), Joaat("character"), Joaat("SLOTID_NONE"), character.Ptr());
+		return character;
+	}
+
+	bool AddInventoryItem(Hash item, int quantity, std::string& error)
+	{
+		if (item == 0 || !ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item, 0))
+		{
+			error = "Item is invalid";
+			return false;
+		}
+
+		// Parent: the character, in the first slot the item fits.
+		SlotGuid slot;
+		const ItemGuid character = CharacterGuid(kInventorySp);
+		std::copy(std::begin(character.w), std::end(character.w), slot.w);
+		if (INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_SATCHEL")))
+			slot.w[4] = Joaat("SLOTID_SATCHEL");
+		else if (INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_WARDROBE")))
+			slot.w[4] = Joaat("SLOTID_WARDROBE");
+		else
+			slot.w[4] = INVENTORY::_GET_DEFAULT_ITEM_SLOT_INFO(item, Joaat("character"));
+		if (!INVENTORY::_INVENTORY_IS_GUID_VALID(slot.Ptr()))
+		{
+			error = "Couldn't build the slot GUID";
+			return false;
+		}
+
+		// The item's own GUID within that slot.
+		ItemGuid itemGuid;
+		INVENTORY::INVENTORY_GET_GUID_FROM_ITEMID(kInventorySp, slot.Ptr(), item, slot.Slot(), itemGuid.Ptr());
+
+		// The reason the game's scripts pass with their own grants.
+		constexpr Hash kAddReason = 752097756;
+		if (!INVENTORY::_INVENTORY_ADD_ITEM_WITH_GUID(kInventorySp, itemGuid.Ptr(), slot.Ptr(), item, slot.Slot(), quantity, kAddReason))
+		{
+			error = "The game refused the item";
+			return false;
+		}
 		return true;
 	}
 }

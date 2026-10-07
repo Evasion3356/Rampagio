@@ -8,6 +8,7 @@
 #include "ExtraNatives.h"
 #include "..\external\RDR-Classes\rage\joaat.hpp"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -52,4 +53,41 @@ namespace GameUtil
 
 	// On-screen keyboard; returns false if cancelled.
 	bool PromptText(const char* title, std::string& text, int maxLength = 60);
+
+	// A typed name or hash: "0x..." hex, plain decimal, else joaat of the
+	// name. 0 for empty text.
+	Hash ParseHash(const std::string& text);
+
+	// ---- Inventory ----
+
+	// Inventory 1 is singleplayer's; 5 is the game's backup inventory.
+	constexpr int kInventorySp = 1;
+	constexpr int kInventorySpBackup = 5;
+	constexpr Hash kRemoveReasonDefault = 0xF77DE93D; // REMOVE_REASON_DEFAULT
+
+	// An inventory GUID is a script struct<4>: four 8-byte script words,
+	// 32 bytes. (The SDK's Any is 4 bytes, so an Any[4] is too small and
+	// the native overruns it.) The slot struct the scripts build is the
+	// same four words plus the slot id in a fifth.
+	struct ItemGuid
+	{
+		std::uint64_t w[4] = {};
+		Any* Ptr() { return reinterpret_cast<Any*>(w); }
+	};
+	struct SlotGuid
+	{
+		std::uint64_t w[5] = {}; // w[0..3] parent guid, w[4] slot id
+		Any* Ptr() { return reinterpret_cast<Any*>(w); }
+		Hash Slot() const { return static_cast<Hash>(w[4]); }
+	};
+	static_assert(sizeof(ItemGuid) == 32 && sizeof(SlotGuid) == 40);
+
+	// The inventory's root "character" GUID, the parent of everything in it.
+	ItemGuid CharacterGuid(int inventoryId);
+
+	// Adds `quantity` of `item` the way the game's scripts do by default
+	// (flow_controller's add path, as worked out in CigCardTest): satchel,
+	// else wardrobe, else the item's default slot under the character.
+	// On failure `error` says why.
+	bool AddInventoryItem(Hash item, int quantity, std::string& error);
 }

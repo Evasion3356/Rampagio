@@ -77,8 +77,17 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
   CALL (`0x39`) targets, check uniqueness against the 1491.50 `.ysc` in
   `..\SciptsCompile\script_rel` (the decompile's `// Position - 0x...`
   comment is the offset). Arguments are zero-extended 8-byte slots.
+- `src/NativeHooks.{h,cpp}`: replaces natives for game scripts, adapted
+  from HorseMenu's `NativeHooks`. Swaps the native's entry in each
+  `scrProgram`'s native table (one script or `kAllScripts`), so our own
+  ScriptHook calls still reach the real native; Rampage instead detours
+  the handler globally. Programs that load later are caught by a MinHook
+  detour on `InitNativeTables`; a destructor vtable swap unregisters
+  unloaded ones. Hooks can be removed (for toggles); `Shutdown` (from
+  `DllMain` detach) restores every table. Replacements call
+  `NativeHooks::Original(hash)(ctx)` to run the real native. Untested.
 - `src/PatternScan.*` (used by GamePointers) and `external/minhook`
-  (nothing uses it yet).
+  (used by NativeHooks).
 - `tools/rampage_deob.py`, `tools/rampage_inventory*.py`, `tools/handlers/`: Rampage
   reversing tools (below). `tools/porting_status.py` regenerates
   `docs/PORTING.md`.
@@ -311,8 +320,9 @@ Resume point (2026-10-07). Done so far: inventory tooling; menu framework
 (`src/Menu.h` builder API, number/choice/section rows, left/right input,
 rebuilt-on-open lists); ported Player (SubSelf), Horse (SubSelfHorse),
 World Time/Weather, most of Teleport/World/Weapons, Recovery Money,
-Honor, Bounty and Cores (with the script-function caller). 9 submenus
-done, 7 partial, 151 pending; see `docs/PORTING.md`. Everything builds clean
+Honor, Bounty, Cores (with the script-function caller) and Add Items
+(with NativeHooks). 9 submenus done, 8 partial, 150 pending; see
+`docs/PORTING.md`. Everything builds clean
 (Debug); nothing is live-tested (the user deferred testing until the
 port is further along). Menu key is F5.
 
@@ -329,9 +339,8 @@ port is further along). Menu key is F5.
    own DllMain). Plan: port its UI layer (sprite look, per-option
    descriptions, controller input) behind `src/Menu.h`, against alloc8or
    names, with attribution.
-3. Keep porting, in this order: Recovery (Unlocks, AddItems,
-   GiveItemsList; `flow_controller func_290` is already wrapped in
-   Recovery.cpp as `g_addItemScript`), Player submenus (Player Proofs,
+3. Keep porting, in this order: Recovery (Unlocks; GiveItemsList, which
+   needs an item data source the user picks), Player submenus (Player Proofs,
    Abilities, Config Flags, Moods, Scenarios, Animations, Wardrobe, ...),
    Vehicle, Spawner, the remaining World submenus, Miscellaneous,
    Script Tools, Settings (incl. toggle save/load). Rampage's Debug > Scripts

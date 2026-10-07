@@ -21,6 +21,7 @@ STATUS = {
  'SubRecoveryHonor':('Partial','Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown'),
  'SubRecoveryBounty':('Done','Recovery > Bounty: state rows also show each state bounty (ours)'),
  'SubRecoveryCores':('Done','Recovery > Cores: temporary rank applies on every step (ours)'),
+ 'SubRecoveryAddItems':('Partial','Recovery > Add Items: all rows; Unlimited Items also blocks by-GUID removals (ours); Give Items list pending (needs an item data source)'),
  'SubWorldWeather':('Done','World > Weather'),
  'SubWeapons':('Partial','Weapon: Always Kill Cam, Thunder Hawk, Rope Gun, Portal Gun, Debug Gun pending'),
  'SubWeaponsManage':('Partial','Weapon > Manage Weapons: Give Favourite, Upgrade Weapon, Add Component, Get Duplicate Model pending'),

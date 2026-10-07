@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 9 done, 7 partial, 151 pending.
+Submenus: 9 done, 8 partial, 150 pending.
 
 ## Debug
 
@@ -131,7 +131,7 @@ Submenus: 9 done, 7 partial, 151 pending.
 | SubCollectiblesDreamcatchers | 2 | Pending |  |
 | SubCollectiblesRockCarvings | 2 | Pending |  |
 | SubMapDiscoverables | 2 | Pending |  |
-| SubRecoveryAddItems | 13 | Pending |  |
+| SubRecoveryAddItems | 13 | Partial | Recovery > Add Items: all rows; Unlimited Items also blocks by-GUID removals (ours); Give Items list pending (needs an item data source) |
 | SubRecoveryBounty | 9 | Done | Recovery > Bounty: state rows also show each state bounty (ours) |
 | SubRecoveryCores | 9 | Done | Recovery > Cores: temporary rank applies on every step (ours) |
 | SubRecoveryGiveItemsList | 1 | Pending |  |

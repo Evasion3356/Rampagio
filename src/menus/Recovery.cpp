@@ -1,9 +1,11 @@
 /*
 	Recovery menu: ports Rampage's Submenus::SubRecoveryMoney,
-	SubRecoveryHonor, SubRecoveryBounty and SubRecoveryCores. The "via Game Script" rows
-	call the same script functions Rampage does (flow_controller func_688,
+	SubRecoveryHonor, SubRecoveryBounty, SubRecoveryCores and
+	SubRecoveryAddItems. The "via Game Script" rows call the same script
+	functions Rampage does (flow_controller func_688, func_290, func_299,
 	short_update func_583 in the 1491.50 decompile) through our
-	ScriptFunction.
+	ScriptFunction. Unlimited/Max Items hook natives for game scripts
+	through NativeHooks.
 
 	Money amounts are typed in dollars and passed to the game in cents, as
 	Rampage does.
@@ -11,6 +13,8 @@
 
 #include "Menus.h"
 #include "..\GameUtil.h"
+#include "..\Log.h"
+#include "..\NativeHooks.h"
 #include "..\ScriptFunction.h"
 
 #include <algorithm>
@@ -293,6 +297,205 @@ namespace
 			return "flow_controller call failed (see log)";
 		return "";
 	}
+
+	// ---- SubRecoveryAddItems ----
+
+	// flow_controller func_299(item, quantity, bNoStat, hReason, b4): removes
+	// an inventory item (or ammo), keeping the game's stats in step.
+	// Position 0x8D81.
+	ScriptFunction g_removeItemScript("flow_controller",
+		"22 05 0E 00 00 66 00 2F 39 ? ? ? 05 8B 04 00 2F 50 05 01 66 03 37 A3 E0 88 21 0B 67 07 66 03 37 82 B4 C4 76 0B 67 08");
+
+	constexpr std::uint64_t kRemoveWithItemId = 0xB4158C8C9A3B5DCE; // _INVENTORY_REMOVE_INVENTORY_ITEM_WITH_ITEMID
+	constexpr std::uint64_t kRemoveWithGuid = 0x3E4E811480B3AE79;   // _INVENTORY_REMOVE_INVENTORY_ITEM_WITH_GUID
+	constexpr std::uint64_t kAddWithGuid = 0xCB5D11F9508A928D;      // _INVENTORY_ADD_ITEM_WITH_GUID
+	constexpr Hash kAddReasonPurchased = 0x4A6726C9;                // ADD_REASON_PURCHASED
+	constexpr Hash kAddReasonLooted = 0xCA806A55;                   // ADD_REASON_LOOTED
+	constexpr int kMaxItemAmount = 99;
+
+	// Prompts for an item name (or hash) and an amount of 1..99.
+	bool PromptItem(Hash& item, int& amount)
+	{
+		std::string name;
+		if (!GameUtil::PromptText("Enter Item Name:", name) || name.empty())
+			return false;
+		const auto value = PromptInt("Enter Amount:", 2);
+		if (!value || *value < 1 || *value > kMaxItemAmount)
+			return false;
+		item = GameUtil::ParseHash(name);
+		amount = *value;
+		return true;
+	}
+
+	std::string ItemInvalid() { return "~COLOR_RED~Error:~s~ Item is invalid."; }
+
+	bool ItemValid(Hash item) { return ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item, 0) != FALSE; }
+
+	std::string AddToInventory()
+	{
+		Hash item;
+		int amount;
+		if (!PromptItem(item, amount))
+			return "";
+		std::string error;
+		if (!GameUtil::AddInventoryItem(item, amount, error))
+			return "~COLOR_RED~Error:~s~ " + error;
+		return std::format("Added {}x {:#x}", amount, item);
+	}
+
+	std::string AddItemViaScript()
+	{
+		Hash item;
+		int amount;
+		if (!PromptItem(item, amount))
+			return "";
+		if (!ItemValid(item))
+			return ItemInvalid();
+		if (!g_addItemScript.Call(item, amount, FALSE, FALSE, FALSE, kCashAddReason, 0, 0, 0, FALSE))
+			return "flow_controller call failed (see log)";
+		return "";
+	}
+
+	std::string RemoveFromInventory()
+	{
+		Hash item;
+		int amount;
+		if (!PromptItem(item, amount))
+			return "";
+		if (!ItemValid(item))
+			return ItemInvalid();
+		if (!INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEM_WITH_ITEMID(GameUtil::kInventorySp, item, amount, GameUtil::kRemoveReasonDefault))
+			return "Nothing removed";
+		return std::format("Removed {}x {:#x}", amount, item);
+	}
+
+	std::string RemoveItemViaScript()
+	{
+		Hash item;
+		int amount;
+		if (!PromptItem(item, amount))
+			return "";
+		if (!ItemValid(item))
+			return ItemInvalid();
+		if (!g_removeItemScript.Call(item, amount, FALSE, GameUtil::kRemoveReasonDefault, TRUE))
+			return "flow_controller call failed (see log)";
+		return "";
+	}
+
+	// Unlimited Items: game scripts' removals succeed without removing
+	// anything. Rampage blocks only the by-item-id removal; we also block
+	// the by-GUID one, which the scripts use about three times as often
+	// (ours). Our own Remove/Wipe rows go through ScriptHook and still work.
+	void BlockRemoveWithItemId(rage::scrNativeCallContext* ctx)
+	{
+		Log::Write("[Inventory] Blocked removal of {}x {:#x}", ctx->GetArg<int>(2), ctx->GetArg<Hash>(1));
+		ctx->SetReturnValue<BOOL>(TRUE);
+	}
+
+	void BlockRemoveWithGuid(rage::scrNativeCallContext* ctx)
+	{
+		Log::Write("[Inventory] Blocked removal of {}x (by GUID)", ctx->GetArg<int>(2));
+		ctx->SetReturnValue<BOOL>(TRUE);
+	}
+
+	NativeHooks::Id g_blockRemoveIds[2] = {};
+
+	void SetUnlimitedItems(bool on)
+	{
+		for (NativeHooks::Id& id : g_blockRemoveIds)
+		{
+			NativeHooks::Remove(id);
+			id = 0;
+		}
+		if (!on)
+			return;
+		g_blockRemoveIds[0] = NativeHooks::Add(NativeHooks::kAllScripts, kRemoveWithItemId, BlockRemoveWithItemId);
+		g_blockRemoveIds[1] = NativeHooks::Add(NativeHooks::kAllScripts, kRemoveWithGuid, BlockRemoveWithGuid);
+	}
+
+	// Max Items: a purchase or a looted pickup adds 99 instead of the
+	// amount asked for. _INVENTORY_ADD_ITEM_WITH_GUID's arguments are
+	// (inventory, itemGuid, slotGuid, item, slot, quantity, reason).
+	rage::scrNativeHandler g_addWithGuid = nullptr;
+
+	void MaxOnPurchase(rage::scrNativeCallContext* ctx)
+	{
+		const Hash reason = ctx->GetArg<Hash>(6);
+		if (reason == kAddReasonPurchased || reason == kAddReasonLooted)
+		{
+			Log::Write("[Inventory] Add {:#x} x{} => {}", ctx->GetArg<Hash>(3), ctx->GetArg<int>(5), kMaxItemAmount);
+			ctx->SetArg(5, kMaxItemAmount);
+		}
+		g_addWithGuid(ctx);
+	}
+
+	NativeHooks::Id g_maxItemsId = 0;
+
+	void SetMaxItems(bool on)
+	{
+		NativeHooks::Remove(g_maxItemsId);
+		g_maxItemsId = 0;
+		if (!on)
+			return;
+		g_addWithGuid = NativeHooks::Original(kAddWithGuid);
+		if (g_addWithGuid)
+			g_maxItemsId = NativeHooks::Add(NativeHooks::kAllScripts, kAddWithGuid, MaxOnPurchase);
+	}
+
+	// Collectible: spawns the object in front of the player and has them
+	// pick it up, which collects it the way finding it in the world does.
+	std::string SpawnCollectible()
+	{
+		std::string name;
+		if (!GameUtil::PromptText("Enter Object Name or Hash:", name) || name.empty())
+			return "";
+		const Hash model = GameUtil::ParseHash(name);
+		if (!GameUtil::LoadModel(model))
+			return "~COLOR_RED~Error:~s~ Model is invalid.";
+		const Vector3 pos = ENTITY::GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(Me(), 0.0f, 1.0f, 0.0f);
+		const Object object = OBJECT::CREATE_OBJECT(model, pos.x, pos.y, pos.z, FALSE, FALSE, FALSE, FALSE, FALSE);
+		TASK::_MAKE_OBJECT_CARRIABLE(object);
+		GRAPHICS::SET_PICKUP_LIGHT(object, TRUE);
+		ENTITY::FREEZE_ENTITY_POSITION(object, FALSE);
+		WAIT(600);
+		TASK::TASK_PICKUP_CARRIABLE_ENTITY(Me(), object);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+		return "";
+	}
+
+	std::string WipeInventory()
+	{
+		std::string text;
+		if (!GameUtil::PromptText("To continue write \"Do as I say\"", text))
+			return "";
+		std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		if (text != "do as i say")
+			return "Cancelled";
+		INVENTORY::_INVENTORY_USE_BACKUP_INVENTORY(FALSE);
+		INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEMS(GameUtil::kInventorySp, GameUtil::kRemoveReasonDefault);
+		return "Inventory wiped";
+	}
+
+	// Copies inventory `from` over `to`, by the root character GUID.
+	void CopyInventory(int from, int to)
+	{
+		GameUtil::ItemGuid character = GameUtil::CharacterGuid(from);
+		INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEMS(to, GameUtil::kRemoveReasonDefault);
+		INVENTORY::_INVENTORY_COPY_ITEM_TO_INVENTORY(from, to, character.Ptr(), 0);
+	}
+
+	// Rampage keeps its snapshot in inventory 6, which singleplayer
+	// doesn't otherwise use.
+	constexpr int kInventorySnapshot = 6;
+
+	std::string RestoreSnapshot()
+	{
+		// On the backup while main is cleared and refilled, as Rampage does.
+		INVENTORY::_INVENTORY_USE_BACKUP_INVENTORY(TRUE);
+		CopyInventory(kInventorySnapshot, GameUtil::kInventorySp);
+		INVENTORY::_INVENTORY_USE_BACKUP_INVENTORY(FALSE);
+		return "Snapshot restored";
+	}
 }
 
 namespace Menus
@@ -354,5 +557,32 @@ namespace Menus
 		Ui::Section(cores, "Tanks");
 		for (int core = 0; core < 3; core++)
 			Ui::Action(cores, std::format("Add {} Tank", kCores[core].name), [core] { return AddTank(core); });
+
+		MenuBase* items = Ui::Submenu(recovery, "Add Items");
+		Ui::Toggle(items, "Unlimited Items", SetUnlimitedItems);
+		Ui::Toggle(items, "Max Items", SetMaxItems);
+		Ui::Action(items, "Add to Inventory", AddToInventory);
+		Ui::Action(items, "Add Item via Game Script", AddItemViaScript);
+		Ui::Action(items, "Remove from Inventory", RemoveFromInventory);
+		Ui::Action(items, "Remove Item via Game Script", RemoveItemViaScript);
+		Ui::Action(items, "Collectible", SpawnCollectible);
+		Ui::Action(items, "~COLOR_RED~Wipe Inventory", WipeInventory);
+		// Shows the game's state, read each time the menu opens.
+		MenuItemToggle* backup = Ui::Toggle(items, "~COLOR_RED~Use Backup Inventory",
+			[](bool on) { INVENTORY::_INVENTORY_USE_BACKUP_INVENTORY(on); });
+		items->SetOnOpen([backup](MenuBase*) { backup->SetState(INVENTORY::_INVENTORY_IS_USING_BACKUP_INVENTORY() != FALSE); });
+		Ui::Action(items, "~COLOR_RED~Copy Main to Backup", [] {
+			CopyInventory(GameUtil::kInventorySp, GameUtil::kInventorySpBackup);
+			return std::string("Copied main to backup");
+		});
+		Ui::Action(items, "~COLOR_RED~Copy Backup to Main", [] {
+			CopyInventory(GameUtil::kInventorySpBackup, GameUtil::kInventorySp);
+			return std::string("Copied backup to main");
+		});
+		Ui::Action(items, "Snapshot Inventory", [] {
+			CopyInventory(GameUtil::kInventorySp, kInventorySnapshot);
+			return std::string("Snapshot saved");
+		});
+		Ui::Action(items, "Restore Snapshot", RestoreSnapshot);
 	}
 }
