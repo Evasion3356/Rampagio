@@ -174,11 +174,62 @@ register). The DB is missing some SDK names; for example
 4. Write our own version in `Features.cpp`, note the Rampage function in
    the table above, build, and have the user test it live.
 
+## Goals
+
+### Goal A: parity with Rampage (minimum bar)
+
+Rampagio does at least everything Rampage does in singleplayer.
+Rampage's `.rdata` holds about 2,600 readable label strings. Many are
+data lists (animals, horse coats, orchids, trains), but the feature
+surface is still several hundred options across Player, Horse, Weapons,
+Vehicles/Trains, World/Weather/Time, Teleport, Spawners (ped, animal,
+horse, object, boat, legendary), Ped/Object managers, entity guns,
+Posse/Bodyguards, Wardrobe/Outfits, Inventory/Money/Honor/Bounty,
+Collectibles/Map, Script Tools (Loader, Terminator, Monitor, Patcher,
+Global Editor), Hotkeys, Themes and Settings.
+
+1. Inventory: map every label to its handler and natives (CSV in
+   `tools/`, gitignored), group by submenu, mark SP-only versus
+   online-only (drop the online-only ones).
+2. Infrastructure first: script-function caller (`sub_18001C900`
+   equivalent), script local/global access, entity enumeration (pools),
+   number/text input, list submenus, toggle persistence, hotkeys.
+3. Port submenu by submenu, live-testing each row (Features table).
+
+### Goal B: merge the sibling projects as submodules (needs recon)
+
+Bring BlackjackCheat, ChallengeCheat, DominoCheat, FFFCheat, FishingFix,
+GoldHorse, HorseMenu, HorseStatLock, PokerCheat and YEEAHSM in as git
+submodules, so Rampagio is the one menu. Status: research only, no work
+started. Open questions:
+
+- Each sibling is a standalone ASI with its own `DllMain`, script loop,
+  menu, INI and log. Each needs a library/feature entry point split out
+  of its ASI shell, without breaking the standalone build.
+- GoldHorse and HorseStatLock have no remote; a submodule needs one.
+- GoldHorse runs online through Exodus, which conflicts with the
+  singleplayer-only rule.
+- HorseMenu is YimMenu's repo (upstream `YimMenu/HorseMenu`), not ours:
+  its own framework, license and online focus. Decide whether it's a
+  dependency at all or only a reference.
+- YEEAHSM uses `deps/minhook`; the others use `external/`. Shared
+  submodules (ScriptHookSDK, spdlog, inipp, RDR-Classes, minhook) would
+  nest; pick one copy and check version skew.
+- Conflicting hooks/patches (several use MinHook or byte patches) when
+  all run in one process.
+
+### Goal C: improve on Rampage
+
+Go past parity by reading the decompiled scripts (`..\Scripts\1491.50`)
+and game files for things Rampage doesn't expose or does poorly. Each
+idea gets a short write-up (script, function/local, mechanism) before
+code. The sibling projects (minigame advisors, challenge completion,
+fishing/dead-eye fixes, horse stat lock) are the first examples of this
+kind of work.
+
 ## Next steps
 
-- Feature inventory: walk Rampage's menu builders and map each label to
-  its handler and the natives it calls, giving a checklist of everything
-  to port.
+- Goal A step 1: the feature inventory.
 - Script-function caller (for cash/honor and anything else Rampage runs
   through `sub_18001C900`).
 - Live-test the starter features.
