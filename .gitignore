@@ -1,0 +1,7 @@
+# Build output
+/bin/
+/tmp/
+
+# Visual Studio
+/.vs/
+*.user

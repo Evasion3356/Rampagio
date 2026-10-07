@@ -1,0 +1,166 @@
+# Builds the Release .asi, publishes it as a GitHub release and uploads it to
+# Nexus Mods.
+#
+# Runs when a version tag (e.g. 1.4) is pushed, or by hand from the Actions
+# tab ("Run workflow") for a tag that already exists. Steps: run every unit
+# test project under tests/, build the Release .asi, take the release notes
+# from the changelog section matching the tag, zip the .asi with the default
+# INI the build generates (for mods that have one), create (or refresh) the
+# GitHub release, then add the zip on Nexus Mods as a new version of the
+# mod's main file. The Nexus step archives the version it replaces, sets the
+# mod's version to the tag and adds the changelog entry. A manual run only
+# uploads to Nexus when "nexus" is ticked, so re-running for an old tag
+# doesn't upload it twice.
+#
+# Nexus needs the NEXUS_API_KEY repository secret (a personal API key from
+# https://www.nexusmods.com/settings/api-keys). NEXUS_MOD_ID is the mod's v3
+# API id, not the number in the mod page URL.
+#
+# Vendored into every sibling ASI project; only the env block below differs.
+
+name: Release
+
+on:
+  push:
+    tags: ['[0-9]*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and release (e.g. 1.4)
+        required: true
+      nexus:
+        description: Also upload it to Nexus Mods as a new version
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  PROJECT: Rampagio
+  ASI: bin/Release/Rampagio.asi
+  CHANGELOG: docs/CHANGELOG.md
+  INI: bin/Release/Rampagio.ini
+  # Rampagio has no Nexus page yet: with these empty the Nexus step is
+  # skipped. Fill both in once the mod page and its main file exist.
+  NEXUS_MOD_ID: ''
+  NEXUS_FILE_ID: ''
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+          submodules: recursive
+
+      - uses: microsoft/setup-msbuild@v3
+
+      # The projects target v145 (Visual Studio 2026). If the runner image
+      # only has an older Visual Studio, build with its toolset instead.
+      - name: Pick platform toolset
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationVersion
+          $toolset = if ([int]$vs.Split('.')[0] -ge 18) { 'v145' } else { 'v143' }
+          "TOOLSET=$toolset" >> $env:GITHUB_ENV
+          Write-Host "Visual Studio $vs -> PlatformToolset $toolset"
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          $projects = Get-ChildItem tests -Filter *.vcxproj -ErrorAction SilentlyContinue
+          foreach ($project in $projects) {
+            msbuild $project.FullName /p:Configuration=Debug /p:Platform=x64 /p:PlatformToolset=$env:TOOLSET /nologo /v:minimal
+            if ($LASTEXITCODE) { throw "Building $($project.Name) failed" }
+            & (Join-Path bin\Debug "$($project.BaseName).exe")
+            if ($LASTEXITCODE) { throw "$($project.BaseName) failed" }
+          }
+
+      - name: Build Release
+        shell: pwsh
+        run: |
+          msbuild "$env:PROJECT.vcxproj" /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=$env:TOOLSET /p:PostBuildEventUseInBuild=false /nologo /v:minimal
+          if ($LASTEXITCODE) { throw "Release build failed" }
+          if (-not (Test-Path $env:ASI)) { throw "$env:ASI was not produced" }
+
+      # Tag 1.4 matches "## [1.4.0]" (or "## [1.4]") in the changelog. Nexus
+      # keeps its changelog one line per entry, so its copy has each wrapped
+      # bullet joined back onto one line.
+      - name: Release notes from changelog
+        id: notes
+        shell: pwsh
+        run: |
+          $lines = @(Get-Content $env:CHANGELOG)
+          $pattern = '^## \[' + [regex]::Escape($env:TAG) + '(\.0)*\]'
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match $pattern) { $start = $i; break } }
+          if ($start -lt 0) { throw "No '## [$env:TAG]' section in $env:CHANGELOG" }
+          $version = [regex]::Match($lines[$start], '\[([^\]]+)\]').Groups[1].Value
+          $body = @(for ($i = $start + 1; $i -lt $lines.Count -and $lines[$i] -notmatch '^## '; $i++) { $lines[$i] })
+          (($body -join "`n").Trim()) | Set-Content notes.md -Encoding utf8
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+          $entries = [System.Collections.Generic.List[string]]::new()
+          foreach ($line in $body) {
+            $text = $line.Trim()
+            if (-not $text) { continue }
+            if ($entries.Count -eq 0 -or $text -match '^([-*] |#)') { $entries.Add($text) }
+            else { $entries[$entries.Count - 1] += " $text" }
+          }
+          $delimiter = "CHANGELOG_$([guid]::NewGuid().ToString('N'))"
+          "changelog<<$delimiter" >> $env:GITHUB_OUTPUT
+          $entries >> $env:GITHUB_OUTPUT
+          $delimiter >> $env:GITHUB_OUTPUT
+
+      # The download: the .asi, plus the default INI the Release build
+      # generates from the mod's own Config code (tools/IniGen) for mods that
+      # have settings.
+      - name: Package
+        shell: pwsh
+        run: |
+          $files = @($env:ASI)
+          if ($env:INI) {
+            if (-not (Test-Path $env:INI)) { throw "$env:INI was not produced" }
+            $files += $env:INI
+          }
+          $zip = "$env:PROJECT-$env:TAG.zip"
+          Compress-Archive -Path $files -DestinationPath $zip -Force
+          "ZIP=$zip" >> $env:GITHUB_ENV
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $title = "$env:PROJECT $env:RELEASE_VERSION"
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release edit $env:TAG --title $title --notes-file notes.md
+            gh release upload $env:TAG $env:ZIP $env:ASI --clobber
+          } else {
+            gh release create $env:TAG $env:ZIP $env:ASI --title $title --notes-file notes.md --verify-tag
+          }
+          if ($LASTEXITCODE) { throw "Publishing the release failed" }
+
+      # Pinned to a commit rather than a tag, since it is handed the API key.
+      - name: Upload to Nexus Mods
+        if: env.NEXUS_FILE_ID != '' && (github.event_name == 'push' || inputs.nexus)
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
+        with:
+          api_key: ${{ secrets.NEXUS_API_KEY }}
+          mod_id: ${{ env.NEXUS_MOD_ID }}
+          file_id: ${{ env.NEXUS_FILE_ID }}
+          filename: ${{ env.ZIP }}
+          display_name: ${{ env.PROJECT }}
+          version: ${{ env.TAG }}
+          category: main
+          # false moves the previous version to "Old versions", where it stays
+          # downloadable; true archives it, which hides it from users.
+          archive_existing_version: false
+          update_mod_version: true
+          primary_mod_manager_download: true
+          changelog: ${{ steps.notes.outputs.changelog }}

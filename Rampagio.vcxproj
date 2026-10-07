@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- As in ChallengeCheat, keyboard.cpp and scriptmenu.cpp are built in
+         Release too: the F7 menu is this mod's whole interface. -->
+    <ClCompile Include="src\keyboard.cpp" />
+    <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\KeyNames.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\script.cpp" />
+    <ClCompile Include="src\scriptmenu.cpp" />
+    <ClCompile Include="src\PatternScan.cpp" />
+    <ClCompile Include="src\Features.cpp" />
+    <ClCompile Include="src\GameUtil.cpp" />
+    <ClCompile Include="external\minhook\src\hook.c" />
+    <ClCompile Include="external\minhook\src\buffer.c" />
+    <ClCompile Include="external\minhook\src\trampoline.c" />
+    <ClCompile Include="external\minhook\src\hde\hde64.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="external\ScriptHookSDK\inc\main.h" />
+    <ClInclude Include="external\ScriptHookSDK\inc\enums.h" />
+    <ClInclude Include="external\ScriptHookSDK\inc\natives.h" />
+    <ClInclude Include="external\ScriptHookSDK\inc\types.h" />
+    <ClInclude Include="src\keyboard.h" />
+    <ClInclude Include="src\Config.h" />
+    <ClInclude Include="src\KeyNames.h" />
+    <ClInclude Include="external\inipp\inipp\inipp.h" />
+    <ClInclude Include="src\script.h" />
+    <ClInclude Include="src\scriptmenu.h" />
+    <ClInclude Include="src\Log.h" />
+    <ClInclude Include="src\ExtraNatives.h" />
+    <ClInclude Include="src\PatternScan.h" />
+    <ClInclude Include="src\Features.h" />
+    <ClInclude Include="src\GameUtil.h" />
+    <ClInclude Include="external\RDR-Classes\rage\joaat.hpp" />
+    <ClInclude Include="external\spdlog\include\spdlog\spdlog.h" />
+    <ClInclude Include="external\spdlog\include\spdlog\sinks\basic_file_sink.h" />
+    <ClInclude Include="external\minhook\include\MinHook.h" />
+    <ClInclude Include="external\minhook\src\buffer.h" />
+    <ClInclude Include="external\minhook\src\trampoline.h" />
+    <ClInclude Include="external\minhook\src\hde\hde64.h" />
+    <ClInclude Include="external\minhook\src\hde\table64.h" />
+    <ClInclude Include="external\minhook\src\hde\pstdint.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{825A6BD4-A1A2-4AF7-A181-49E34539782C}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Rampagio</RootNamespace>
+    <ProjectName>Rampagio</ProjectName>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Without this, Visual Studio's Fast Up-to-Date Check can decide
+         the project doesn't need building at all and skip invoking
+         MSBuild, meaning PostBuildEvent (the auto-locate + deploy
+         step) never runs. Kept here rather than in the .vcxproj.user:
+         that file is gitignored and Visual Studio can reset it. -->
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <TargetExt>.asi</TargetExt>
+    <OutDir>bin\$(Configuration)\</OutDir>
+    <IntDir>tmp\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetExt>.asi</TargetExt>
+    <OutDir>bin\$(Configuration)\</OutDir>
+    <IntDir>tmp\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;CHALLENGECHEAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalIncludeDirectories>external\spdlog\include;external\minhook\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalOptions>external\ScriptHookSDK\lib\ScriptHookRDR2.lib %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>set "GAMEDIR="
+for /f "delims=" %%G in ('powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)BuildTools\Find-RDR2GameDir.ps1"') do set "GAMEDIR=%%G"
+if not defined GAMEDIR (echo PostBuild : warning DEPLOY01: RDR2 install folder not found -- build OK, deploy skipped. Set RDR2_GAME_DIR to deploy.&amp; exit /b 0)
+copy /Y "$(TargetPath)" "%GAMEDIR%\$(TargetFileName)"</Command>
+      <Message>Deploying $(TargetFileName) (auto-locating RDR2 install dir)</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>Disabled</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;CHALLENGECHEAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <AdditionalIncludeDirectories>external\spdlog\include;external\minhook\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <OptimizeReferences>false</OptimizeReferences>
+      <AdditionalOptions>external\ScriptHookSDK\lib\ScriptHookRDR2.lib %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>set "GAMEDIR="
+for /f "delims=" %%G in ('powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)BuildTools\Find-RDR2GameDir.ps1"') do set "GAMEDIR=%%G"
+if not defined GAMEDIR (echo PostBuild : warning DEPLOY01: RDR2 install folder not found -- build OK, deploy skipped. Set RDR2_GAME_DIR to deploy.&amp; exit /b 0)
+copy /Y "$(TargetPath)" "%GAMEDIR%\$(TargetFileName)"
+copy /Y "$(TargetDir)$(TargetName).pdb" "%GAMEDIR%\$(TargetName).pdb"</Command>
+      <Message>Deploying $(TargetFileName) + PDB (auto-locating RDR2 install dir)</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <!-- Writes bin\$(Configuration)\$(TargetName).ini with this configuration's
+       defaults, for the release package: builds and runs tools\IniGen, which
+       calls the mod's own Config code in an empty folder (see IniGen.cpp).
+       Deliberately not deployed to the game folder. -->
+  <Target Name="GenerateDefaultIni" AfterTargets="Build" Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='Release'">
+    <PropertyGroup>
+      <IniGenDir>$(MSBuildProjectDirectory)\tmp\$(Configuration)\IniGen\</IniGenDir>
+    </PropertyGroup>
+    <MSBuild Projects="tools\IniGen\IniGen.vcxproj" Properties="Configuration=$(Configuration);Platform=$(Platform)" />
+    <Delete Files="$(IniGenDir)$(TargetName).ini" />
+    <Exec Command="&quot;$(IniGenDir)IniGen.exe&quot;" />
+    <Copy SourceFiles="$(IniGenDir)$(TargetName).ini" DestinationFolder="$(OutDir)" />
+  </Target>
+</Project>
