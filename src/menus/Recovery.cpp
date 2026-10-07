@@ -1,8 +1,9 @@
 /*
-	Recovery menu: ports Rampage's Submenus::SubRecoveryMoney and
-	SubRecoveryHonor. The "via Game Script" rows call the same script
-	functions Rampage does (flow_controller func_688, short_update func_583
-	in the 1491.50 decompile) through our ScriptFunction.
+	Recovery menu: ports Rampage's Submenus::SubRecoveryMoney,
+	SubRecoveryHonor, SubRecoveryBounty and SubRecoveryCores. The "via Game Script" rows
+	call the same script functions Rampage does (flow_controller func_688,
+	short_update func_583 in the 1491.50 decompile) through our
+	ScriptFunction.
 
 	Money amounts are typed in dollars and passed to the game in cents, as
 	Rampage does.
@@ -14,6 +15,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cstdlib>
 #include <format>
 
 namespace
@@ -168,6 +170,129 @@ namespace
 			return "short_update call failed (see log)";
 		return "";
 	}
+
+	// ---- SubRecoveryBounty ----
+
+	// Bounties are in cents, like money.
+	std::string Dollars(long long cents)
+	{
+		return std::format("${}.{:02}", cents / 100, std::abs(cents % 100));
+	}
+
+	int g_bountyAmount = 1000;
+
+	// Ends the wanted state the crime report below starts, keeping the
+	// bounty.
+	void ClearWanted()
+	{
+		const Player me = PLAYER::PLAYER_ID();
+		PLAYER::_SET_MAX_WANTED_LEVEL_2(-1);
+		LAW::CLEAR_WANTED_SCORE(me);
+		LAW::_SET_BOUNTY_HUNTER_PURSUIT_CLEARED();
+		LAW::SET_WANTED_SCORE(me, 0);
+	}
+
+	// A debug crime report first so the bounty attaches to the current
+	// region, then the new bounty, then the wanted state is cleared half a
+	// second later.
+	void ChangeBounty(int delta)
+	{
+		const Player me = PLAYER::PLAYER_ID();
+		LAW::_REPORT_CRIME(me, GameUtil::Joaat("CRIME_WANTED_LEVEL_UP_DEBUG_LOW"), 0, 0, TRUE);
+		LAW::SET_BOUNTY(me, LAW::GET_BOUNTY(me) + delta);
+		LAW::SET_WANTED_SCORE(me, 1);
+		WAIT(500);
+		ClearWanted();
+	}
+
+	void ClearBounty()
+	{
+		const Player me = PLAYER::PLAYER_ID();
+		LAW::_REPORT_CRIME(me, GameUtil::Joaat("CRIME_WANTED_LEVEL_UP_DEBUG_LOW"), 0, 0, TRUE);
+		PLAYER::_SET_MAX_WANTED_LEVEL_2(-1);
+		LAW::CLEAR_WANTED_SCORE(me);
+		LAW::_SET_BOUNTY_HUNTER_PURSUIT_CLEARED();
+		LAW::SET_BOUNTY(me, 0);
+		LAW::SET_WANTED_SCORE(me, 0);
+	}
+
+	// Each state's bounty is Global_40.f_358[state].f_0 (12-slot entries;
+	// short_update's per-state bounty setter, which also mirrors it to the
+	// StateBounty* compendium stats). Index order is the game's.
+	struct State { const char* name; int index; };
+	const State kStates[] = {
+		{ "Lemoyne", 2 }, { "West Elizabeth", 3 }, { "New Hanover", 1 }, { "Ambarino", 0 }, { "New Austin", 4 },
+	};
+
+	UINT64* StateBounty(int index)
+	{
+		return GameUtil::Global(40 + 358 + 1 + 12 * index);
+	}
+
+	std::string ClearStateBounty(int index)
+	{
+		if (SCRIPT::IS_LOADING_SCREEN_VISIBLE())
+			return "";
+		if (UINT64* bounty = StateBounty(index))
+			*reinterpret_cast<int*>(bounty) = 0;
+		return "";
+	}
+
+	// ---- SubRecoveryCores ----
+
+	// Attribute indices 0..2 are health, stamina, dead eye.
+	struct Core
+	{
+		const char* name;
+		Hash tonic;   // consumable whose effect fills this core
+		Hash tank;    // upgrade item that adds a core tank
+	};
+	const Core kCores[] = {
+		{ "Health", GameUtil::Joaat("consumable_ginseng_elixier"), GameUtil::Joaat("UPGRADE_HEALTH_TANK_1") },
+		{ "Stamina", GameUtil::Joaat("consumable_aged_pirate_rum"), GameUtil::Joaat("UPGRADE_STAMINA_TANK_1") },
+		{ "Dead Eye", GameUtil::Joaat("consumable_valerian_root"), GameUtil::Joaat("UPGRADE_DEADEYE_TANK_1") },
+	};
+	int g_coreRank[3] = {};
+
+	// Plays the tonic's quick-use animation and applies its effect, without
+	// needing the item.
+	void UseTonic(int core)
+	{
+		TASK::START_TASK_ITEM_INTERACTION(Me(), kCores[core].tonic, GameUtil::Joaat("use_tonic_potent_satchel_unarmed_quick"), 1, 0, 0.0f);
+	}
+
+	// Sets the core's attribute points (Global_40.f_11095.f_11[core], the
+	// float array short_update keeps in sync with SET_ATTRIBUTE_POINTS) to
+	// 1600, flags short_update to save (Global_1347477.f_8), then uses the
+	// tonic so the game applies it.
+	void MaxCore(int core)
+	{
+		if (SCRIPT::IS_LOADING_SCREEN_VISIBLE())
+			return;
+		if (UINT64* points = GameUtil::Global(40 + 11095 + 11 + 1 + core))
+			*reinterpret_cast<float*>(points) = 1600.0f;
+		if (UINT64* save = GameUtil::Global(1347477 + 8))
+			*reinterpret_cast<int*>(save) = 1;
+		UseTonic(core);
+	}
+
+	void ReadCoreRanks(MenuBase*)
+	{
+		for (int core = 0; core < 3; core++)
+			g_coreRank[core] = ATTRIBUTE::GET_ATTRIBUTE_BASE_RANK(Me(), core);
+	}
+
+	// flow_controller func_290(item, quantity, b2, b3, b4, hReason, i6, i7,
+	// eEntity, b9): adds an inventory item. Position 0x766E.
+	ScriptFunction g_addItemScript("flow_controller",
+		"22 0A 32 00 00 66 00 2F 39 ? ? ? 05 8B 04 00 2F 50 0A 01 66 00 66 01 66 02 66 05 39 ? ? ? 05 8B 04 00 2F 50 0A 01");
+
+	std::string AddTank(int core)
+	{
+		if (!g_addItemScript.Call(kCores[core].tank, 1, FALSE, FALSE, FALSE, kCashAddReason, 0, 0, 0, FALSE))
+			return "flow_controller call failed (see log)";
+		return "";
+	}
 }
 
 namespace Menus
@@ -195,5 +320,39 @@ namespace Menus
 		Ui::Action(honor, "Add Negative", [] { return ChangeHonorByKill(g_honorAmount); });
 		Ui::Action(honor, "Custom Honor", CustomHonor);
 		Ui::Action(honor, "Edit via Game Script", EditHonorViaScript);
+
+		MenuBase* bounty = Ui::Submenu(recovery, "Bounty");
+		bounty->AddItem(new MenuItemLabel([] { return "Current Bounty: " + Dollars(LAW::GET_BOUNTY(PLAYER::PLAYER_ID())); }));
+		Ui::Number(bounty, "Bounty Value (cents)", &g_bountyAmount, 0, 10000, 100);
+		Ui::Do(bounty, "Increase Bounty", [] { ChangeBounty(g_bountyAmount); });
+		Ui::Do(bounty, "Decrease Bounty", [] { ChangeBounty(-g_bountyAmount); });
+		Ui::Do(bounty, "Clear Bounty", ClearBounty);
+		Ui::Section(bounty, "States");
+		// Ours: the caption shows the state's bounty; selecting clears it.
+		for (const State& state : kStates)
+		{
+			bounty->AddItem(new MenuItemActionStatus(
+				[state] {
+					const UINT64* value = StateBounty(state.index);
+					return std::format("{}: {}", state.name, value ? Dollars(*reinterpret_cast<const int*>(value)) : "?");
+				},
+				[state] { return ClearStateBounty(state.index); }));
+		}
+
+		MenuBase* cores = Ui::Submenu(recovery, "Cores");
+		cores->SetOnOpen(ReadCoreRanks);
+		for (int core = 0; core < 3; core++)
+			Ui::Do(cores, std::format("Add {} Points", kCores[core].name), [core] { UseTonic(core); });
+		Ui::Section(cores, "Permanently");
+		for (int core = 0; core < 3; core++)
+			Ui::Do(cores, std::format("Max {}", kCores[core].name), [core] { MaxCore(core); });
+		Ui::Section(cores, "Custom Temporary");
+		// Ours: applied on every step instead of on select.
+		for (int core = 0; core < 3; core++)
+			Ui::Number(cores, std::format("{} Core", kCores[core].name), &g_coreRank[core], 0, 8, 1,
+				[core] { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(Me(), core, g_coreRank[core]); });
+		Ui::Section(cores, "Tanks");
+		for (int core = 0; core < 3; core++)
+			Ui::Action(cores, std::format("Add {} Tank", kCores[core].name), [core] { return AddTank(core); });
 	}
 }
