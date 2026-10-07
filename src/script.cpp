@@ -13,68 +13,20 @@
 	net_main_online kill switch).
 */
 
-#include "scriptmenu.h" // pulls in script.h (natives/types/enums/main) and keyboard.h
+#include "Menu.h"
 #include "Log.h"
-#include "Features.h"
 #include "GameUtil.h"
-
-#include <string>
-#include <vector>
+#include "menus/Menus.h"
 
 namespace
 {
-	MenuController g_menuController;
-	MenuBase* g_mainMenu = nullptr;
-	std::vector<MenuItemToggle*> g_toggles; // owned by their menus
-
-	MenuBase* NewSubmenu(const std::string& title)
-	{
-		MenuBase* menu = new MenuBase(new MenuItemTitle(title));
-		g_menuController.RegisterMenu(menu); // required for MenuItemMenu::OnSelect's PushMenu to accept it
-		g_mainMenu->AddItem(new MenuItemMenu(title, menu));
-		return menu;
-	}
-
-	void AddAction(MenuBase* menu, const std::string& caption, std::function<std::string()> action)
-	{
-		menu->AddItem(new MenuItemActionStatus([caption]() { return caption; }, action));
-	}
-
-	void AddToggle(MenuBase* menu, const std::string& caption, std::function<void(bool)> onChange, std::function<void()> onTick = nullptr)
-	{
-		auto* toggle = new MenuItemToggle(caption, onChange, onTick);
-		menu->AddItem(toggle);
-		g_toggles.push_back(toggle);
-	}
-
 	void BuildMenu()
 	{
-		g_mainMenu = new MenuBase(new MenuItemTitle("Rampagio"));
-		g_menuController.RegisterMenu(g_mainMenu);
-
-		MenuBase* player = NewSubmenu("Player");
-		AddToggle(player, "Invincible", Features::InvinciblePlayer_OnChange);
-		AddAction(player, "Heal", Features::HealPlayer);
-		AddAction(player, "Clean", Features::CleanPlayer);
-		AddAction(player, "Clear Bounty", Features::ClearBounty);
-
-		MenuBase* horse = NewSubmenu("Horse");
-		AddToggle(horse, "Invincible", Features::InvincibleHorse_OnChange, Features::InvincibleHorse_OnTick);
-		AddAction(horse, "Heal", Features::HealHorse);
-
-		MenuBase* teleport = NewSubmenu("Teleport");
-		AddAction(teleport, "To Waypoint", Features::TeleportToWaypoint);
-
-		MenuBase* world = NewSubmenu("World");
-		AddAction(world, "Time +1 Hour", [] { return Features::AddClockHours(1); });
-	}
-
-	void DisableAll()
-	{
-		for (auto* toggle : g_toggles)
-			toggle->SetOff();
-		while (g_menuController.HasActiveMenu())
-			g_menuController.PopMenu();
+		MenuBase* root = Ui::Root();
+		Menus::BuildPlayer(root);
+		Menus::BuildHorse(root);
+		Menus::BuildTeleport(root);
+		Menus::BuildWorld(root);
 	}
 }
 
@@ -91,16 +43,17 @@ void ScriptMain()
 		if (online && !wasOnline)
 		{
 			Log::Write("Red Dead Online detected -- switching everything off");
-			DisableAll();
+			Ui::DisableAllToggles();
 		}
 		wasOnline = online;
 
 		if (!online)
 		{
-			if (!g_menuController.HasActiveMenu() && MenuInput::MenuSwitchPressed())
-				g_menuController.PushMenu(g_mainMenu);
+			MenuController& menus = Ui::Controller();
+			if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed())
+				menus.PushMenu(Ui::Root());
 
-			g_menuController.Update();
+			menus.Update();
 		}
 
 		WAIT(0);

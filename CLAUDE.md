@@ -45,20 +45,39 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
 
 ## Layout
 
-- `src/script.cpp`: builds the menu and runs the main loop, including the
-  online kill switch. To add a feature, add a row with `AddAction` (a
-  one-shot that returns a status string; empty = no popup) or `AddToggle`
-  (`onChange(bool)`, plus an optional `onTick()` that runs every frame
-  while the toggle is on, menu open or not).
-- `src/Features.{h,cpp}`: the feature implementations.
-- `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, `PlayerMount`,
-  `TeleportToGround`).
+- `src/script.cpp`: builds the root menu from the area builders and runs
+  the main loop, including the online kill switch.
+- `src/menus/<Area>.cpp`: one file per top-level menu (Player, Horse,
+  Teleport, World, ...), declared in `src/menus/Menus.h`. Each holds both
+  its rows and their implementations, with the Rampage submenu it ports
+  named in the header comment. New files there are picked up by the
+  `src\menus\*.cpp` wildcard in the vcxproj.
+- `src/Menu.{h,cpp}`: the row builder API (`Ui::Submenu`, `ListMenu`,
+  `Action`, `Do`, `Toggle`, `Looped`, `Number`, `Choice`, `Section`).
+  `Toggle` takes `onChange(bool)` plus an optional `onTick()` that runs
+  every frame while on, menu open or not; `Looped` is a tick-only toggle.
+  `ListMenu` rebuilds its rows each time it opens.
 - `src/scriptmenu.{h,cpp}`: the SDK NativeTrainer menu framework, same as
   the siblings', plus ChallengeCheat's item types and this repo's
-  `MenuItemToggle`.
+  additions: `MenuItemToggle`, `MenuItemNumber<T>`, `MenuItemChoice`,
+  `MenuItemSection`, NUMPAD 4/6 left/right input, and `MenuBase::SetOnOpen`.
+- `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, `PlayerMount`,
+  `PlayerHorse`, `TeleportToGround`, entity pools, script globals,
+  model/anim loading, `PromptText` on-screen keyboard, `Joaat`).
+- `src/DataFile.{h,cpp}`: named INI files for saved data (custom
+  teleports, ...), stored where `Rampagio.ini` is.
 - `src/PatternScan.*` and `external/minhook`: carried over for features
   that need memory patterns or hooks. Nothing uses them yet.
-- `tools/rampage_deob.py`: Rampage's native-hash deobfuscator (below).
+- `tools/rampage_deob.py`, `tools/rampage_inventory*.py`: Rampage
+  reversing tools (below). `tools/porting_status.py` regenerates
+  `docs/PORTING.md`.
+
+Natives: use the SDK's primary namespaces (`PAD`, `TASK`, `MISC`, `CAM`,
+`SCRIPT`, ...). `natives.h` also has older alias namespaces (`AI`,
+`CONTROLS`, `GAMEPLAY`) further down; avoid them. The deobfuscator's
+native DB names differ from the SDK's for some hashes (e.g. its
+`_SET_ATTRIBUTE_OVERPOWER_AMOUNT` is the SDK's `ENABLE_ATTRIBUTE_OVERPOWER`),
+so always match by hash.
 
 Shared files: `src/LogFallback.h` and `BuildTools/Find-RDR2GameDir.ps1`
 are identical in all sibling repos, so port any fix to every copy.
@@ -75,16 +94,12 @@ no feature branches. There's no GitHub remote yet.
 
 ## Features
 
-| Menu | Feature | Mechanism | Source | Live-tested |
-|---|---|---|---|---|
-| Player | Invincible | `SET_PLAYER_INVINCIBLE` + `SET_ENTITY_INVINCIBLE` on the ped | Rampage `sub_1800AE0B0` | No |
-| Player | Heal | max health + `_SET_ATTRIBUTE_CORE_VALUE` 0/1/2 = 100 + `RESTORE_PLAYER_STAMINA` | ours | No |
-| Player | Clean | `CLEAR_PED_WETNESS` / `_BLOOD_DAMAGE` / `_ENV_DIRT` | ours | No |
-| Player | Clear Bounty | `LAW::SET_BOUNTY(0)` + `LAW::SET_WANTED_SCORE(0)` | Rampage `sub_180058920`'s last step | No |
-| Horse | Invincible | `SET_ENTITY_INVINCIBLE` on the current mount, moved along when the mount changes | ours | No |
-| Horse | Heal | max health + cores 0/1 | ours | No |
-| Teleport | To Waypoint | `_GET_WAYPOINT_COORDS`, then ground probe with `REQUEST_COLLISION_AT_COORD` (moves the mount if riding) | ours | No |
-| World | Time +1 Hour | `CLOCK::ADD_TO_CLOCK_TIME` | ours | No |
+Porting status per Rampage submenu is in `docs/PORTING.md` (regenerate
+with `tools/porting_status.py` after updating its `STATUS` table).
+Nothing has been live-tested yet; the user asked to finish porting first.
+Rows marked "ours" in code comments deliberately differ from Rampage.
+Data Rampage keeps in tables in its binary (teleport coordinates, ...)
+is not copied: we source our own.
 
 ## Reversing Rampage
 

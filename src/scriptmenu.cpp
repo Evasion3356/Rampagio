@@ -275,11 +275,62 @@ void MenuItemMenu::OnDraw(float lineTop, float lineLeft, bool active)
 	DrawTextAt(lineLeft + lineWidth - lineWidth / 8, lineTop + lineHeight / 3.5f, "*", fontSize, color);
 }
 
+void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& text)
+{
+	const float lineWidth = item->GetLineWidth();
+	const float lineHeight = item->GetLineHeight();
+	const ColorRgba color = active ? item->GetColorTextActive() : item->GetColorText();
+	const int fontSize = static_cast<int>(lineHeight * kMenuFontSizeScale * 0.8f);
+	// No text measuring on the Scaleform path: back off ~0.0075 per char.
+	const float x = lineLeft + lineWidth - 0.008f - 0.0075f * static_cast<float>(text.size());
+	DrawTextAt(x, lineTop + lineHeight / 4.0f, text.c_str(), fontSize, color);
+}
+
+void MenuItemChoice::OnLeft()
+{
+	if (m_options.empty())
+		return;
+	*m_index = (*m_index + static_cast<int>(m_options.size()) - 1) % static_cast<int>(m_options.size());
+	if (m_onChange)
+		m_onChange(*m_index);
+}
+
+void MenuItemChoice::OnRight()
+{
+	if (m_options.empty())
+		return;
+	*m_index = (*m_index + 1) % static_cast<int>(m_options.size());
+	if (m_onChange)
+		m_onChange(*m_index);
+}
+
+void MenuItemChoice::OnDraw(float lineTop, float lineLeft, bool active)
+{
+	MenuItemDefault::OnDraw(lineTop, lineLeft, active);
+	if (*m_index >= 0 && *m_index < static_cast<int>(m_options.size()))
+		DrawRowValue(this, lineTop, lineLeft, active, "< " + m_options[*m_index] + " >");
+}
+
+void MenuItemSection::OnDraw(float lineTop, float lineLeft, bool active)
+{
+	const float lineWidth = GetLineWidth();
+	const float lineHeight = GetLineHeight();
+	DrawRect(lineLeft, lineTop, lineWidth, lineHeight, 20, 20, 20, 200);
+	if (active)
+		DrawRectBorder(lineLeft, lineTop, lineWidth, lineHeight, MenuBase_activeBorderThickness,
+			MenuBase_activeBorderColor.r, MenuBase_activeBorderColor.g, MenuBase_activeBorderColor.b, MenuBase_activeBorderColor.a);
+	DrawTextAt(lineLeft + MenuItemDefault_textLeft, lineTop + lineHeight / 4.5f, GetCaption().c_str(),
+		static_cast<int>(lineHeight * kMenuFontSizeScale * 0.85f), ColorRgba{ 200, 160, 90, 255 });
+}
+
 void MenuItemMenu::OnSelect()
 {
 	if (auto parentMenu = GetMenu())
 		if (auto controller = parentMenu->GetController())
+		{
+			m_menu->Open();
 			controller->PushMenu(m_menu);
+		}
 }
 
 void MenuBase::OnDraw()
@@ -313,16 +364,27 @@ int MenuBase::OnInput()
 
 	int waitTime = 0;
 
-	if (buttons.a || buttons.b || buttons.up || buttons.down)
+	if (itemCount == 0 && !buttons.b)
+		return 0;
+
+	if (buttons.a || buttons.b || buttons.up || buttons.down || buttons.l || buttons.r)
 	{
 		MenuInput::MenuInputBeep();
-		waitTime = buttons.b ? 200 : 150;
+		waitTime = buttons.b ? 200 : (buttons.l || buttons.r) ? 100 : 150;
 	}
 
 	if (buttons.a)
 	{
 		int activeItemIndex = GetActiveItemIndex();
 		m_items[activeItemIndex]->OnSelect();
+	} else
+	if (buttons.l)
+	{
+		m_items[GetActiveItemIndex()]->OnLeft();
+	} else
+	if (buttons.r)
+	{
+		m_items[GetActiveItemIndex()]->OnRight();
 	} else
 	if (buttons.b)
 	{

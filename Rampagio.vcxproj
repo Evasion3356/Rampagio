@@ -20,7 +20,9 @@
     <ClCompile Include="src\script.cpp" />
     <ClCompile Include="src\scriptmenu.cpp" />
     <ClCompile Include="src\PatternScan.cpp" />
-    <ClCompile Include="src\Features.cpp" />
+    <ClCompile Include="src\Menu.cpp" />
+    <ClCompile Include="src\DataFile.cpp" />
+    <ClCompile Include="src\menus\*.cpp" />
     <ClCompile Include="src\GameUtil.cpp" />
     <ClCompile Include="external\minhook\src\hook.c" />
     <ClCompile Include="external\minhook\src\buffer.c" />
@@ -41,7 +43,9 @@
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\ExtraNatives.h" />
     <ClInclude Include="src\PatternScan.h" />
-    <ClInclude Include="src\Features.h" />
+    <ClInclude Include="src\Menu.h" />
+    <ClInclude Include="src\DataFile.h" />
+    <ClInclude Include="src\menus\Menus.h" />
     <ClInclude Include="src\GameUtil.h" />
     <ClInclude Include="external\RDR-Classes\rage\joaat.hpp" />
     <ClInclude Include="external\spdlog\include\spdlog\spdlog.h" />

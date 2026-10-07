@@ -18,6 +18,8 @@
 #include <string>
 #include <string_view>
 #include <functional>
+#include <format>
+#include <type_traits>
 
 using namespace std;
 
@@ -66,6 +68,9 @@ public:
 	virtual eMenuItemClass GetClass() { return eMenuItemClass::Base; }
 	virtual void OnDraw(float lineTop, float lineLeft, bool active);
 	virtual	void OnSelect() {}
+	// Rampagio addition: NUMPAD 4/6 on the active row (value rows use them).
+	virtual	void OnLeft() {}
+	virtual	void OnRight() {}
 	virtual	void OnFrame() {}
 	virtual	string GetCaption() { return ""; }
 
@@ -286,6 +291,70 @@ public:
 	}
 };
 
+// Rampagio addition: draws `text` right-aligned-ish at the row's right end,
+// the spot MenuItemSwitchable puts [Y]/[N]. Shared by the value rows below.
+void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& text);
+
+// Rampagio addition: a number edited with NUMPAD 4/6, drawn as "< value >"
+// on the right. The value lives with the feature (`value` points at it);
+// onChange runs after every step, and on select if applyOnSelect.
+template <typename T>
+class MenuItemNumber : public MenuItemDefault
+{
+	T*						m_value;
+	T						m_min, m_max, m_step;
+	std::function<void()>	m_onChange;
+	bool					m_applyOnSelect;
+	void Step(T delta)
+	{
+		T v = *m_value + delta;
+		*m_value = v < m_min ? m_min : v > m_max ? m_max : v;
+		if (m_onChange)
+			m_onChange();
+	}
+public:
+	MenuItemNumber(string caption, T* value, T min, T max, T step, std::function<void()> onChange, bool applyOnSelect)
+		: MenuItemDefault(caption),
+		m_value(value), m_min(min), m_max(max), m_step(step), m_onChange(onChange), m_applyOnSelect(applyOnSelect) {}
+	virtual void OnLeft() override { Step(-m_step); }
+	virtual void OnRight() override { Step(m_step); }
+	virtual void OnSelect() override { if (m_applyOnSelect && m_onChange) m_onChange(); }
+	virtual void OnDraw(float lineTop, float lineLeft, bool active) override
+	{
+		MenuItemDefault::OnDraw(lineTop, lineLeft, active);
+		if constexpr (std::is_floating_point_v<T>)
+			DrawRowValue(this, lineTop, lineLeft, active, std::format("< {:.2f} >", *m_value));
+		else
+			DrawRowValue(this, lineTop, lineLeft, active, std::format("< {} >", *m_value));
+	}
+};
+
+// Rampagio addition: pick one of several named options with NUMPAD 4/6.
+// onChange(index) runs after every change, and on select.
+class MenuItemChoice : public MenuItemDefault
+{
+	std::vector<std::string>	m_options;
+	int*						m_index;
+	std::function<void(int)>	m_onChange;
+public:
+	MenuItemChoice(string caption, std::vector<std::string> options, int* index, std::function<void(int)> onChange)
+		: MenuItemDefault(caption),
+		m_options(std::move(options)), m_index(index), m_onChange(onChange) {}
+	virtual void OnLeft() override;
+	virtual void OnRight() override;
+	virtual void OnSelect() override { if (m_onChange) m_onChange(*m_index); }
+	virtual void OnDraw(float lineTop, float lineLeft, bool active) override;
+};
+
+// Rampagio addition: a heading inside a menu ("Toggles", "Tanks", ...).
+// Drawn dimmed; selecting it does nothing.
+class MenuItemSection : public MenuItemDefault
+{
+public:
+	MenuItemSection(string caption) : MenuItemDefault(caption) {}
+	virtual void OnDraw(float lineTop, float lineLeft, bool active) override;
+};
+
 const int
 	MenuBase_linesPerScreen = 11;
 
@@ -313,16 +382,29 @@ class MenuBase
 	int		m_activeScreenIndex;
 
 	MenuController *			m_controller;
+	std::function<void(MenuBase*)>	m_onOpen; // Rampagio addition
 public:
 	MenuBase(MenuItemTitle *itemTitle)
 		: m_itemTitle(itemTitle),
 		  m_activeLineIndex(0), m_activeScreenIndex(0) {}
 	~MenuBase()
 	{
-		for (auto item : m_items)
-			delete item;
+		ClearItems();
 	}
 	void AddItem(MenuItemBase *item) { item->SetMenu(this); m_items.push_back(item); }
+	// Rampagio additions: menus whose rows are rebuilt each time they open
+	// (lists of nearby peds, saved files, ...). onOpen runs right before
+	// the menu is pushed; it usually calls ClearItems() and re-adds rows.
+	void SetOnOpen(std::function<void(MenuBase*)> onOpen) { m_onOpen = std::move(onOpen); }
+	void Open() { if (m_onOpen) m_onOpen(this); }
+	void ClearItems()
+	{
+		for (auto item : m_items)
+			delete item;
+		m_items.clear();
+		m_activeLineIndex = m_activeScreenIndex = 0;
+	}
+	size_t GetItemCount() const { return m_items.size(); }
 	int GetActiveItemIndex() { return m_activeScreenIndex * MenuBase_linesPerScreen + m_activeLineIndex; }
 	void OnDraw();
 	int OnInput();
@@ -356,8 +438,8 @@ public:
 			IsKeyDown(VK_NUMPAD0) || MenuSwitchPressed() || IsKeyDown(VK_BACK),
 			IsKeyDown(VK_NUMPAD8) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_UP)),
 			IsKeyDown(VK_NUMPAD2) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_DOWN)),
-			IsKeyDown(VK_NUMPAD6) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_RIGHT)),
-			IsKeyDown(VK_NUMPAD4) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_LEFT))
+			IsKeyDown(VK_NUMPAD4) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_LEFT)),
+			IsKeyDown(VK_NUMPAD6) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_RIGHT))
 		};
 	}
 	static void MenuInputBeep()
