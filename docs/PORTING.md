@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 9 done, 8 partial, 150 pending.
+Submenus: 11 done, 7 partial, 149 pending.
 
 ## Debug
 
@@ -131,10 +131,10 @@ Submenus: 9 done, 8 partial, 150 pending.
 | SubCollectiblesDreamcatchers | 2 | Pending |  |
 | SubCollectiblesRockCarvings | 2 | Pending |  |
 | SubMapDiscoverables | 2 | Pending |  |
-| SubRecoveryAddItems | 13 | Partial | Recovery > Add Items: all rows; Unlimited Items also blocks by-GUID removals (ours); Give Items list pending (needs an item data source) |
+| SubRecoveryAddItems | 13 | Done | Recovery > Add Items: Unlimited Items also blocks by-GUID removals (ours) |
 | SubRecoveryBounty | 9 | Done | Recovery > Bounty: state rows also show each state bounty (ours) |
 | SubRecoveryCores | 9 | Done | Recovery > Cores: temporary rank applies on every step (ours) |
-| SubRecoveryGiveItemsList | 1 | Pending |  |
+| SubRecoveryGiveItemsList | 1 | Done | Recovery > Add Items > Give Items: own item list from the game scripts (tools/extract_items.py); method is a visible choice instead of Shift (ours) |
 | SubRecoveryHonor | 5 | Partial | Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown |
 | SubRecoveryMoney | 5 | Done | Recovery > Money: drop is a timed toggle (ours) instead of every tick |
 | SubRecoveryUnlocks | 8 | Pending |  |

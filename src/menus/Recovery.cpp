@@ -488,6 +488,58 @@ namespace
 	// doesn't otherwise use.
 	constexpr int kInventorySnapshot = 6;
 
+	// ---- SubRecoveryGiveItemsList ----
+
+	// Our own item list, generated from the game's scripts by
+	// tools/extract_items.py (Rampage's is a table in its binary).
+	struct ItemName { const char* category; const char* name; const char* label; };
+	const ItemName kItemNames[] = {
+#include "..\data\ItemNames.inc"
+	};
+
+	int g_giveAmount = 1;
+	// Rampage picks the game-script path while Shift is held; a visible
+	// choice instead (ours).
+	int g_giveMethod = 0;
+	const std::vector<std::string> kGiveMethods = { "Inventory", "Game Script" };
+
+	std::string GiveItem(const ItemName& entry)
+	{
+		const Hash item = GameUtil::Joaat(entry.name);
+		if (g_giveMethod == 1)
+		{
+			if (!g_addItemScript.Call(item, g_giveAmount, FALSE, FALSE, FALSE, kCashAddReason, 0, 0, 0, FALSE))
+				return "flow_controller call failed (see log)";
+			return "";
+		}
+		std::string error;
+		if (!GameUtil::AddInventoryItem(item, g_giveAmount, error))
+			return "~COLOR_RED~Error:~s~ " + error;
+		return std::format("Added {}x {}", g_giveAmount, entry.label);
+	}
+
+	// One list per category, keeping only names the item database knows.
+	void BuildGiveItems(MenuBase* items)
+	{
+		MenuBase* give = Ui::Submenu(items, "Give Items");
+		Ui::Number(give, "Amount", &g_giveAmount, 1, kMaxItemAmount, 1);
+		Ui::Choice(give, "Method", kGiveMethods, &g_giveMethod);
+		const char* category = nullptr;
+		for (const ItemName& entry : kItemNames)
+		{
+			if (category && std::string_view(category) == entry.category)
+				continue;
+			category = entry.category;
+			Ui::ListMenu(give, category, [category](MenuBase* list) {
+				for (const ItemName& item : kItemNames)
+				{
+					if (std::string_view(item.category) == category && ItemValid(GameUtil::Joaat(item.name)))
+						Ui::Action(list, item.label, [&item] { return GiveItem(item); });
+				}
+			});
+		}
+	}
+
 	std::string RestoreSnapshot()
 	{
 		// On the backup while main is cleared and refilled, as Rampage does.
@@ -584,5 +636,6 @@ namespace Menus
 			return std::string("Snapshot saved");
 		});
 		Ui::Action(items, "Restore Snapshot", RestoreSnapshot);
+		BuildGiveItems(items);
 	}
 }
