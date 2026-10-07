@@ -26,6 +26,7 @@
     <ClCompile Include="src\GameUtil.cpp" />
     <ClCompile Include="src\GamePointers.cpp" />
     <ClCompile Include="src\ScriptFunction.cpp" />
+    <ClCompile Include="src\NativeHooks.cpp" />
     <ClCompile Include="external\minhook\src\hook.c" />
     <ClCompile Include="external\minhook\src\buffer.c" />
     <ClCompile Include="external\minhook\src\trampoline.c" />
@@ -51,6 +52,7 @@
     <ClInclude Include="src\GameUtil.h" />
     <ClInclude Include="src\GamePointers.h" />
     <ClInclude Include="src\ScriptFunction.h" />
+    <ClInclude Include="src\NativeHooks.h" />
     <ClInclude Include="external\RDR-Classes\rage\joaat.hpp" />
     <ClInclude Include="external\spdlog\include\spdlog\spdlog.h" />
     <ClInclude Include="external\spdlog\include\spdlog\sinks\basic_file_sink.h" />

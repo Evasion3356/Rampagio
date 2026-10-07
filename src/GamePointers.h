@@ -22,6 +22,8 @@
 namespace GamePointers
 {
 	using ScriptVMFn = rage::eThreadState (*)(void* stack, std::int64_t** globals, bool* globalsEnabled, rage::scrProgram* program, rage::scrThreadContext* ctx);
+	using GetNativeHandlerFn = rage::scrNativeHandler (*)(rage::scrNativeHash hash);
+	using InitNativeTablesFn = bool (*)(rage::scrProgram* program);
 
 	struct Pointers
 	{
@@ -30,6 +32,11 @@ namespace GamePointers
 		rage::scrThread** CurrentScriptThread = nullptr;
 		ScriptVMFn ScriptVM = nullptr;
 		std::int64_t** ScriptGlobals = nullptr;
+
+		// Only NativeHooks uses these, so a miss leaves them nullptr
+		// instead of failing everything else.
+		GetNativeHandlerFn GetNativeHandler = nullptr;
+		void* InitNativeTables = nullptr; // an InitNativeTablesFn, for MinHook
 	};
 
 	// All pointers, or nullptr if any signature didn't match (logged).

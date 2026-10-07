@@ -36,6 +36,12 @@ namespace
 		p.CurrentScriptThread = reinterpret_cast<rage::scrThread**>(PatternScan::ResolveRip(*current, 3));
 		p.ScriptVM = reinterpret_cast<GamePointers::ScriptVMFn>(PatternScan::ResolveRip(*current, 0x28));
 		p.ScriptGlobals = reinterpret_cast<std::int64_t**>(PatternScan::ResolveRip(*globals, 3));
+
+		if (auto handler = Scan("GetNativeHandler", "E8 ? ? ? ? 42 8B 9C FE"))
+			p.GetNativeHandler = reinterpret_cast<GamePointers::GetNativeHandlerFn>(PatternScan::ResolveRip(*handler, 1));
+		// The function starts 0x10 bytes before the match.
+		if (auto init = Scan("InitNativeTables", "41 B0 01 44 39 51 2C 0F"))
+			p.InitNativeTables = reinterpret_cast<void*>(*init - 0x10);
 		return true;
 	}
 }

@@ -8,6 +8,7 @@
 #include "..\external\ScriptHookSDK\inc\main.h"
 #include "script.h"
 #include "keyboard.h"
+#include "NativeHooks.h"
 
 BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 {
@@ -18,6 +19,9 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
+		// Game scripts must stop calling into our replacements before the
+		// module goes away.
+		NativeHooks::Shutdown();
 		scriptUnregister(hInstance);
 		keyboardHandlerUnregister(OnKeyboardMessage);
 		break;
