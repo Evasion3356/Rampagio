@@ -66,8 +66,19 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
   model/anim loading, `PromptText` on-screen keyboard, `Joaat`).
 - `src/DataFile.{h,cpp}`: named INI files for saved data (custom
   teleports, ...), stored where `Rampagio.ini` is.
-- `src/PatternScan.*` and `external/minhook`: carried over for features
-  that need memory patterns or hooks. Nothing uses them yet.
+- `src/GamePointers.{h,cpp}`: engine pointers by AOB scan (HorseMenu's
+  signatures): script threads, script programs, current thread, script
+  VM, script globals; `FindScriptThread`, `FindScriptProgram`,
+  `ScriptLocal`. Resolved together on first use, retried every 5 s.
+- `src/ScriptFunction.{h,cpp}`: calls a function inside a game script,
+  adapted from HorseMenu's `ScriptFunction` (direct `ScriptVM` call on the
+  script's live thread, else on a copy of the current thread). Functions
+  are found by bytecode pattern: start at the ENTER (`0x22`), wildcard
+  CALL (`0x39`) targets, check uniqueness against the 1491.50 `.ysc` in
+  `..\SciptsCompile\script_rel` (the decompile's `// Position - 0x...`
+  comment is the offset). Arguments are zero-extended 8-byte slots.
+- `src/PatternScan.*` (used by GamePointers) and `external/minhook`
+  (nothing uses it yet).
 - `tools/rampage_deob.py`, `tools/rampage_inventory*.py`, `tools/handlers/`: Rampage
   reversing tools (below). `tools/porting_status.py` regenerates
   `docs/PORTING.md`.
@@ -197,8 +208,13 @@ register). The DB is missing some SDK names; for example
   - `flow_controller` `func_688`: cash add plus "FEED_MONEY_EARN" toast;
     called with amount × 100.
   - `short_update` `func_583`: honor change (-320..320 prompt).
-  Porting these needs our own script-function caller. That's the first
-  piece of non-native infrastructure worth building.
+  How Rampage runs them: it takes the `audiotest` thread, saves its
+  context, `Reset`s it to the target script, pushes the arguments, sets
+  the PC and calls `Run`, then restores it. We use HorseMenu's direct
+  `ScriptVM` call instead (`src/ScriptFunction.h`). Rampage's arguments:
+  `func_688(dollars*100, 0, 0, 1, "", 0, 1, 752097756)` and
+  `func_583(value, 0, 9, 0xBEF3D776, "", 0, 0, 0)`. Both are ported in
+  `src/menus/Recovery.cpp`.
 - **Script thread list:** `qword_180428BC8` (pointer array, count
   `uint16` at `+8`). Each thread has its script hash at `+0x6D8` and its
   stack pointer at `+0x6B8`. Script stack slots are 8 bytes, so the
@@ -268,9 +284,11 @@ started. Open questions:
 - GoldHorse and HorseStatLock have no remote; a submodule needs one.
 - GoldHorse runs online through Exodus, which conflicts with the
   singleplayer-only rule.
-- HorseMenu is YimMenu's repo (upstream `YimMenu/HorseMenu`), not ours:
-  its own framework, license and online focus. Decide whether it's a
-  dependency at all or only a reference.
+- HorseMenu (upstream `YimMenu/HorseMenu`) was written by the user, so
+  its code can be adapted into Rampagio directly (no license concern).
+  It has its own framework and an online focus, so decide whether it's
+  a dependency at all or only a source to lift pieces from (e.g.
+  `ScriptFunction`, `FiberPool`, `Pointers.cpp` patterns).
 - YEEAHSM uses `deps/minhook`; the others use `external/`. Shared
   submodules (ScriptHookSDK, spdlog, inipp, RDR-Classes, minhook) would
   nest; pick one copy and check version skew.
@@ -292,8 +310,9 @@ header) belongs here too, later.
 Resume point (2026-10-07). Done so far: inventory tooling; menu framework
 (`src/Menu.h` builder API, number/choice/section rows, left/right input,
 rebuilt-on-open lists); ported Player (SubSelf), Horse (SubSelfHorse),
-World Time/Weather, most of Teleport/World/Weapons. 6 submenus done,
-6 partial, 155 pending; see `docs/PORTING.md`. Everything builds clean
+World Time/Weather, most of Teleport/World/Weapons, Recovery Money and
+Honor (with the script-function caller). 7 submenus done, 7 partial,
+153 pending; see `docs/PORTING.md`. Everything builds clean
 (Debug); nothing is live-tested (the user deferred testing until the
 port is further along). Menu key is F5.
 
@@ -310,12 +329,23 @@ port is further along). Menu key is F5.
    own DllMain). Plan: port its UI layer (sprite look, per-option
    descriptions, controller input) behind `src/Menu.h`, against alloc8or
    names, with attribution.
-3. Keep porting, in this order: Recovery (SubRecoveryMoney, Honor,
-   Bounty, Cores, Unlocks, AddItems), Player submenus (Player Proofs,
+3. Keep porting, in this order: Recovery (Bounty, Cores, Unlocks,
+   AddItems), Player submenus (Player Proofs,
    Abilities, Config Flags, Moods, Scenarios, Animations, Wardrobe, ...),
    Vehicle, Spawner, the remaining World submenus, Miscellaneous,
    Script Tools, Settings (incl. toggle save/load). Leftovers listed in
    `docs/PORTING.md` rows marked Partial.
-4. Script-function caller (for cash/honor "via Game Script" and anything
-   else Rampage runs through `sub_18001C900`). Only 13 options need it.
+4. Script-function caller: built (`src/ScriptFunction.h`), untested.
+   Its first live test should check the four GamePointers signatures
+   match (`Rampagio.log`) before trusting any "via Game Script" row. The
+   other Rampage users of `sub_18001C900` (e.g. `flow_controller`
+   `func_290` from `sub_1800626A0`) get ported with their submenus.
 5. Live-test once the user asks for it.
+6. ImGui (later, user's plan). Reference: `..\GoldenHorseCores\HerbSpawner`
+   (user's, not a git repo): `overlay\overlay*.cpp` hooks Vulkan first,
+   DX12 as fallback, plus WndProc and SetCursorPos/ClipCursor, ImGui 1.92.9.
+   It passes UI state through atomics only, so Rampagio would add a
+   HorseMenu-style `FiberPool` to run UI actions on the script thread.
+   Known gaps: eject/re-inject doesn't release the ImGui context or
+   backends, and `MH_Uninitialize` runs from DllMain while the render
+   thread can still be inside a hook.

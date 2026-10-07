@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 6 done, 6 partial, 155 pending.
+Submenus: 7 done, 7 partial, 153 pending.
 
 ## Debug
 
@@ -135,8 +135,8 @@ Submenus: 6 done, 6 partial, 155 pending.
 | SubRecoveryBounty | 9 | Pending |  |
 | SubRecoveryCores | 9 | Pending |  |
 | SubRecoveryGiveItemsList | 1 | Pending |  |
-| SubRecoveryHonor | 5 | Pending |  |
-| SubRecoveryMoney | 5 | Pending |  |
+| SubRecoveryHonor | 5 | Partial | Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown |
+| SubRecoveryMoney | 5 | Done | Recovery > Money: drop is a timed toggle (ours) instead of every tick |
 | SubRecoveryUnlocks | 8 | Pending |  |
 | SubStatEditor | 6 | Pending |  |
 | SubUnlockCheats | 1 | Pending |  |

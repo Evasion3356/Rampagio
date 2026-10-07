@@ -28,6 +28,7 @@ namespace
 		Menus::BuildWeapons(root);
 		Menus::BuildTeleport(root);
 		Menus::BuildWorld(root);
+		Menus::BuildRecovery(root);
 	}
 }
 

@@ -17,6 +17,8 @@ STATUS = {
  'SubTeleportCustom':('Done','Teleport > Load Custom / Delete Custom'),
  'SubWorld':('Partial','World: main rows done; Water, Cloud Editor, managers, Door Manager, Tornado, IPL, World States, Ambient Light pending'),
  'SubWorldTime':('Done','World > Time'),
+ 'SubRecoveryMoney':('Done','Recovery > Money: drop is a timed toggle (ours) instead of every tick'),
+ 'SubRecoveryHonor':('Partial','Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown'),
  'SubWorldWeather':('Done','World > Weather'),
  'SubWeapons':('Partial','Weapon: Always Kill Cam, Thunder Hawk, Rope Gun, Portal Gun, Debug Gun pending'),
  'SubWeaponsManage':('Partial','Weapon > Manage Weapons: Give Favourite, Upgrade Weapon, Add Component, Get Duplicate Model pending'),
