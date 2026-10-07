@@ -14,6 +14,7 @@
 namespace Menus
 {
 	void BuildPlayer(MenuBase* root);
+	void BuildPlayerSubmenus(MenuBase* self); // PlayerSubmenus.cpp
 	void BuildHorse(MenuBase* root);
 	void BuildWeapons(MenuBase* root);
 	void BuildVehicle(MenuBase* root);

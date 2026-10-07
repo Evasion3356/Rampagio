@@ -14,6 +14,8 @@
 	  Choice   one of several named options with NUMPAD 4/6
 	  Section  a heading row
 	  Submenu  a nested menu; ListMenu is one rebuilt each time it opens
+	  NameList a submenu picking one of many names, with Search and Custom
+	           Input rows
 */
 
 #pragma once
@@ -21,6 +23,7 @@
 #include "scriptmenu.h"
 
 #include <functional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -35,6 +38,12 @@ namespace Ui
 	// A submenu whose rows build(menu) recreates every time it opens; build
 	// gets an empty menu.
 	MenuBase* ListMenu(MenuBase* parent, const std::string& title, std::function<void(MenuBase*)> build);
+
+	// A submenu with a row per name, plus "Custom Input" (type any name) and
+	// "Search" (type part of a name, list the matches) above them. onPick
+	// gets the chosen name; extra(menu) adds rows (Stop, Clear, ...) first.
+	MenuBase* NameList(MenuBase* parent, const std::string& title, std::span<const char* const> names,
+		std::function<void(const std::string&)> onPick, std::function<void(MenuBase*)> extra = nullptr);
 
 	void Action(MenuBase* menu, const std::string& caption, std::function<std::string()> action);
 	// Same, for actions with nothing to report.

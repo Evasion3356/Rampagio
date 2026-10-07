@@ -1,4 +1,8 @@
 #include "Menu.h"
+#include "GameUtil.h"
+
+#include <algorithm>
+#include <cctype>
 
 namespace
 {
@@ -46,6 +50,41 @@ namespace Ui
 			m->ClearItems();
 			build(m);
 		});
+		return menu;
+	}
+
+	MenuBase* NameList(MenuBase* parent, const std::string& title, std::span<const char* const> names,
+		std::function<void(const std::string&)> onPick, std::function<void(MenuBase*)> extra)
+	{
+		MenuBase* menu = NewMenu(parent, title);
+		if (extra)
+			extra(menu);
+		Do(menu, "Custom Input", [onPick]
+		{
+			std::string name;
+			if (GameUtil::PromptText("Enter Name:", name) && !name.empty())
+				onPick(name);
+		});
+		ListMenu(menu, "Search", [names, onPick](MenuBase* results)
+		{
+			std::string text;
+			if (!GameUtil::PromptText("Search:", text) || text.empty())
+				return;
+			auto lower = [](std::string s)
+			{
+				std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				return s;
+			};
+			text = lower(text);
+			for (const char* name : names)
+				if (lower(name).find(text) != std::string::npos)
+					Do(results, name, [onPick, name] { onPick(name); });
+			if (results->GetItemCount() == 0)
+				Section(results, "No matches");
+		});
+		Section(menu, "All");
+		for (const char* name : names)
+			Do(menu, name, [onPick, name] { onPick(name); });
 		return menu;
 	}
 

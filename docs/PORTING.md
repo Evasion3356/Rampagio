@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 18 done, 8 partial, 141 pending.
+Submenus: 27 done, 9 partial, 131 pending.
 
 ## Debug
 
@@ -83,10 +83,10 @@ Submenus: 18 done, 8 partial, 141 pending.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubAbilities | 8 | Pending |  |
-| SubAnimPostFx | 3 | Pending |  |
+| SubAbilities | 8 | Done | Player > Abilities: recharge toggles restore 1.0 when off (ours) |
+| SubAnimPostFx | 3 | Done | Player > Vision > Screen Effects: list from the game scripts |
 | SubAnimationDictsList | 5 | Pending |  |
-| SubDamagePacks | 3 | Pending |  |
+| SubDamagePacks | 3 | Done | Player > Wardrobe > Apply Damage Packs: list from the game scripts |
 | SubEffects | 29 | Pending |  |
 | SubEmotes | 11 | Pending |  |
 | SubModelChangerAnimal | 2 | Pending |  |
@@ -94,15 +94,15 @@ Submenus: 18 done, 8 partial, 141 pending.
 | SubModelChangerHorsesList | 1 | Pending |  |
 | SubModelChangerPeds | 0 | Pending |  |
 | SubModelChangerPedsList | 1 | Pending |  |
-| SubMoods | 2 | Pending |  |
+| SubMoods | 2 | Done | Player > Moods: mood_ anims from the game scripts |
 | SubPlaySpeech | 6 | Pending |  |
 | SubPlaySpeechCustom | 3 | Pending |  |
 | SubPlaySpeechFlowgreet | 3 | Pending |  |
 | SubPlaySpeechRegular | 2 | Pending |  |
 | SubPlaySpeechVignettes | 3 | Pending |  |
-| SubPlayerConfigFlags | 2 | Pending |  |
+| SubPlayerConfigFlags | 2 | Done | Player > Config Flags: flag by number (no names), shows current state (ours) |
 | SubPlayerPosse | 11 | Pending |  |
-| SubPlayerProofs | 9 | Pending |  |
+| SubPlayerProofs | 9 | Done | Player > Player Proofs: re-applied every frame (ours) |
 | SubSelf | 38 | Done | Player |
 | SubSelfAnimationsCustom | 7 | Pending |  |
 | SubSelfAnimationsDicts | 1 | Pending |  |
@@ -113,12 +113,12 @@ Submenus: 18 done, 8 partial, 141 pending.
 | SubSelfOutfitSaver | 3 | Pending |  |
 | SubSelfPedMetaExpressions | 0 | Pending |  |
 | SubSelfPedMetaTags | 7 | Pending |  |
-| SubSelfScenarios | 7 | Pending |  |
-| SubSelfWalkStyles | 2 | Pending |  |
-| SubSelfWardrobe | 17 | Pending |  |
+| SubSelfScenarios | 7 | Done | Player > Scenarios: list from the game scripts plus Custom Input/Search; no Scenarios.txt reload |
+| SubSelfWalkStyles | 2 | Done | Player > Wardrobe > Walk Styles: list from the game scripts |
+| SubSelfWardrobe | 17 | Partial | Player > Wardrobe: Walk Styles and Apply Damage Packs only |
 | SubSelfWardrobeComponent | 3 | Pending |  |
 | SubSelfWardrobeWearableState | 3 | Pending |  |
-| SubTimecycleMod | 3 | Pending |  |
+| SubTimecycleMod | 3 | Done | Player > Vision > Timecycle Modifiers: list from the game scripts |
 | SubVoiceChanger | 3 | Pending |  |
 
 ## Recovery

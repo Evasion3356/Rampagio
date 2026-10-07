@@ -319,6 +319,7 @@ namespace Menus
 	void BuildPlayer(MenuBase* root)
 	{
 		MenuBase* self = Ui::Submenu(root, "Player");
+		BuildPlayerSubmenus(self);
 
 		Ui::Section(self, "Toggles");
 		Ui::Toggle(self, "Godmode", [](bool on) { g_godmode = on; SetGodmode(on); }, [] { SetGodmode(true); });
