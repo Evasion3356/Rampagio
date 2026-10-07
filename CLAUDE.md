@@ -333,7 +333,9 @@ port is further along). Menu key is F5.
    AddItems), Player submenus (Player Proofs,
    Abilities, Config Flags, Moods, Scenarios, Animations, Wardrobe, ...),
    Vehicle, Spawner, the remaining World submenus, Miscellaneous,
-   Script Tools, Settings (incl. toggle save/load). Leftovers listed in
+   Script Tools, Settings (incl. toggle save/load). Rampage's Debug > Scripts
+   tools are tabled: the user wants to rework them rather than port
+   them as-is, so skip them until that design is discussed. Leftovers listed in
    `docs/PORTING.md` rows marked Partial.
 4. Script-function caller: built (`src/ScriptFunction.h`), untested.
    Its first live test should check the four GamePointers signatures
@@ -341,7 +343,15 @@ port is further along). Menu key is F5.
    other Rampage users of `sub_18001C900` (e.g. `flow_controller`
    `func_290` from `sub_1800626A0`) get ported with their submenus.
 5. Live-test once the user asks for it.
-6. ImGui (later, user's plan). Reference: `..\GoldenHorseCores\HerbSpawner`
+6. UI direction (decided 2026-10-07): the native menu stays the main UI
+   and must be drivable by controller, keyboard and mouse. Mouse support
+   (cursor via `SET_MOUSE_CURSOR_THIS_FRAME`, hover/click/wheel
+   hit-testing in `scriptmenu.cpp`) is still to do. No ImGui-only fork
+   and no dual-renderer row model. ImGui is added only for complicated
+   desk tools (script monitor, global/local editor, the reworked Debug >
+   Scripts) as an optional overlay, with a native fallback where one
+   makes sense; its actions go through a FiberPool.
+7. ImGui overlay (when the first such tool needs it). Reference: `..\GoldenHorseCores\HerbSpawner`
    (user's, not a git repo): `overlay\overlay*.cpp` hooks Vulkan first,
    DX12 as fallback, plus WndProc and SetCursorPos/ClipCursor, ImGui 1.92.9.
    It passes UI state through atomics only, so Rampagio would add a
