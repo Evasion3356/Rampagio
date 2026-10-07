@@ -90,4 +90,8 @@ namespace GameUtil
 	// else wardrobe, else the item's default slot under the character.
 	// On failure `error` says why.
 	bool AddInventoryItem(Hash item, int quantity, std::string& error);
+
+	// An item's name in the game's current language: the item hash is
+	// also its text label. `fallback` if the game has no text for it.
+	std::string ItemName(Hash item, const std::string& fallback);
 }

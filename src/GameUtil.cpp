@@ -152,6 +152,19 @@ namespace GameUtil
 		return character;
 	}
 
+	std::string ItemName(Hash item, const std::string& fallback)
+	{
+		// Rampage takes 3..37 characters as a real name; empty or NULL
+		// means the game has no label for the hash.
+		const char* text = HUD::GET_STRING_FROM_HASH_KEY(item);
+		if (!text)
+			return fallback;
+		const std::string_view name(text);
+		if (name.size() < 3 || name == "NULL")
+			return fallback;
+		return std::string(name);
+	}
+
 	bool AddInventoryItem(Hash item, int quantity, std::string& error)
 	{
 		if (item == 0 || !ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item, 0))

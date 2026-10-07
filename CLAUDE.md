@@ -92,7 +92,10 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
   `tools/extract_items.py` from every item-prefixed `joaat("...")` name
   in the decompiled 1491.50 scripts (consumable_, provision_, document_,
   ...). Regenerate rather than edit. Invalid names are filtered at
-  runtime with `_ITEMDATABASE_IS_KEY_VALID`.
+  runtime with `_ITEMDATABASE_IS_KEY_VALID`. Rows show the game's own
+  name: an item hash is also its text label, so
+  `HUD::GET_STRING_FROM_HASH_KEY(item)` (`GameUtil::ItemName`, the same
+  thing Rampage's `sub_1801E3080` does) gives it in the game's language.
 - `tools/rampage_deob.py`, `tools/rampage_inventory*.py`, `tools/handlers/`: Rampage
   reversing tools (below). `tools/porting_status.py` regenerates
   `docs/PORTING.md`.

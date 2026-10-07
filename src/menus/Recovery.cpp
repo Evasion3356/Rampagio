@@ -340,7 +340,7 @@ namespace
 		std::string error;
 		if (!GameUtil::AddInventoryItem(item, amount, error))
 			return "~COLOR_RED~Error:~s~ " + error;
-		return std::format("Added {}x {:#x}", amount, item);
+		return std::format("Added {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
 	}
 
 	std::string AddItemViaScript()
@@ -366,7 +366,7 @@ namespace
 			return ItemInvalid();
 		if (!INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEM_WITH_ITEMID(GameUtil::kInventorySp, item, amount, GameUtil::kRemoveReasonDefault))
 			return "Nothing removed";
-		return std::format("Removed {}x {:#x}", amount, item);
+		return std::format("Removed {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
 	}
 
 	std::string RemoveItemViaScript()
@@ -491,9 +491,11 @@ namespace
 	// ---- SubRecoveryGiveItemsList ----
 
 	// Our own item list, generated from the game's scripts by
-	// tools/extract_items.py (Rampage's is a table in its binary).
-	struct ItemName { const char* category; const char* name; const char* label; };
-	const ItemName kItemNames[] = {
+	// tools/extract_items.py (Rampage's is a table in its binary). Rows
+	// show the game's own name for the item; `label` (the internal name,
+	// tidied) is the fallback when the game has none.
+	struct ItemEntry { const char* category; const char* name; const char* label; };
+	const ItemEntry kItemNames[] = {
 #include "..\data\ItemNames.inc"
 	};
 
@@ -503,7 +505,7 @@ namespace
 	int g_giveMethod = 0;
 	const std::vector<std::string> kGiveMethods = { "Inventory", "Game Script" };
 
-	std::string GiveItem(const ItemName& entry)
+	std::string GiveItem(const ItemEntry& entry)
 	{
 		const Hash item = GameUtil::Joaat(entry.name);
 		if (g_giveMethod == 1)
@@ -515,7 +517,7 @@ namespace
 		std::string error;
 		if (!GameUtil::AddInventoryItem(item, g_giveAmount, error))
 			return "~COLOR_RED~Error:~s~ " + error;
-		return std::format("Added {}x {}", g_giveAmount, entry.label);
+		return std::format("Added {}x {}", g_giveAmount, GameUtil::ItemName(item, entry.label));
 	}
 
 	// One list per category, keeping only names the item database knows.
@@ -525,16 +527,17 @@ namespace
 		Ui::Number(give, "Amount", &g_giveAmount, 1, kMaxItemAmount, 1);
 		Ui::Choice(give, "Method", kGiveMethods, &g_giveMethod);
 		const char* category = nullptr;
-		for (const ItemName& entry : kItemNames)
+		for (const ItemEntry& entry : kItemNames)
 		{
 			if (category && std::string_view(category) == entry.category)
 				continue;
 			category = entry.category;
 			Ui::ListMenu(give, category, [category](MenuBase* list) {
-				for (const ItemName& item : kItemNames)
+				for (const ItemEntry& item : kItemNames)
 				{
-					if (std::string_view(item.category) == category && ItemValid(GameUtil::Joaat(item.name)))
-						Ui::Action(list, item.label, [&item] { return GiveItem(item); });
+					const Hash hash = GameUtil::Joaat(item.name);
+					if (std::string_view(item.category) == category && ItemValid(hash))
+						Ui::Action(list, GameUtil::ItemName(hash, item.label), [&item] { return GiveItem(item); });
 				}
 			});
 		}
