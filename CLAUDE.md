@@ -315,9 +315,8 @@ port is further along). Menu key is F5.
      DominoCheat's `MINIGAME::_FIND_PLAYABLE_HAND_TILES` is only
      `_0x3AE451860F03CA8A` in alloc8or). GoldHorse uses its own older
      header. Each project pins its own submodule commit.
-   - Proposed (not yet approved): script the header generation from
-     alloc8or's JSON in the SDK fork, drop the merged extras, move
-     Rampagio to it (5 renames), bump siblings when next touched.
+   - Plan to implement: `docs/NATIVE_HEADER_PLAN.md` (generator in the
+     SDK fork, Rampagio renames, sibling renames, menu-base UI later).
 2. **RDR2-Native-Menu-Base** (`../Githubs/RDR2-Native-Menu-Base`, MIT,
    Halen84, last updated 2023): a standalone ASI bundling its own older
    alloc8or header; draws with `DRAW_SPRITE`/`DRAW_RECT`/`BG_DISPLAY_TEXT`,
