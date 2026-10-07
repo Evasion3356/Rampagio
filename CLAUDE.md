@@ -284,7 +284,8 @@ and game files for things Rampage doesn't expose or does poorly. Each
 idea gets a short write-up (script, function/local, mechanism) before
 code. The sibling projects (minigame advisors, challenge completion,
 fishing/dead-eye fixes, horse stat lock) are the first examples of this
-kind of work.
+kind of work. GoldHorse (including moving it to the alloc8or native
+header) belongs here too, later.
 
 ## Next steps
 
@@ -300,7 +301,8 @@ port is further along). Menu key is F5.
    `docs/NATIVE_HEADER_PLAN.md` are done and pushed (fork `086e1ed`;
    Poker, Blackjack, Domino, ChallengeCheat, FFFCheat, FishingFix pushed;
    HorseStatLock committed, no remote). GoldHorse (own older header)
-   still needs its own look.
+   is deferred to Goal C at the user's request; don't raise it as a
+   next step.
 2. **RDR2-Native-Menu-Base** (`../Githubs/RDR2-Native-Menu-Base`, MIT,
    Halen84, last updated 2023): a standalone ASI bundling its own older
    alloc8or header; draws with `DRAW_SPRITE`/`DRAW_RECT`/`BG_DISPLAY_TEXT`,
