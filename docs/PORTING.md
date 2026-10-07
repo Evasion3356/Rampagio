@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 13 done, 8 partial, 146 pending.
+Submenus: 18 done, 8 partial, 141 pending.
 
 ## Debug
 
@@ -125,11 +125,11 @@ Submenus: 13 done, 8 partial, 146 pending.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubCollectiblesCigaretteCards | 13 | Pending |  |
-| SubCollectiblesCigaretteCardsSet | 1 | Pending |  |
-| SubCollectiblesDinoBones | 2 | Pending |  |
-| SubCollectiblesDreamcatchers | 2 | Pending |  |
-| SubCollectiblesRockCarvings | 2 | Pending |  |
+| SubCollectiblesCigaretteCards | 13 | Done | Recovery > Collectibles > Cigarette Cards: sets and card models from the game (CARD_SET_* collectables, s_inv_cigcard_* models); Auto Collect All runs as a stoppable per-frame job (ours) |
+| SubCollectiblesCigaretteCardsSet | 1 | Done | Recovery > Collectibles > Cigarette Cards > <set>: cards by in-game name with owned count; Give Missing Cards (ours) |
+| SubCollectiblesDinoBones | 2 | Done | Recovery > Collectibles > Dino Bones: read from the dino_bones collectable category with _COLLECTABLE_GET_PLACEMENT_LOCATION; locations in a Locations list |
+| SubCollectiblesDreamcatchers | 2 | Done | Recovery > Collectibles > Dreamcatchers: coordinates from discoverable_generic_location (tools/extract_collectibles.py), found state from Global_40.f_8863.f_148 |
+| SubCollectiblesRockCarvings | 2 | Done | Recovery > Collectibles > Rock Carvings: read from the rock_carvings collectable category; locations in a Locations list |
 | SubMapDiscoverables | 2 | Partial | Recovery > Unlocks > Map Discoverables: 79 discoveries the scripts name; Rampage lists 284 (incl. animal/fish map discoverables) |
 | SubRecoveryAddItems | 13 | Done | Recovery > Add Items: Unlimited Items also blocks by-GUID removals (ours) |
 | SubRecoveryBounty | 9 | Done | Recovery > Bounty: state rows also show each state bounty (ours) |

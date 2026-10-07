@@ -22,6 +22,7 @@ namespace Menus
 	void BuildWorld(MenuBase* root);
 	void BuildRecovery(MenuBase* root);
 	void BuildRecoveryUnlocks(MenuBase* recovery); // Unlocks.cpp
+	void BuildRecoveryCollectibles(MenuBase* recovery); // Collectibles.cpp
 	void BuildMiscellaneous(MenuBase* root);
 	void BuildScriptTools(MenuBase* root);
 	void BuildSettings(MenuBase* root);

@@ -642,5 +642,6 @@ namespace Menus
 		BuildGiveItems(items);
 
 		BuildRecoveryUnlocks(recovery);
+		BuildRecoveryCollectibles(recovery);
 	}
 }
