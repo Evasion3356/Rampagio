@@ -140,7 +140,7 @@ namespace
 	void FillHorseCores(Ped h)
 	{
 		FillCores(h);
-		PED::SET_PED_STAMINA(h, 100.0f);
+		PED::_RESTORE_PED_STAMINA(h, 100.0f);
 		HealHorse(h);
 	}
 
@@ -196,7 +196,7 @@ namespace
 		POPULATION::_SET_PED_SHOULD_IGNORE_AVOIDANCE_VOLUMES(h, 1);
 		PED::_SET_PED_CAN_BE_LASSOED(h, FALSE);
 		PLAYER::_SET_PLAYER_MOUNT_STATE_ACTIVE(player, TRUE);
-		PED::_TRACK_PED_VISIBILITY(h);
+		PED::REQUEST_PED_VISIBILITY_TRACKING(h);
 		FLOCK::_SET_ANIMAL_IS_WILD(h, FALSE);
 		for (int flag : { 211, 208, 209, 400, 297, 277, 319, 6 })
 			PED::SET_PED_CONFIG_FLAG(h, flag, TRUE);
@@ -327,7 +327,7 @@ namespace Menus
 		Ui::Section(horse, "Toggles");
 		Ui::Looped(horse, "Invincible", [] { g_invincible.Tick(SetInvincible); }, [] { g_invincible.Off(SetInvincible); });
 		Ui::Looped(horse, "Invisible", [] { g_invisible.Tick(SetInvisible); }, [] { g_invisible.Off(SetInvisible); });
-		Ui::Looped(horse, "Stamina Never Drain", [] { OnMount([](Ped m) { PED::SET_PED_STAMINA(m, 100.0f); }); });
+		Ui::Looped(horse, "Stamina Never Drain", [] { OnMount([](Ped m) { PED::_RESTORE_PED_STAMINA(m, 100.0f); }); });
 		Ui::Looped(horse, "Never Ragdoll", [] { g_noRagdoll.Tick(SetNoRagdoll); }, [] { g_noRagdoll.Off(SetNoRagdoll); });
 		Ui::Number(horse, "Horse Scale", &g_scale, 0.1f, 10.0f, 0.05f, ApplyScale);
 		Ui::Looped(horse, "Super Speed", SuperSpeedTick, SuperSpeedOff);

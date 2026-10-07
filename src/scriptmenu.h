@@ -444,7 +444,7 @@ public:
 	}
 	static void MenuInputBeep()
 	{
-		AUDIO::STOP_SOUND_FRONTEND(const_cast<char*>("NAV_RIGHT"), const_cast<char*>("HUD_SHOP_SOUNDSET"));
+		AUDIO::_STOP_SOUND_WITH_NAME("NAV_RIGHT", "HUD_SHOP_SOUNDSET");
 		AUDIO::PLAY_SOUND_FRONTEND(const_cast<char*>("NAV_RIGHT"), const_cast<char*>("HUD_SHOP_SOUNDSET"), 1, 0);
 	}
 };

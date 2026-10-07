@@ -1,6 +1,9 @@
 # Plan: one native header (alloc8or's)
 
-Status: approved for planning, not started. Written 2026-10-07.
+Status: steps 1-2 done 2026-10-07 (fork commit `086e1ed`, not yet
+pushed). The generator reproduces `7eed8e0` exactly from alloc8or's data
+at `b3c5d5e`, apart from DominoCheat's hand-renamed
+`_FIND_PLAYABLE_HAND_TILES`. Steps 3-4 pending. Written 2026-10-07.
 
 ## Goal
 

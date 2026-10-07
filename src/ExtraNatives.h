@@ -1,8 +1,10 @@
 #pragma once
 
-// Same purpose/convention as PokerCheat/DominoCheat's own ExtraNatives.h:
-// natives missing from (or mistyped in) the vendored natives.h, declared in
-// their usual namespace. Never edit the vendored SDK header.
+// Natives that alloc8or's DB (https://alloc8or.re/rdr3/nativedb/), and so the
+// generated external/ScriptHookSDK/inc/natives.h, doesn't have, declared in
+// their usual namespace. Every entry here must be absent from alloc8or: if
+// alloc8or has the hash, call its name instead. Never edit the vendored SDK
+// header. All entries checked absent on 2026-10-07.
 
 #include "..\external\ScriptHookSDK\inc\nativeCaller.h"
 #include "..\external\ScriptHookSDK\inc\types.h"

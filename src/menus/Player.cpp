@@ -284,7 +284,7 @@ namespace
 		const Ped ped = Me();
 		FillCores(ped);
 		PLAYER::RESTORE_PLAYER_STAMINA(MyPlayer(), 100.0f);
-		PLAYER::RESTORE_SPECIAL_ABILITY(MyPlayer(), -1, TRUE);
+		PLAYER::_SPECIAL_ABILITY_START_RESTORE(MyPlayer(), -1, TRUE);
 		ENTITY::SET_ENTITY_HEALTH(ped, ENTITY::GET_ENTITY_MAX_HEALTH(ped, FALSE), 0);
 	}
 

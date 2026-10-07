@@ -51,7 +51,7 @@ void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color
 	std::string formatText = "<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Left'><FONT FACE='$Font5' LETTERSPACING='0' SIZE='"
 		+ std::to_string(fontSize) + "'>~s~" + str + "</FONT></P><TEXTFORMAT>";
 	UIDEBUG::_BG_SET_TEXT_COLOR(color.r, color.g, color.b, color.a);
-	UIDEBUG::_BG_DISPLAY_TEXT(GAMEPLAY::CREATE_STRING(10, const_cast<char*>("LITERAL_STRING"), const_cast<char*>(formatText.c_str())), x, y);
+	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), x, y);
 }
 
 void DrawRect(float lineLeft, float lineTop, float lineWidth, float lineHeight, int r, int g, int b, int a)
@@ -437,6 +437,6 @@ void MenuController::DrawStatusText()
 		std::string formatText = "<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Center'><FONT FACE='$Font5' LETTERSPACING='0' SIZE='28'>~s~"
 			+ m_statusText + "</FONT></P><TEXTFORMAT>";
 		UIDEBUG::_BG_SET_TEXT_COLOR(255, 255, 255, 255);
-		UIDEBUG::_BG_DISPLAY_TEXT(GAMEPLAY::CREATE_STRING(10, const_cast<char*>("LITERAL_STRING"), const_cast<char*>(formatText.c_str())), -1.0f + (0.5f * 2.0f), 0.5f);
+		UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), -1.0f + (0.5f * 2.0f), 0.5f);
 	}
 }
