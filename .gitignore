@@ -5,3 +5,9 @@
 # Visual Studio
 /.vs/
 *.user
+
+# Derived from Rampage.asi; never commit
+/tools/rampage_inventory.csv
+/tools/rampage_inventory.md
+/tools/*.json
+/tools/rampage_natives*

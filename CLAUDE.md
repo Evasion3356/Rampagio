@@ -100,6 +100,38 @@ Files:
   -S"script.py" -L"log.txt" <idb>`. Call `ida_auto.auto_wait()`, then
   `ida_hexrays.decompile(ea)`, and end with `ida_pro.qexit(0)`.
 
+### Feature inventory
+
+`tools/rampage_inventory_ida.py` (headless IDA, on the deob-annotated
+database) plus `tools/rampage_inventory.py` (joins with
+`rampage_natives.csv`) list every Rampage menu option:
+
+```
+idat.exe -A -S"tools\rampage_inventory_ida.py <scratch>\inv.json" -L"log.txt" <copy of Rampage.asi.i64>
+python tools/rampage_inventory.py <scratch>/inv.json ../RampageDeob/rampage_natives.csv tools/rampage_inventory
+```
+
+Output is `tools/rampage_inventory.{csv,md}` (gitignored): area,
+submenu, kind, label, description, natives reached from the handler (and,
+for toggles, from the functions that read the toggle's global), and a
+script-call flag. Run IDA on a copy of the `.i64`; the script renames the
+builders `Submenus__SubXxx`. Result for the 2026-01-04 build: 167
+submenus, 1,514 rows, 1,302 static options, 225 data-driven list rows.
+Only 13 options call game script functions. Known gaps: rows whose work
+happens in a shared tick or table (e.g. the Effects list) show no
+natives, and about 15 labels are fragments.
+
+How it works: builder names survive only in the RTTI names of their
+lambdas (`_Func_impl_no_alloc<Submenus::SubXxx(void)::_lambda_N_>`).
+The builder is the function that references those vftables, directly
+or through a tiny constructor helper. Each call to a menu API function
+(`0x1801ED2B0` action, `0x1801EE1E0` toggle with a bool global and a
+lambda, `0x1801EDEE0` submenu by index, and so on; see `MENU_API`)
+closes a row. Labels come from the Hex-Rays lines before the call,
+because short ones are packed into integer immediates. The deob CSV's
+`function` column is a `.pdata` chunk, so natives are attributed by
+IDA chunk ranges instead.
+
 ### Native-hash obfuscation (solved)
 
 There is one key: `g_NativeHashKey` (`0x180426BA8`) is set to
@@ -188,9 +220,8 @@ Posse/Bodyguards, Wardrobe/Outfits, Inventory/Money/Honor/Bounty,
 Collectibles/Map, Script Tools (Loader, Terminator, Monitor, Patcher,
 Global Editor), Hotkeys, Themes and Settings.
 
-1. Inventory: map every label to its handler and natives (CSV in
-   `tools/`, gitignored), group by submenu, mark SP-only versus
-   online-only (drop the online-only ones).
+1. Inventory: done for the static rows (see "Feature inventory"). Still
+   to do: mark SP-only versus online-only and drop the online-only ones.
 2. Infrastructure first: script-function caller (`sub_18001C900`
    equivalent), script local/global access, entity enumeration (pools),
    number/text input, list submenus, toggle persistence, hotkeys.
@@ -229,7 +260,9 @@ kind of work.
 
 ## Next steps
 
-- Goal A step 1: the feature inventory.
+- Pick the porting order from `tools/rampage_inventory.md`. Most options
+  are plain natives; start with the Player, Horse, Weapons and World
+  toggles.
 - Script-function caller (for cash/honor and anything else Rampage runs
-  through `sub_18001C900`).
+  through `sub_18001C900`). Only 13 options need it, so it can wait.
 - Live-test the starter features.
