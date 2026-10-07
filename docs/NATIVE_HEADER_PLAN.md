@@ -1,9 +1,15 @@
 # Plan: one native header (alloc8or's)
 
-Status: steps 1-2 done 2026-10-07 (fork commit `086e1ed`, not yet
-pushed). The generator reproduces `7eed8e0` exactly from alloc8or's data
+Status: steps 1-3 done and pushed 2026-10-07 (fork commit `086e1ed`),
+except GoldHorse. The generator reproduces `7eed8e0` exactly from alloc8or's data
 at `b3c5d5e`, apart from DominoCheat's hand-renamed
-`_FIND_PLAYABLE_HAND_TILES`. Steps 3-4 pending. Written 2026-10-07.
+`_FIND_PLAYABLE_HAND_TILES`. Step 3 found more than the table below lists: Poker, Blackjack and
+Domino also used `UI::DRAW_TEXT` -> `HUD::_DISPLAY_TEXT`,
+`UI::SET_TEXT_COLOR_RGBA` -> `HUD::_SET_TEXT_COLOR`, and
+`SET_TEXT_SCALE`/`SET_TEXT_CENTRE`/`SET_TEXT_DROPSHADOW`, which alloc8or
+lacks (now in each one's `ExtraNatives.h`, `HUD` namespace). Domino keeps
+`_FIND_PLAYABLE_HAND_TILES` in its `ExtraNatives.h` because alloc8or's
+`(Any, Any)` signature is 32-bit. Step 4 pending. Written 2026-10-07.
 
 ## Goal
 

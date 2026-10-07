@@ -296,11 +296,11 @@ World Time/Weather, most of Teleport/World/Weapons. 6 submenus done,
 (Debug); nothing is live-tested (the user deferred testing until the
 port is further along). Menu key is F5.
 
-1. **Native header follow-ups.** Steps 1-2 of `docs/NATIVE_HEADER_PLAN.md`
-   are done. The fork commit `086e1ed` is local only until the user
-   approves pushing it; until then a fresh clone can't check out
-   Rampagio's submodule. Siblings switch over (plan step 3) when each is
-   next touched.
+1. **Native header: done except GoldHorse.** Steps 1-3 of
+   `docs/NATIVE_HEADER_PLAN.md` are done and pushed (fork `086e1ed`;
+   Poker, Blackjack, Domino, ChallengeCheat, FFFCheat, FishingFix pushed;
+   HorseStatLock committed, no remote). GoldHorse (own older header)
+   still needs its own look.
 2. **RDR2-Native-Menu-Base** (`../Githubs/RDR2-Native-Menu-Base`, MIT,
    Halen84, last updated 2023): a standalone ASI bundling its own older
    alloc8or header; draws with `DRAW_SPRITE`/`DRAW_RECT`/`BG_DISPLAY_TEXT`,
