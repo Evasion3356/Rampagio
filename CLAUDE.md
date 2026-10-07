@@ -68,7 +68,7 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
   teleports, ...), stored where `Rampagio.ini` is.
 - `src/PatternScan.*` and `external/minhook`: carried over for features
   that need memory patterns or hooks. Nothing uses them yet.
-- `tools/rampage_deob.py`, `tools/rampage_inventory*.py`: Rampage
+- `tools/rampage_deob.py`, `tools/rampage_inventory*.py`, `tools/handlers/`: Rampage
   reversing tools (below). `tools/porting_status.py` regenerates
   `docs/PORTING.md`.
 
@@ -218,8 +218,16 @@ register). The DB is missing some SDK names; for example
    the `nativePush64` arguments that follow.
 3. If it calls script functions or touches thread locals, check the
    target in `..\Scripts\1491.50\script_rel` to see what it actually does.
-4. Write our own version in `Features.cpp`, note the Rampage function in
-   the table above, build, and have the user test it live.
+4. Write our own version in the area's `src/menus/<Area>.cpp`, update
+   `STATUS` in `tools/porting_status.py`, regenerate `docs/PORTING.md`,
+   build, commit.
+
+In practice, port a whole submenu at a time from condensed handler dumps
+(`tools/handlers/`, usage in `dump_handlers_ida.py`'s docstring): run
+`rampage_inventory_ida.py` then `dump_handlers_ida.py` on a copy of the
+`.i64` into the session scratchpad, then `shrink.py`, `compact.py`, and
+read with `view.py <hc dir> SubXxx ...`. Constants Rampage keeps in data
+(slider ranges, choice tables) need a small IDA read of the address.
 
 ## Goals
 
@@ -275,9 +283,54 @@ kind of work.
 
 ## Next steps
 
-- Pick the porting order from `tools/rampage_inventory.md`. Most options
-  are plain natives; start with the Player, Horse, Weapons and World
-  toggles.
-- Script-function caller (for cash/honor and anything else Rampage runs
-  through `sub_18001C900`). Only 13 options need it, so it can wait.
-- Live-test the starter features.
+Resume point (2026-10-07). Done so far: inventory tooling; menu framework
+(`src/Menu.h` builder API, number/choice/section rows, left/right input,
+rebuilt-on-open lists); ported Player (SubSelf), Horse (SubSelfHorse),
+World Time/Weather, most of Teleport/World/Weapons. 6 submenus done,
+6 partial, 155 pending; see `docs/PORTING.md`. Everything builds clean
+(Debug); nothing is live-tested (the user deferred testing until the
+port is further along). Menu key is F5.
+
+1. **Waiting on the user: native header.** The user wants one native
+   header, alloc8or's (https://alloc8or.re/rdr3/nativedb/), with
+   `src/ExtraNatives.h` only for natives alloc8or lacks. Research done:
+   - `external/ScriptHookSDK/inc/natives.h` (user's fork
+     `Evasion3356/ScriptHookRDR2-SDK`, commit dfe5275) is an alloc8or
+     generation (2026-09-16) plus a later merge of 45 namespaces / 2,317
+     natives from the old stock SDK. That merge is the source of the
+     duplicate alias namespaces (`AI`, `CONTROLS`, `GAMEPLAY`, `CAM`, ...).
+   - alloc8or's data: `https://raw.githubusercontent.com/alloc8or/rdr3-nativedb-data/master/natives.json`
+     (86 namespaces, 7,132 natives).
+   - Rampagio uses 246 natives; 6 aren't alloc8or names. Renames:
+     `AUDIO::STOP_SOUND_FRONTEND` -> `AUDIO::_STOP_SOUND_WITH_NAME`,
+     `GAMEPLAY::CREATE_STRING` -> `MISC::VAR_STRING`,
+     `PED::SET_PED_STAMINA` -> `PED::_RESTORE_PED_STAMINA`,
+     `PED::_TRACK_PED_VISIBILITY` -> `PED::REQUEST_PED_VISIBILITY_TRACKING`,
+     `PLAYER::RESTORE_SPECIAL_ABILITY` -> `PLAYER::_SPECIAL_ABILITY_START_RESTORE`.
+     `GRAPHICS::DRAW_LINE` (0x6B7256074AE34680) is not in alloc8or: it's
+     correctly in `ExtraNatives.h`.
+   - Siblings on the same submodule use 3-6 non-alloc8or names each
+     (`STOP_SOUND_FRONTEND`, `CREATE_STRING`, `LANGUAGE::_GET_CURRENT_LANGUAGE_ID`
+     -> `LOCALIZATION::GET_CURRENT_LANGUAGE`, `TEXTURE::*` -> `TXD::*`;
+     DominoCheat's `MINIGAME::_FIND_PLAYABLE_HAND_TILES` is only
+     `_0x3AE451860F03CA8A` in alloc8or). GoldHorse uses its own older
+     header. Each project pins its own submodule commit.
+   - Proposed (not yet approved): script the header generation from
+     alloc8or's JSON in the SDK fork, drop the merged extras, move
+     Rampagio to it (5 renames), bump siblings when next touched.
+2. **RDR2-Native-Menu-Base** (`../Githubs/RDR2-Native-Menu-Base`, MIT,
+   Halen84, last updated 2023): a standalone ASI bundling its own older
+   alloc8or header; draws with `DRAW_SPRITE`/`DRAW_RECT`/`BG_DISPLAY_TEXT`,
+   no line drawing. Not suitable as a submodule (second native header,
+   own DllMain). Plan: port its UI layer (sprite look, per-option
+   descriptions, controller input) behind `src/Menu.h`, against alloc8or
+   names, with attribution.
+3. Keep porting, in this order: Recovery (SubRecoveryMoney, Honor,
+   Bounty, Cores, Unlocks, AddItems), Player submenus (Player Proofs,
+   Abilities, Config Flags, Moods, Scenarios, Animations, Wardrobe, ...),
+   Vehicle, Spawner, the remaining World submenus, Miscellaneous,
+   Script Tools, Settings (incl. toggle save/load). Leftovers listed in
+   `docs/PORTING.md` rows marked Partial.
+4. Script-function caller (for cash/honor "via Game Script" and anything
+   else Rampage runs through `sub_18001C900`). Only 13 options need it.
+5. Live-test once the user asks for it.
