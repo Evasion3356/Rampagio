@@ -19,7 +19,7 @@ STATUS = {
  'SubWorldTime':('Done','World > Time'),
  'SubRecoveryMoney':('Done','Recovery > Money: drop is a timed toggle (ours) instead of every tick'),
  'SubRecoveryHonor':('Partial','Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown'),
- 'SubRecoveryBounty':('Done','Recovery > Bounty: state rows also show each state's bounty (ours)'),
+ 'SubRecoveryBounty':('Done','Recovery > Bounty: state rows also show each state bounty (ours)'),
  'SubRecoveryCores':('Done','Recovery > Cores: temporary rank applies on every step (ours)'),
  'SubWorldWeather':('Done','World > Weather'),
  'SubWeapons':('Partial','Weapon: Always Kill Cam, Thunder Hawk, Rope Gun, Portal Gun, Debug Gun pending'),

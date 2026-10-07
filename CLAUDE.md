@@ -310,9 +310,9 @@ header) belongs here too, later.
 Resume point (2026-10-07). Done so far: inventory tooling; menu framework
 (`src/Menu.h` builder API, number/choice/section rows, left/right input,
 rebuilt-on-open lists); ported Player (SubSelf), Horse (SubSelfHorse),
-World Time/Weather, most of Teleport/World/Weapons, Recovery Money and
-Honor (with the script-function caller). 7 submenus done, 7 partial,
-153 pending; see `docs/PORTING.md`. Everything builds clean
+World Time/Weather, most of Teleport/World/Weapons, Recovery Money,
+Honor, Bounty and Cores (with the script-function caller). 9 submenus
+done, 7 partial, 151 pending; see `docs/PORTING.md`. Everything builds clean
 (Debug); nothing is live-tested (the user deferred testing until the
 port is further along). Menu key is F5.
 
@@ -329,8 +329,9 @@ port is further along). Menu key is F5.
    own DllMain). Plan: port its UI layer (sprite look, per-option
    descriptions, controller input) behind `src/Menu.h`, against alloc8or
    names, with attribution.
-3. Keep porting, in this order: Recovery (Bounty, Cores, Unlocks,
-   AddItems), Player submenus (Player Proofs,
+3. Keep porting, in this order: Recovery (Unlocks, AddItems,
+   GiveItemsList; `flow_controller func_290` is already wrapped in
+   Recovery.cpp as `g_addItemScript`), Player submenus (Player Proofs,
    Abilities, Config Flags, Moods, Scenarios, Animations, Wardrobe, ...),
    Vehicle, Spawner, the remaining World submenus, Miscellaneous,
    Script Tools, Settings (incl. toggle save/load). Rampage's Debug > Scripts
