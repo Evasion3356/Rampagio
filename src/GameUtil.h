@@ -82,6 +82,17 @@ namespace GameUtil
 	};
 	static_assert(sizeof(ItemGuid) == 32 && sizeof(SlotGuid) == 40);
 
+	// A script stat id, struct<2>: f_0 the stat, or a verb such as
+	// joaat("Pick") for per-item stats; f_1 the item (0 for none). Two
+	// 8-byte script words.
+	struct StatId
+	{
+		std::uint64_t stat = 0;
+		std::uint64_t item = 0;
+		Any* Ptr() { return reinterpret_cast<Any*>(this); }
+	};
+	static_assert(sizeof(StatId) == 16);
+
 	// The inventory's root "character" GUID, the parent of everything in it.
 	ItemGuid CharacterGuid(int inventoryId);
 

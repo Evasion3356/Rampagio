@@ -549,6 +549,11 @@ namespace
 
 namespace Menus
 {
+	std::span<const char* const> WeaponNames()
+	{
+		return kWeapons;
+	}
+
 	void BuildWeapons(MenuBase* root)
 	{
 		MenuBase* weapons = Ui::Submenu(root, "Weapon");

@@ -9,6 +9,8 @@
 
 #include "..\Menu.h"
 
+#include <span>
+
 namespace Menus
 {
 	void BuildPlayer(MenuBase* root);
@@ -19,7 +21,11 @@ namespace Menus
 	void BuildSpawner(MenuBase* root);
 	void BuildWorld(MenuBase* root);
 	void BuildRecovery(MenuBase* root);
+	void BuildRecoveryUnlocks(MenuBase* recovery); // Unlocks.cpp
 	void BuildMiscellaneous(MenuBase* root);
 	void BuildScriptTools(MenuBase* root);
 	void BuildSettings(MenuBase* root);
+
+	// The Give Weapon list's weapon names (Weapons.cpp).
+	std::span<const char* const> WeaponNames();
 }

@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 11 done, 7 partial, 149 pending.
+Submenus: 13 done, 8 partial, 146 pending.
 
 ## Debug
 
@@ -130,16 +130,16 @@ Submenus: 11 done, 7 partial, 149 pending.
 | SubCollectiblesDinoBones | 2 | Pending |  |
 | SubCollectiblesDreamcatchers | 2 | Pending |  |
 | SubCollectiblesRockCarvings | 2 | Pending |  |
-| SubMapDiscoverables | 2 | Pending |  |
+| SubMapDiscoverables | 2 | Partial | Recovery > Unlocks > Map Discoverables: 79 discoveries the scripts name; Rampage lists 284 (incl. animal/fish map discoverables) |
 | SubRecoveryAddItems | 13 | Done | Recovery > Add Items: Unlimited Items also blocks by-GUID removals (ours) |
 | SubRecoveryBounty | 9 | Done | Recovery > Bounty: state rows also show each state bounty (ours) |
 | SubRecoveryCores | 9 | Done | Recovery > Cores: temporary rank applies on every step (ours) |
 | SubRecoveryGiveItemsList | 1 | Done | Recovery > Add Items > Give Items: own item list from the game scripts (tools/extract_items.py); method is a visible choice instead of Shift (ours) |
 | SubRecoveryHonor | 5 | Partial | Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown |
 | SubRecoveryMoney | 5 | Done | Recovery > Money: drop is a timed toggle (ours) instead of every tick |
-| SubRecoveryUnlocks | 8 | Pending |  |
+| SubRecoveryUnlocks | 8 | Done | Recovery > Unlocks: own lists from the game scripts (tools/extract_unlocks.py); Unlock Checks lists every unlock the scripts name; Add Entries writes every journal entry the game allows; Discover Fish skips legendary outfit presets (ours) |
 | SubStatEditor | 6 | Pending |  |
-| SubUnlockCheats | 1 | Pending |  |
+| SubUnlockCheats | 1 | Done | Recovery > Unlocks > Cheat Codes: activates each cheat through the game cheat state instead of showing its phrase (ours) |
 
 ## Script Tools
 

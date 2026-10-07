@@ -126,9 +126,9 @@ namespace
 	// different stat hash we couldn't name; this one is the game's own.
 	int CurrentHonor()
 	{
-		struct { int hash; int pad; } statId = { static_cast<int>(GameUtil::Joaat("honor_current")), 0 };
+		GameUtil::StatId statId{ GameUtil::Joaat("honor_current") };
 		int value = 0;
-		STATS::STAT_ID_GET_INT(reinterpret_cast<Any*>(&statId), &value);
+		STATS::STAT_ID_GET_INT(statId.Ptr(), &value);
 		return value;
 	}
 
@@ -640,5 +640,7 @@ namespace Menus
 		});
 		Ui::Action(items, "Restore Snapshot", RestoreSnapshot);
 		BuildGiveItems(items);
+
+		BuildRecoveryUnlocks(recovery);
 	}
 }
