@@ -26,6 +26,7 @@
 { "Random lightning flash somewhere.", "Un relámpago aleatorio en algún lugar." },
 { "Set two teleport portals.\nPress [SHIFT] to switch portal creation.", "Coloca dos portales de teletransporte.\nPresiona [SHIFT] para cambiar de portal." },
 { "Shoot ropes out of your gun.\nPress [R] to release rope.", "Dispara cuerdas con tu arma.\nPresiona [R] para soltar la cuerda." },
+{ "Take a Photo", "Tomar una foto" },
 { "Takes a photo and uploads it to social club.", "Toma una foto y la sube al Social Club." },
 { "Teleport into last driven vehicle.", "Te teletransporta al último vehículo manejado." },
 { "Teleport to waypoint on key press.", "Teletransporta al punto de ruta al presionar la tecla." },
