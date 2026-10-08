@@ -98,7 +98,7 @@ namespace
 		{
 			MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 			if (!m_command->GetList().empty())
-				DrawRowValue(this, lineTop, lineLeft, active, std::string(Tr(m_command->GetSelected())));
+				DrawRowValue(this, lineTop, lineLeft, active, Tr(m_command->GetSelected()));
 		}
 	};
 

@@ -361,7 +361,7 @@ public:
 // Rampagio addition: draws a value row's `value` right-aligned at the row's
 // right end, as Rampage does: "<- value ->" with $Font5 arrows while the row
 // is selected, the plain value otherwise. Shared by the value rows below.
-void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& value);
+void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, std::string_view value);
 
 // Screen text in the menu's font (x, y in 0..1); used by the overlays and
 // the scanners' world labels. fontSize is the Scaleform SIZE.
@@ -374,9 +374,10 @@ void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color
 // text format struct (found by pattern on first use): Center puts the
 // text's center at x, Right its right end at x + 0.5. Without the struct
 // they fall back to an estimate. title also sets the format flag Rampage
-// sets for its header text.
+// sets for its header text. The markup is built in one reused buffer, so
+// drawing a row allocates nothing once it has grown.
 enum class TextAlign { Left, Center, Right };
-void DrawMenuText(const std::string& text, float x, float y, float scale, ColorRgba color, const char* face = nullptr,
+void DrawMenuText(std::string_view text, float x, float y, float scale, ColorRgba color, const char* face = nullptr,
 	TextAlign align = TextAlign::Left, bool title = false);
 
 // Rampagio: a texture from a streamed dictionary (requested on first use,

@@ -128,7 +128,7 @@ namespace
 
 	// Characters shown, for the no-struct fallback's width estimate: skips
 	// markup tags and counts an entity (&#8592;) as one.
-	size_t VisibleLength(const std::string& text)
+	size_t VisibleLength(std::string_view text)
 	{
 		size_t n = 0;
 		for (size_t i = 0; i < text.size(); i++)
@@ -168,29 +168,35 @@ void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color
 	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), center ? -1.0f + x * 2.0f : x, y);
 }
 
-void DrawMenuText(const std::string& text, float x, float y, float scale, ColorRgba color, const char* face, TextAlign align, bool title)
+void DrawMenuText(std::string_view text, float x, float y, float scale, ColorRgba color, const char* face, TextAlign align, bool title)
 {
 	if (!face)
 		face = BodyFace();
 	unsigned char* format = TextFormat();
-	std::string markup;
+	// Reused every call (script thread only): clear() keeps the capacity.
+	static std::string markup;
+	markup.clear();
 	if (format || align == TextAlign::Left)
 	{
 		if (format && align != TextAlign::Left)
 			format[kFormatAlignByte] = 0;
-		markup = std::string("~s~<FONT FACE='") + face + "'>"
-			+ (align == TextAlign::Right ? "<P ALIGN='RIGHT'>" + text + "</P>" : text) + "</FONT>";
+		markup.append("~s~<FONT FACE='").append(face).append("'>");
+		if (align == TextAlign::Right)
+			markup.append("<P ALIGN='RIGHT'>").append(text).append("</P>");
+		else
+			markup.append(text);
+		markup.append("</FONT>");
 	}
 	else if (align == TextAlign::Center)
 	{
-		markup = std::string("<P ALIGN='Center'>~s~<FONT FACE='") + face + "'>" + text + "</FONT></P>";
+		markup.append("<P ALIGN='Center'>~s~<FONT FACE='").append(face).append("'>").append(text).append("</FONT></P>");
 		x = -1.0f + x * 2.0f;
 	}
 	else
 	{
 		// Right without the struct: back off from the right end by an
 		// estimated width (~0.0065 per character at Rampage's 0.32).
-		markup = std::string("~s~<FONT FACE='") + face + "'>" + text + "</FONT>";
+		markup.append("~s~<FONT FACE='").append(face).append("'>").append(text).append("</FONT>");
 		x = x + 0.5f - 0.0065f * (scale / kTextScale) * static_cast<float>(VisibleLength(text));
 	}
 	color = Shown(color);
@@ -246,7 +252,7 @@ void MenuItemBase::SetStatusText(string text, int ms)
 // and lineTop the row's top; MenuBase::OnDraw draws the row's background.
 void MenuItemBase::OnDraw(float lineTop, float lineLeft, bool active)
 {
-	DrawMenuText(std::string(Tr(GetCaption())), lineLeft + m_textLeft, lineTop + kTextDrop, kTextScale, GetTextColor(active));
+	DrawMenuText(Tr(GetCaption()), lineLeft + m_textLeft, lineTop + kTextDrop, kTextScale, GetTextColor(active));
 }
 
 namespace
@@ -403,11 +409,16 @@ void MenuItemMenu::OnDraw(float lineTop, float lineLeft, bool active)
 
 // Rampage's value rows (sub_1802049E0 and friends): right-aligned at
 // left - 0.275, with $Font5 arrows around the value while selected.
-void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& value)
+void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, std::string_view value)
 {
-	const std::string text = active
-		? "<FONT FACE='$Font5'>&#8592;</FONT> " + value + " <FONT FACE='$Font5'>&#8594;</FONT>"
-		: value;
+	if (!active)
+	{
+		DrawMenuText(value, lineLeft - 0.274f, lineTop + kTextDrop, kTextScale, item->GetTextColor(active), nullptr, TextAlign::Right);
+		return;
+	}
+	static std::string text; // reused, as in DrawMenuText
+	text.clear();
+	text.append("<FONT FACE='$Font5'>&#8592;</FONT> ").append(value).append(" <FONT FACE='$Font5'>&#8594;</FONT>");
 	DrawMenuText(text, lineLeft - 0.274f, lineTop + kTextDrop, kTextScale, item->GetTextColor(active), nullptr, TextAlign::Right);
 }
 
@@ -433,7 +444,7 @@ void MenuItemChoice::OnDraw(float lineTop, float lineLeft, bool active)
 {
 	MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 	if (*m_index >= 0 && *m_index < static_cast<int>(m_options.size()))
-		DrawRowValue(this, lineTop, lineLeft, active, std::string(Tr(m_options[*m_index])));
+		DrawRowValue(this, lineTop, lineLeft, active, Tr(m_options[*m_index]));
 }
 
 void MenuItemSection::OnDraw(float lineTop, float lineLeft, bool active)
@@ -442,7 +453,7 @@ void MenuItemSection::OnDraw(float lineTop, float lineLeft, bool active)
 	if (caption.empty())
 		DrawMenuSprite("menu_textures", "divider_line", lineLeft + kWidth / 2.0f, lineTop + 0.015f, 0.2f, 0.0011f, 0.0f, kWhite);
 	else
-		DrawMenuText(std::string(Tr(caption)), lineLeft + kWidth / 2.0f, lineTop + kTextDrop, kTextScale, Style().sectionText, nullptr, TextAlign::Center);
+		DrawMenuText(Tr(caption), lineLeft + kWidth / 2.0f, lineTop + kTextDrop, kTextScale, Style().sectionText, nullptr, TextAlign::Center);
 }
 
 void MenuItemMenu::OnSelect()
