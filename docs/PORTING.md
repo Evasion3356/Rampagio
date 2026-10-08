@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 148 done, 7 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 149 done, 6 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -216,7 +216,7 @@ Submenus: 148 done, 7 partial, 0 pending, 10 tabled, 2 dropped.
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
 | SubWeaponModifiers | 5 | Done | Weapon > Weapon Modifiers: Weapon Scale re-applies on weapon switch (ours); Skill sets the current weapon stat |
-| SubWeaponVisuals | 12 | Partial | Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback (Rampage byte patches) not ported |
+| SubWeaponVisuals | 12 | Done | Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback patch the jz at the signatures of Rampage (BytePatch, guarded; the signatures could only be checked in memory, not against the protected exe) |
 | SubWeapons | 33 | Done | Weapon: Rope Gun pulls toward the impact and Portal Gun uses markers (ours) |
 | SubWeaponsAimbot | 7 | Done | Weapon > Aimbot: target filter (all/humans/animals) and Ignore Dying Peds are ours |
 | SubWeaponsAmmunition | 5 | Done | Weapon > Ammunition: Drop Ammo offers six PICKUP_AMMO_ kinds from the game scripts |

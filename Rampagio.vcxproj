@@ -22,6 +22,7 @@
     <ClCompile Include="src\Menu.cpp" />
     <ClCompile Include="src\DataFile.cpp" />
     <ClCompile Include="src\Xml.cpp" />
+    <ClCompile Include="src\BytePatch.cpp" />
     <ClCompile Include="src\menus\*.cpp" />
     <ClCompile Include="src\GameUtil.cpp" />
     <ClCompile Include="src\GamePointers.cpp" />
@@ -55,6 +56,7 @@
     <ClInclude Include="src\Menu.h" />
     <ClInclude Include="src\DataFile.h" />
     <ClInclude Include="src\Xml.h" />
+    <ClInclude Include="src\BytePatch.h" />
     <ClInclude Include="src\menus\Menus.h" />
     <ClInclude Include="src\GameUtil.h" />
     <ClInclude Include="src\GamePointers.h" />

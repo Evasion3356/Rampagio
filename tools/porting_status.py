@@ -167,7 +167,7 @@ STATUS = {
  'SubPedEditorPlaySpeechVignettes':('Done','Ped Editor > Play Speech > Vignettes: the shared Player menu, opened from the Ped Editor (Menus::Target)'),
  'SubPedEditorPlaySpeechCustom':('Done','Ped Editor > Play Speech > Custom Speeches: the shared Player menu, opened from the Ped Editor (Menus::Target)'),
  'SubPedEditorVoiceChanger':('Done','Ped Editor > Play Speech > Voice Changer: the shared Player menu, opened from the Ped Editor (Menus::Target)'),
- 'SubWeaponVisuals':('Partial','Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback (Rampage byte patches) not ported'),
+ 'SubWeaponVisuals':('Done','Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback patch the jz at the signatures of Rampage (BytePatch, guarded; the signatures could only be checked in memory, not against the protected exe)'),
  'SubWeaponsAimbot':('Done','Weapon > Aimbot: target filter (all/humans/animals) and Ignore Dying Peds are ours'),
  'SubWeaponsBullets':('Done','Weapon > Weapon Bullets: Particle Gun uses the script effects list; Ped / Vehicle Gun models and Remote Cannonball steering are ours'),
  'SubTeleportShopsandStuff':('Done','Teleport > Shops and Services: the Rampage list, 14 categories, 67 locations (data/Teleports.inc)'),

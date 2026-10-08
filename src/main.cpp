@@ -9,6 +9,7 @@
 #include "script.h"
 #include "keyboard.h"
 #include "NativeHooks.h"
+#include "BytePatch.h"
 
 BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 {
@@ -25,6 +26,8 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		// Game scripts must stop calling into our replacements before the
 		// module goes away.
 		NativeHooks::Shutdown();
+		// Put the game's code back the way we found it.
+		BytePatch::RestoreAll();
 		scriptUnregister(hInstance);
 		keyboardHandlerUnregister(OnKeyboardMessage);
 		break;

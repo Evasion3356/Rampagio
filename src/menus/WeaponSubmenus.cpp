@@ -8,15 +8,17 @@
 	Ours: the Particle Gun uses the effects the game scripts start
 	(Effects.inc, the Player > Effects list); the Ped and Vehicle Guns pick
 	from our own short model lists; Remote Cannonball steers with the
-	camera and explodes on impact, without Rampage's overlay. Not ported:
-	Disable Hitmarker and Disable Hit Feedback (Rampage byte-patches the
-	game's HUD code for those). Rope Gun (a pull toward the impact, drawn
+	camera and explodes on impact, without Rampage's overlay. Disable
+	Hitmarker and Disable Hit Feedback patch the HUD code's jz to a jmp at
+	Rampage's signatures (BytePatch: only on a unique match of the expected
+	byte). Rope Gun (a pull toward the impact, drawn
 	as a line) and Portal Gun (markers and blips) are our own takes.
 */
 
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\keyboard.h"
+#include "..\BytePatch.h"
 
 #include <cmath>
 #include <format>
@@ -55,6 +57,11 @@ namespace
 	bool Firing() { return IsKeyDown(VK_LBUTTON) || PAD::IS_DISABLED_CONTROL_PRESSED(2, INPUT_ATTACK); }
 
 	// --- visuals -----------------------------------------------------------------
+
+	// Rampage's signatures: the jz that shows the red critical hitmarker,
+	// and the one that shows the crosshair's hit feedback (3 bytes in).
+	BytePatch g_hitmarker("Hitmarker", "74 2A 48 8D 4D 98", 0, 0x74, 0xEB);
+	BytePatch g_hitFeedback("Hit Feedback", "39 47 20 74 2C", 3, 0x74, 0xEB);
 
 	int g_opacity = 255;
 	bool g_crosshair = false;
@@ -123,6 +130,8 @@ namespace
 		const char* const kRgba[] = { "Red", "Green", "Blue", "Alpha" };
 		for (int i = 0; i < 4; i++)
 			Ui::Number(color, Ui::Id("weapon.crosshaircolor", kRgba[i]), kRgba[i], &g_crosshairColor[i], 0, 255, 5);
+		Ui::Toggle(v, "weapon.disablehitmarker", "Disable Hitmarker", [](bool on) { g_hitmarker.Set(on); });
+		Ui::Toggle(v, "weapon.disablehitfeedback", "Disable Hit Feedback", [](bool on) { g_hitFeedback.Set(on); });
 		Ui::Choice(v, "weapon.arrowtrail", "Arrow Trail", { "Default", "Trail 1", "Trail 2" }, &g_arrowTrail,
 			[](int i) { WEAPON::_SET_ARROW_TRAIL_FX(Me(), kArrowTrails[i]); });
 		Ui::Section(v, "Condition");
