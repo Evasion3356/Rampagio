@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 127 done, 26 partial, 2 pending, 10 tabled, 2 dropped.
+Submenus: 128 done, 27 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -194,7 +194,7 @@ Submenus: 127 done, 26 partial, 2 pending, 10 tabled, 2 dropped.
 |---|---|---|---|
 | SubTeleport | 41 | Partial | Teleport: own town list; Rampage's region/camp/shop location lists and Blips not ported |
 | SubTeleportCustom | 2 | Done | Teleport > Load Custom / Delete Custom |
-| SubTeleportShopsandStuff | 0 | Pending |  |
+| SubTeleportShopsandStuff | 0 | Partial | Teleport > Shops and Services: a user-supplied Rampagio_Shops.txt (Name, x, y, z); no built-in list (the scripts keep shop doors without names) |
 
 ## Vehicles
 
@@ -229,7 +229,7 @@ Submenus: 127 done, 26 partial, 2 pending, 10 tabled, 2 dropped.
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
 | SubIMAPCustom | 3 | Done | World > IPL Loader > Custom: Rampagio_IPLList.xml (same format as Rampage) |
-| SubIMAPCustomSet | 3 | Pending | IPL set files (Rampage IPLS folder XML) not ported |
+| SubIMAPCustomSet | 3 | Done | World > IPL Loader > IPL Sets: XML set files in a RampagioIPLS folder, same format as the IPLS folder of Rampage |
 | SubWorld | 12 | Done | World: also the Cloud Editor and Ambient Light submenus (unnamed builders in Rampage) |
 | SubWorldDoorManager | 2 | Done | World > Door Manager: the doors the game scripts name, listed when registered (Rampage uses its own door table) |
 | SubWorldIMAPLoader | 6 | Done | World > IPL Loader: Map Sets lists the 173 IPLs the game scripts load (Rampage has its own set table); interior entity sets by name |

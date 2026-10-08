@@ -151,6 +151,33 @@ namespace
 		return {};
 	}
 
+	// Shops and Services (ours): Rampage's list is its own table, and the
+	// game scripts keep shop doors without names, so the list is a
+	// user-supplied Rampagio_Shops.txt: "Name, x, y, z" per line.
+	void BuildShops(MenuBase* menu)
+	{
+		int count = 0;
+		for (const std::string& line : DataFile::LoadLines(L"Rampagio_Shops.txt"))
+		{
+			const size_t c1 = line.find(',');
+			if (c1 == std::string::npos)
+				continue;
+			float x = 0, y = 0, z = 0;
+			if (sscanf_s(line.c_str() + c1 + 1, " %f , %f , %f", &x, &y, &z) < 2)
+				continue;
+			const std::string name = line.substr(0, c1);
+			++count;
+			Ui::Do(menu, name, [x, y, z] {
+				if (z != 0.0f)
+					ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Me(), x, y, z, FALSE, FALSE, FALSE);
+				else
+					GameUtil::TeleportToGround(Me(), x, y);
+			});
+		}
+		if (!count)
+			Ui::Section(menu, "Add lines \"Name, x, y, z\" to Rampagio_Shops.txt");
+	}
+
 	void BuildCustomList(MenuBase* menu)
 	{
 		DataFile::Ini ini = DataFile::Load(kTeleportsFile);
@@ -243,6 +270,7 @@ namespace Menus
 		Ui::Action(tp, "Nearest Vehicle", NearestVehicle);
 		Ui::Action(tp, "Nearest Train Track", NearestTrainTrack);
 
+		Ui::ListMenu(tp, "Shops and Services", BuildShops);
 		MenuBase* towns = Ui::Submenu(tp, "Common Locations");
 		for (const Place& place : kTowns)
 		{

@@ -14,10 +14,13 @@
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
+#include "..\LogFallback.h"
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <format>
+#include <fstream>
 
 namespace
 {
@@ -487,6 +490,79 @@ namespace
 		}
 	}
 
+	// SubIMAPCustomSet: IPL set files in a RampagioIPLS folder next to the
+	// .asi, the same format as Rampage's IPLS folder: <Load Hash="0x..."/>,
+	// <Unload Hash="0x..."/> and <Interior ID="..." Name="entity set"/>
+	// lines. Load applies them; Unload reverses them.
+	int g_iplSetMode = 0; // 0 load, 1 unload
+
+	std::wstring IplSetFolder() { return LogFallback::ModuleDirectory() + L"RampagioIPLS\\"; }
+
+	std::vector<std::filesystem::path> IplSetFiles()
+	{
+		std::vector<std::filesystem::path> files;
+		std::error_code ec;
+		for (const auto& entry : std::filesystem::directory_iterator(IplSetFolder(), ec))
+			if (entry.path().extension() == L".xml")
+				files.push_back(entry.path());
+		std::sort(files.begin(), files.end());
+		return files;
+	}
+
+	std::string ApplyIplSet(const std::filesystem::path& file)
+	{
+		std::ifstream in(file);
+		if (!in)
+			return "Failed to load " + file.filename().string();
+		const bool load = g_iplSetMode == 0;
+		std::vector<Hash> loads, unloads;
+		std::vector<std::pair<int, std::string>> sets;
+		std::string line;
+		while (std::getline(in, line))
+		{
+			auto attr = [&](const char* key) -> std::string {
+				const std::string k = std::string(key) + "=\"";
+				const size_t a = line.find(k);
+				if (a == std::string::npos)
+					return {};
+				const size_t start = a + k.size();
+				return line.substr(start, line.find('"', start) - start);
+			};
+			if (line.find("<Load ") != std::string::npos)
+				loads.push_back(GameUtil::ParseHash(attr("Hash")));
+			else if (line.find("<Unload ") != std::string::npos)
+				unloads.push_back(GameUtil::ParseHash(attr("Hash")));
+			else if (line.find("<Interior ") != std::string::npos)
+				sets.push_back({ std::atoi(attr("ID").c_str()), attr("Name") });
+		}
+		for (Hash h : loads)
+			load ? STREAMING::REQUEST_IPL_HASH(h) : STREAMING::REMOVE_IPL_HASH(h);
+		for (Hash h : unloads)
+			load ? STREAMING::REMOVE_IPL_HASH(h) : STREAMING::REQUEST_IPL_HASH(h);
+		for (const auto& [interior, name] : sets)
+			if (load)
+				INTERIOR::ACTIVATE_INTERIOR_ENTITY_SET(interior, name.c_str(), 0);
+			else
+				INTERIOR::DEACTIVATE_INTERIOR_ENTITY_SET(interior, name.c_str(), TRUE);
+		return std::format("{} {}: {} IPLs, {} entity sets", load ? "Loaded" : "Unloaded", file.stem().string(), loads.size() + unloads.size(), sets.size());
+	}
+
+	void BuildIplSets(MenuBase* m)
+	{
+		Ui::Choice(m, "Load Mode", { "Load", "Unload" }, &g_iplSetMode);
+		const auto files = IplSetFiles();
+		Ui::Action(m, "Load All", [files]
+		{
+			for (const auto& f : files)
+				ApplyIplSet(f);
+			return std::format("{} sets", files.size());
+		});
+		if (files.empty())
+			Ui::Section(m, "No files in RampagioIPLS");
+		for (const auto& f : files)
+			Ui::Action(m, f.stem().string(), [f] { return ApplyIplSet(f); });
+	}
+
 	void AddIplRows(MenuBase* m, Hash h, const std::string& label)
 	{
 		Ui::Toggle(m, label, [h](bool on) { LoadIpl(h, on); })->SetState(STREAMING::IS_IPL_ACTIVE_HASH(h));
@@ -730,6 +806,7 @@ namespace Menus
 			for (size_t i = 0; i < g_userIpls.size(); i++)
 				AddIplRows(m, g_userIpls[i].hash, g_userIplNames[i].empty() ? Hex(g_userIpls[i].hash) : g_userIplNames[i]);
 		});
+		Ui::ListMenu(ipl, "IPL Sets", BuildIplSets);
 		Ui::Text(ipl, "IPL", &g_customIpl);
 		Ui::Action(ipl, "Load Custom", [] { return LoadIpl(GameUtil::ParseHash(g_customIpl), true); });
 		Ui::Action(ipl, "Unload Custom", [] { return LoadIpl(GameUtil::ParseHash(g_customIpl), false); });

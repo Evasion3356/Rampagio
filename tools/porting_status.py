@@ -88,7 +88,7 @@ STATUS = {
  'SubWorldTornado':('Done','World > Tornado & Black Hole: own force maths; meteors use script rock models'),
  'SubWorldIMAPLoader':('Done','World > IPL Loader: Map Sets lists the 173 IPLs the game scripts load (Rampage has its own set table); interior entity sets by name'),
  'SubIMAPCustom':('Done','World > IPL Loader > Custom: Rampagio_IPLList.xml (same format as Rampage)'),
- 'SubIMAPCustomSet':('Pending','IPL set files (Rampage IPLS folder XML) not ported'),
+ 'SubIMAPCustomSet':('Done','World > IPL Loader > IPL Sets: XML set files in a RampagioIPLS folder, same format as the IPLS folder of Rampage'),
  'SubWorldStates':('Done','World > World States: by state id (Global_40.f_283 bitset), no names'),
  'SubWorldTime':('Done','World > Time'),
  'SubRecoveryMoney':('Done','Recovery > Money: drop is a timed toggle (ours) instead of every tick'),
@@ -170,6 +170,7 @@ STATUS = {
  'SubWeaponVisuals':('Partial','Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback (Rampage byte patches) not ported'),
  'SubWeaponsAimbot':('Done','Weapon > Aimbot: target filter (all/humans/animals) and Ignore Dying Peds are ours'),
  'SubWeaponsBullets':('Done','Weapon > Weapon Bullets: Particle Gun uses the script effects list; Ped / Vehicle Gun models and Remote Cannonball steering are ours'),
+ 'SubTeleportShopsandStuff':('Partial','Teleport > Shops and Services: a user-supplied Rampagio_Shops.txt (Name, x, y, z); no built-in list (the scripts keep shop doors without names)'),
 }
 out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.','']
 by=collections.defaultdict(list)
