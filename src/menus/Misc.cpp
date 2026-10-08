@@ -370,17 +370,17 @@ namespace
 	void BuildGameMusic(MenuBase* misc)
 	{
 		MenuBase* music = Ui::Submenu(misc, "Game Music");
-		Ui::Do(music, "Stop Music Events", [] { AUDIO::TRIGGER_MUSIC_EVENT("MC_MUSIC_STOP"); });
-		Ui::Toggle(music, "Disable Idle Music", [](bool on) { AUDIO::SET_AUDIO_FLAG("EnableIdleMusic", !on); });
-		Ui::Toggle(music, "Disable Cutscene Music", [](bool on) { AUDIO::SET_AUDIO_FLAG("EnableCutsceneMusic", !on); });
-		Ui::Toggle(music, "Suppress Train Whistles", [](bool on) { AUDIO::SET_AUDIO_FLAG("SuppressNewAndExistingTrainWhistles", on); });
-		Ui::Action(music, "Load Audio Bank", []() -> std::string
+		Ui::Do(music, "misc.stopmusicevents", "Stop Music Events", [] { AUDIO::TRIGGER_MUSIC_EVENT("MC_MUSIC_STOP"); });
+		Ui::Toggle(music, "misc.disableidlemusic", "Disable Idle Music", [](bool on) { AUDIO::SET_AUDIO_FLAG("EnableIdleMusic", !on); });
+		Ui::Toggle(music, "misc.disablecutscenemusic", "Disable Cutscene Music", [](bool on) { AUDIO::SET_AUDIO_FLAG("EnableCutsceneMusic", !on); });
+		Ui::Toggle(music, "misc.suppresstrainwhistles", "Suppress Train Whistles", [](bool on) { AUDIO::SET_AUDIO_FLAG("SuppressNewAndExistingTrainWhistles", on); });
+		Ui::Action(music, "misc.loadaudiobank", "Load Audio Bank", []() -> std::string
 		{
 			std::string bank;
 			if (!GameUtil::PromptText("Audio Bank:", bank) || bank.empty())
 				return "";
 			return AUDIO::REQUEST_SCRIPT_AUDIO_BANK(bank.c_str()) ? "Loaded" : "Not loaded (yet)";
-		});
+		})->SetHotkeyable(false);
 		Ui::NameList(music, "Music Events", kMusicEvents, [](const std::string& name)
 		{
 			if (!PlayMusicEvent(name.c_str()))
@@ -494,15 +494,15 @@ namespace
 	void BuildMusicPlayer(MenuBase* misc)
 	{
 		MenuBase* player = Ui::Submenu(misc, "Music Player");
-		Ui::Action(player, "Now Playing", [] { return "Playing: " + g_player.Status(); });
-		Ui::Do(player, "Pause", [] { if (g_player.open) { MusicPlayer::Send(L"pause rampagio_music"); g_player.paused = true; } });
-		Ui::Do(player, "Resume", [] { if (g_player.open) { MusicPlayer::Send(L"resume rampagio_music"); g_player.paused = false; } });
-		Ui::Do(player, "Stop", [] { g_player.Close(); });
-		Ui::Toggle(player, "Loop", [](bool on) { g_player.loop = on; }, [] { g_player.Tick(); });
-		Ui::Toggle(player, "Play All", [](bool on) { g_player.playAll = on; }, [] { g_player.Tick(); });
-		Ui::Number(player, "Volume (%)", &g_player.volume, 0, 100, 5, [] { g_player.ApplyVolume(); });
-		Ui::Do(player, "Forward 15s", [] { g_player.Seek(15000); });
-		Ui::Do(player, "Back 15s", [] { g_player.Seek(-15000); });
+		Ui::Action(player, "misc.nowplaying", "Now Playing", [] { return "Playing: " + g_player.Status(); });
+		Ui::Do(player, "misc.musicplayer.pause", "Pause", [] { if (g_player.open) { MusicPlayer::Send(L"pause rampagio_music"); g_player.paused = true; } });
+		Ui::Do(player, "misc.resume", "Resume", [] { if (g_player.open) { MusicPlayer::Send(L"resume rampagio_music"); g_player.paused = false; } });
+		Ui::Do(player, "misc.stop", "Stop", [] { g_player.Close(); });
+		Ui::Toggle(player, "misc.loop", "Loop", [](bool on) { g_player.loop = on; }, [] { g_player.Tick(); });
+		Ui::Toggle(player, "misc.playall", "Play All", [](bool on) { g_player.playAll = on; }, [] { g_player.Tick(); });
+		Ui::Number(player, "misc.musicplayer.volume", "Volume (%)", &g_player.volume, 0, 100, 5, [] { g_player.ApplyVolume(); });
+		Ui::Do(player, "misc.forward15s", "Forward 15s", [] { g_player.Seek(15000); });
+		Ui::Do(player, "misc.back15s", "Back 15s", [] { g_player.Seek(-15000); });
 		g_musicFiles = Ui::ListMenu(player, "Files", [](MenuBase* menu)
 		{
 			const auto files = MusicFiles();
@@ -548,11 +548,11 @@ namespace
 	void BuildTheater(MenuBase* misc)
 	{
 		MenuBase* tv = Ui::Submenu(misc, "Mobile Theater");
-		Ui::Looped(tv, "Enable Theater", TheaterTick, TheaterOff);
-		Ui::Number(tv, "Volume", &g_tvVolume, -36.0f, 0.0f, 1.0f, [] { GRAPHICS::SET_TV_VOLUME(g_tvVolume); });
-		Ui::Number(tv, "Screen X", &g_tvX, 0.0f, 1.0f, 0.01f);
-		Ui::Number(tv, "Screen Y", &g_tvY, 0.0f, 1.0f, 0.01f);
-		Ui::Number(tv, "Screen Size", &g_tvScale, 0.1f, 1.0f, 0.01f);
+		Ui::Looped(tv, "misc.enabletheater", "Enable Theater", TheaterTick, TheaterOff);
+		Ui::Number(tv, "misc.mobiletheater.volume", "Volume", &g_tvVolume, -36.0f, 0.0f, 1.0f, [] { GRAPHICS::SET_TV_VOLUME(g_tvVolume); });
+		Ui::Number(tv, "misc.screenx", "Screen X", &g_tvX, 0.0f, 1.0f, 0.01f);
+		Ui::Number(tv, "misc.screeny", "Screen Y", &g_tvY, 0.0f, 1.0f, 0.01f);
+		Ui::Number(tv, "misc.screensize", "Screen Size", &g_tvScale, 0.1f, 1.0f, 0.01f);
 		Ui::Section(tv, "Shows");
 		static const std::pair<const char*, const char*> kShows[] = {
 			{ "Modern Medicine", "PL_TOON_MODERN_MEDICINE" },
@@ -567,7 +567,7 @@ namespace
 			{ "Ghost Story", "PL_MLAN_GHOST_STORY" },
 		};
 		for (const auto& [caption, playlist] : kShows)
-			Ui::Do(tv, caption, [playlist] { PlayShow(playlist); });
+			Ui::Do(tv, Ui::Id("misc.tvshow", caption), caption, [playlist] { PlayShow(playlist); });
 	}
 
 	// --- cutscene player -----------------------------------------------------------------
@@ -636,12 +636,12 @@ namespace
 	void BuildCutscenePlayer(MenuBase* misc)
 	{
 		MenuBase* cs = Ui::Submenu(misc, "Cutscene Player");
-		Ui::Toggle(cs, "Pause", [](bool on)
+		Ui::Toggle(cs, "misc.cutsceneplayer.pause", "Pause", [](bool on)
 		{
 			if (const AnimScene scene = CurrentCutscene())
 				ANIMSCENE::SET_ANIM_SCENE_PAUSED(scene, on);
-		});
-		Ui::Do(cs, "Stop Current", []
+		})->SetTransient();
+		Ui::Do(cs, "misc.stopcurrent", "Stop Current", []
 		{
 			const AnimScene game = GameCutscene();
 			if (game > 0 && ANIMSCENE::DOES_ANIM_SCENE_EXIST(game))
@@ -653,7 +653,7 @@ namespace
 			StopOurCutscene();
 			CAMERA::DO_SCREEN_FADE_IN(0);
 		});
-		Ui::Do(cs, "Skip Current", []
+		Ui::Do(cs, "misc.skipcurrent", "Skip Current", []
 		{
 			if (const AnimScene scene = CurrentCutscene())
 				ANIMSCENE::TRIGGER_ANIM_SCENE_SKIP(scene);
@@ -943,12 +943,12 @@ namespace
 	void BuildStatEditor(MenuBase* misc)
 	{
 		MenuBase* stats = Ui::Submenu(misc, "Stat Editor");
-		Ui::Choice(stats, "Type", { "Int", "Float", "Bool" }, &g_statType);
-		Ui::Text(stats, "Base Stat Name", &g_statBase);
-		Ui::Text(stats, "Permutation Stat Name", &g_statPermutation);
-		Ui::Action(stats, "Get", GetStat);
-		Ui::Action(stats, "Set", SetStat);
-		Ui::Do(stats, "Reset", [] { g_statBase.clear(); g_statPermutation.clear(); g_statType = 0; });
+		Ui::Choice(stats, "misc.type", "Type", { "Int", "Float", "Bool" }, &g_statType);
+		Ui::Text(stats, "misc.basestatname", "Base Stat Name", &g_statBase);
+		Ui::Text(stats, "misc.permutationstatname", "Permutation Stat Name", &g_statPermutation);
+		Ui::Action(stats, "misc.get", "Get", GetStat);
+		Ui::Action(stats, "misc.set", "Set", SetStat)->SetHotkeyable(false);
+		Ui::Do(stats, "misc.reset", "Reset", [] { g_statBase.clear(); g_statPermutation.clear(); g_statType = 0; });
 	}
 }
 
@@ -962,36 +962,36 @@ namespace Menus
 		BuildTheater(misc);
 		BuildCutscenePlayer(misc);
 		MenuBase* minigames = Ui::Submenu(misc, "Minigames");
-		Ui::Toggle(minigames, "Undead Nightmare II", SetUndead, UndeadTick);
-		Ui::Number(minigames, "Undead at Once", &g_undeadCount, 1, 60, 1);
+		Ui::Toggle(minigames, "misc.undeadnightmareii", "Undead Nightmare II", SetUndead, UndeadTick);
+		Ui::Number(minigames, "misc.undeadatonce", "Undead at Once", &g_undeadCount, 1, 60, 1);
 
 		Ui::Section(misc, "Camera");
-		Ui::Looped(misc, "Cam Zoom", CamZoomTick);
-		Ui::Number(misc, "Cam Zoom Distance", &g_camZoom, 1.0f, 100.0f, 1.0f);
-		Ui::Looped(misc, "Top-Down Cam", TopDownTick, TopDownOff);
-		Ui::Toggle(misc, "Freeze Cam", SetFreezeCam);
-		Ui::Looped(misc, "No Clip", NoClipTick);
-		Ui::Number(misc, "No Clip Speed", &g_noClipSpeed, 0.1f, 10.0f, 0.1f);
-		Ui::Looped(misc, "Air Walk", AirWalkTick, [] { g_airWalkSet = false; });
-		Ui::Looped(misc, "Free Cam", FreeCamTick, FreeCamOff);
-		Ui::Number(misc, "Free Cam Speed", &g_freeCamSpeed, 0.1f, 5.0f, 0.1f);
+		Ui::Looped(misc, "misc.camzoom", "Cam Zoom", CamZoomTick);
+		Ui::Number(misc, "misc.camzoomdistance", "Cam Zoom Distance", &g_camZoom, 1.0f, 100.0f, 1.0f);
+		Ui::Looped(misc, "misc.topdowncam", "Top-Down Cam", TopDownTick, TopDownOff);
+		Ui::Toggle(misc, "misc.freezecam", "Freeze Cam", SetFreezeCam);
+		Ui::Looped(misc, "misc.noclip", "No Clip", NoClipTick);
+		Ui::Number(misc, "misc.noclipspeed", "No Clip Speed", &g_noClipSpeed, 0.1f, 10.0f, 0.1f);
+		Ui::Looped(misc, "misc.airwalk", "Air Walk", AirWalkTick, [] { g_airWalkSet = false; });
+		Ui::Looped(misc, "misc.freecam", "Free Cam", FreeCamTick, FreeCamOff);
+		Ui::Number(misc, "misc.freecamspeed", "Free Cam Speed", &g_freeCamSpeed, 0.1f, 5.0f, 0.1f);
 
 		Ui::Section(misc, "Game");
-		Ui::Toggle(misc, "Pause Game", [](bool on) { MISC::SET_GAME_PAUSED(on); });
-		Ui::Toggle(misc, "Photo Mode Pause", SetPhotoModePause);
-		Ui::Toggle(misc, "Decrease Graphics", SetDecreaseGraphics);
-		Ui::Looped(misc, "Disable New Austin Sniper", NoNewAustinSniperTick);
-		Ui::Looped(misc, "Disable Guarma Sniper", NoGuarmaSniperTick);
-		Ui::Looped(misc, "Disable Guard Zones", NoGuardZonesTick);
-		Ui::Looped(misc, "Disable Water Drown/Kill", [] { PED::SET_PED_RESET_FLAG(Me(), kResetFlagNoDrown, TRUE); });
-		Ui::Action(misc, "Take a Photo", TakePhoto);
-		Ui::Action(misc, "Fix Mission Markers", FixMissionMarkers);
+		Ui::Toggle(misc, "misc.pausegame", "Pause Game", [](bool on) { MISC::SET_GAME_PAUSED(on); })->SetTransient();
+		Ui::Toggle(misc, "misc.photomodepause", "Photo Mode Pause", SetPhotoModePause);
+		Ui::Toggle(misc, "misc.decreasegraphics", "Decrease Graphics", SetDecreaseGraphics);
+		Ui::Looped(misc, "misc.disablenewaustinsniper", "Disable New Austin Sniper", NoNewAustinSniperTick);
+		Ui::Looped(misc, "misc.disableguarmasniper", "Disable Guarma Sniper", NoGuarmaSniperTick);
+		Ui::Looped(misc, "misc.disableguardzones", "Disable Guard Zones", NoGuardZonesTick);
+		Ui::Looped(misc, "misc.disablewaterdrownkill", "Disable Water Drown/Kill", [] { PED::SET_PED_RESET_FLAG(Me(), kResetFlagNoDrown, TRUE); });
+		Ui::Action(misc, "misc.takeaphoto", "Take a Photo", TakePhoto);
+		Ui::Action(misc, "misc.fixmissionmarkers", "Fix Mission Markers", FixMissionMarkers);
 
 		Ui::Section(misc, "Dev");
 		BuildVolumeEditor(misc);
 		BuildStatEditor(misc);
-		Ui::Toggle(misc, "Enable Mag 1 Demo", HookToggle(kIsMagDemo1Active));
-		Ui::Toggle(misc, "SC Profanity Bypass", HookToggle(kProfanityPassed));
-		Ui::Toggle(misc, "Force All DLCs Present", HookToggle(kIsDlcPresent));
+		Ui::Toggle(misc, "misc.enablemag1demo", "Enable Mag 1 Demo", HookToggle(kIsMagDemo1Active));
+		Ui::Toggle(misc, "misc.scprofanitybypass", "SC Profanity Bypass", HookToggle(kProfanityPassed));
+		Ui::Toggle(misc, "misc.forcealldlcspresent", "Force All DLCs Present", HookToggle(kIsDlcPresent));
 	}
 }
