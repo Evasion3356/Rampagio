@@ -15,8 +15,11 @@
 	- Undead Nightmare II is our own wave mode on the same models, outfits
 	  and bosses Rampage uses.
 	- Air Walk holds a fixed height instead of moving the player itself.
-	Not ported: Friendlist (online), Social Club photo upload stats, the
-	Cutscene Player's "Try to Populate" (Rampage's model table), and the
+	- The Cutscene Player lists Rampage's story and Red Dead Online lists
+	  plus the cutscenes the scripts name; Try to Populate casts peds from
+	  Rampage's model table (data\CutsceneCast.inc), and Stop Current
+	  deletes them (Rampage leaves them for the user to delete).
+	Not ported: Friendlist (online), Social Club photo upload stats, and the
 	Dev rows that open tabled areas (Global Editor, Script Tools).
 	The Dev section also holds the Stat Editor (Rampage's SubStatEditor).
 */
@@ -34,6 +37,8 @@
 #include <filesystem>
 #include <format>
 #include <mmsystem.h>
+#include <set>
+#include <vector>
 
 #pragma comment(lib, "winmm.lib")
 
@@ -46,6 +51,14 @@ namespace
 	};
 	const char* const kCutscenes[] = {
 #include "..\data\Cutscenes.inc"
+	};
+	struct RampageCutscene { const char* kind; const char* name; };
+	const RampageCutscene kRampageCutscenes[] = {
+#include "..\data\RampageCutscenes.inc"
+	};
+	struct CutsceneCastEntry { Hash model; const char* id; };
+	const CutsceneCastEntry kCutsceneCast[] = {
+#include "..\data\CutsceneCast.inc"
 	};
 	const char* const kGuardZones[] = {
 #include "..\data\GuardZones.inc"
@@ -573,6 +586,39 @@ namespace
 	// --- cutscene player -----------------------------------------------------------------
 
 	AnimScene g_cutscene = 0;
+	bool g_populateCutscene = false;
+	std::vector<Ped> g_cutsceneCast;
+
+	// Story cutscenes: Rampage's list plus any more the scripts name.
+	// Online: Rampage's Red Dead Online list.
+	std::vector<const char*> CutsceneNames(std::string_view kind)
+	{
+		std::set<std::string_view> names;
+		for (const RampageCutscene& c : kRampageCutscenes)
+			if (kind == c.kind)
+				names.insert(c.name);
+		if (kind == "sp")
+			names.insert(std::begin(kCutscenes), std::end(kCutscenes));
+		std::vector<const char*> out;
+		for (std::string_view n : names)
+			out.push_back(n.data());
+		return out;
+	}
+
+	// Try to Populate: a ped of each cast model whose entity id the scene has.
+	void PopulateCutscene(AnimScene scene)
+	{
+		for (const CutsceneCastEntry& c : kCutsceneCast)
+		{
+			if (!ANIMSCENE::_DOES_ENTITY_WITH_ID_EXIST_IN_ANIM_SCENE(scene, c.id) || !GameUtil::LoadModel(c.model))
+				continue;
+			const Ped ped = PED::CREATE_PED(c.model, 0.0f, 0.0f, 0.0f, 0.0f, FALSE, FALSE, FALSE, FALSE);
+			PED::_SET_RANDOM_OUTFIT_VARIATION(ped, TRUE);
+			ANIMSCENE::SET_ANIM_SCENE_ENTITY(scene, c.id, ped, 0);
+			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(c.model);
+			g_cutsceneCast.push_back(ped);
+		}
+	}
 
 	// The cutscene the game itself is playing: missions keep it in Global_43800.
 	AnimScene GameCutscene()
@@ -600,6 +646,13 @@ namespace
 			AUDIO::TRIGGER_MUSIC_EVENT("MC_MUSIC_STOP");
 		}
 		g_cutscene = 0;
+		for (Ped ped : g_cutsceneCast)
+			if (ENTITY::DOES_ENTITY_EXIST(ped))
+			{
+				ENTITY::SET_ENTITY_AS_MISSION_ENTITY(ped, TRUE, TRUE);
+				PED::DELETE_PED(&ped);
+			}
+		g_cutsceneCast.clear();
 	}
 
 	std::string PlayCutscene(const std::string& name)
@@ -622,6 +675,8 @@ namespace
 			}
 			WAIT(0);
 		}
+		if (g_populateCutscene && ANIMSCENE::IS_ANIM_SCENE_METADATA_LOADED(g_cutscene, FALSE))
+			PopulateCutscene(g_cutscene);
 		if (ANIMSCENE::IS_ANIM_SCENE_METADATA_LOADED(g_cutscene, FALSE))
 			for (const char* id : { "ARTHUR", "player_zero", "player_three" })
 				if (ANIMSCENE::_DOES_ENTITY_WITH_ID_EXIST_IN_ANIM_SCENE(g_cutscene, id))
@@ -641,6 +696,7 @@ namespace
 			if (const AnimScene scene = CurrentCutscene())
 				ANIMSCENE::SET_ANIM_SCENE_PAUSED(scene, on);
 		})->SetTransient();
+		Ui::Toggle(cs, "misc.cutsceneplayer.populate", "Try to Populate", [](bool on) { g_populateCutscene = on; });
 		Ui::Do(cs, "misc.stopcurrent", "Stop Current", []
 		{
 			const AnimScene game = GameCutscene();
@@ -658,12 +714,15 @@ namespace
 			if (const AnimScene scene = CurrentCutscene())
 				ANIMSCENE::TRIGGER_ANIM_SCENE_SKIP(scene);
 		});
-		Ui::NameList(cs, "Cutscenes", kCutscenes, [](const std::string& name)
+		const auto play = [](const std::string& name)
 		{
 			const std::string error = PlayCutscene(name);
 			if (!error.empty())
 				Log::Write("[Cutscene] {}: {}", name, error);
-		});
+		};
+		static const std::vector<const char*> story = CutsceneNames("sp"), online = CutsceneNames("mp");
+		Ui::NameList(cs, "Cutscenes", story, play);
+		Ui::NameList(cs, "Red Dead Online", online, play);
 	}
 
 	// --- Undead Nightmare II (ours) ----------------------------------------------------

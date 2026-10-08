@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 142 done, 13 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 143 done, 12 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -28,7 +28,7 @@ Submenus: 142 done, 13 partial, 0 pending, 10 tabled, 2 dropped.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubCutscenePlayer | 7 | Partial | Miscellaneous > Cutscene Player: 428 mission cutscenes from the game scripts; Try to Populate (Rampage model table) and the Red Dead Online list not ported |
+| SubCutscenePlayer | 7 | Done | Miscellaneous > Cutscene Player: the story and Red Dead Online lists of Rampage plus the cutscenes the scripts name; Try to Populate casts peds from the model table of Rampage (data/CutsceneCast.inc) and Stop Current deletes them (ours) |
 | SubEditVolume | 2 | Done | Miscellaneous > Volume Editor: edits volumes created there (ours); relationship groups from the game scripts |
 | SubFriendlist | 1 | Dropped | Online only (Social Club friends) |
 | SubGameMusic | 8 | Done | Miscellaneous > Game Music: 314 music events from the game scripts |

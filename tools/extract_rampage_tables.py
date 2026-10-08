@@ -29,6 +29,15 @@ Needs pefile.
   the palette one is the next entry in the CRT initializer table.
   { "<overlay>", 0x<albedo>, 0x<normal>, 0x<material> } and
   { "palette", 0x<hash>, 0, 0 }
+- CutsceneCast.inc: Miscellaneous > Cutscene Player's Try to Populate.
+  For each { model, entity id } whose id the scene has, Rampage creates
+  that ped and sets it as the scene entity. A static initializer builds
+  the 182 entries on the stack and copies them into a vector (found by
+  the "EdmundLowry" name it references).
+  { 0x<model>, "<entity id>" }
+- RampageCutscenes.inc: the Cutscene Player's two name lists (arrays of
+  "cutscene@..." pointers): story mode and Red Dead Online, without the
+  prefix, deduplicated. { "<sp|mp>", "<name>" }
 - BlipLabels.inc: Teleport > Blips. The map location blips the scripts
   keep in Global_36308 have a type in Global_40.f_7862[i].f_0; Rampage
   names each by a { type, label hash } table (the only run of { 1, h },
@@ -127,9 +136,19 @@ class StackEmulator:
         reg = lambda i, r: self.WIDE.get(i.reg_name(r), i.reg_name(r))
         movs = ("movaps", "movups", "movdqa", "movdqu")
 
+        # Frame pointer: rbp = rsp + frame[0] once the prologue sets it, so
+        # rbp-relative slots are keyed by their rsp offset.
+        frame = [None]
+
         def slot(op):
-            if op.type == x86.X86_OP_MEM and op.mem.index == 0 and op.mem.base in (x86.X86_REG_RSP, x86.X86_REG_RBP):
-                return (op.mem.base, op.mem.disp)
+            if op.type != x86.X86_OP_MEM or op.mem.index != 0:
+                return None
+            if op.mem.base == x86.X86_REG_RSP:
+                return (x86.X86_REG_RSP, op.mem.disp)
+            if op.mem.base == x86.X86_REG_RBP:
+                if frame[0] is None:
+                    return (x86.X86_REG_RBP, op.mem.disp)
+                return (x86.X86_REG_RSP, op.mem.disp + frame[0])
 
         def put(key, value, size):
             for b in range(size):
@@ -142,6 +161,12 @@ class StackEmulator:
             ops, m = i.operands, i.mnemonic
             if m == "ret":
                 break
+            if m == "lea" and i.reg_name(ops[0].reg) == "rbp" and ops[1].mem.base == x86.X86_REG_RSP:
+                frame[0] = ops[1].mem.disp
+                continue
+            if m == "sub" and i.reg_name(ops[0].reg) == "rsp" and ops[1].type == x86.X86_OP_IMM and frame[0] is not None:
+                frame[0] += ops[1].imm
+                continue
             dst = slot(ops[0]) if ops else None
             if m == "mov" and dst is not None:
                 if ops[1].type == x86.X86_OP_IMM:
@@ -169,6 +194,8 @@ class StackEmulator:
                     regs[reg(i, ops[0].reg)] = regs[reg(i, ops[1].reg)]
                 else:
                     regs.pop(reg(i, ops[0].reg), None)
+            elif m == "lea" and ops[0].type == x86.X86_OP_REG and ops[1].mem.base == x86.X86_REG_RIP:
+                regs[reg(i, ops[0].reg)] = i.address + i.size + ops[1].mem.disp
             elif m == "lea" and ops[0].type == x86.X86_OP_REG and slot(ops[1]) is not None:
                 regs[reg(i, ops[0].reg)] = slot(ops[1])
             elif m == "call":
@@ -188,26 +215,53 @@ class StackEmulator:
         return out
 
 
-def overlay_tables(img):
-    """[(overlay, [(albedo, normal, material)...])...], [palette hashes]."""
+def functions_referencing(img, string):
+    """Start addresses of the functions holding a lea of the C string."""
     text = next(s for s in img.pe.sections if s.Name.rstrip(b"\0") == b".text")
-    spots_va = img.base + img.pe.get_rva_from_offset(img.data.find(b"\0spots\0") + 1)
+    va = img.base + img.pe.get_rva_from_offset(img.data.find(b"\0" + string + b"\0") + 1)
     code = img.data[text.PointerToRawData:text.PointerToRawData + text.SizeOfRawData]
     text_va = img.base + text.VirtualAddress
     refs = [text_va + p - 3 for p in range(3, len(code) - 4)
             if code[p - 3:p - 1] in (b"\x48\x8d", b"\x4c\x8d")
-            and struct.unpack_from("<i", code, p)[0] == spots_va - (text_va + p + 4)]
+            and struct.unpack_from("<i", code, p)[0] == va - (text_va + p + 4)]
     img.pe.parse_data_directories([pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_EXCEPTION"]])
-    starts = sorted({img.base + e.struct.BeginAddress for r in refs for e in img.pe.DIRECTORY_ENTRY_EXCEPTION
-                     if e.struct.BeginAddress <= r - img.base < e.struct.EndAddress})
+    return sorted({img.base + e.struct.BeginAddress for r in refs for e in img.pe.DIRECTORY_ENTRY_EXCEPTION
+                   if e.struct.BeginAddress <= r - img.base < e.struct.EndAddress})
+
+
+def direct_calls(img, start):
+    """{ call target: count } up to the function's first ret."""
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
-    for start in starts:
-        calls = {}
-        for i in md.disasm(img.pe.get_data(start - img.base, 0x8000), start):
-            if i.mnemonic == "ret":
-                break
-            if i.mnemonic == "call" and i.op_str.startswith("0x"):
-                calls[int(i.op_str, 16)] = calls.get(int(i.op_str, 16), 0) + 1
+    calls = {}
+    for i in md.disasm(img.pe.get_data(start - img.base, 0x8000), start):
+        if i.mnemonic == "ret":
+            break
+        if i.mnemonic == "call" and i.op_str.startswith("0x"):
+            calls[int(i.op_str, 16)] = calls.get(int(i.op_str, 16), 0) + 1
+    return calls
+
+
+def cutscene_cast(img):
+    """[(model hash, scene entity id)] of the Cutscene Player's Try to
+    Populate table: an initializer copies 16-byte { model, name pointer }
+    entries from the stack into a vector."""
+    for start in functions_referencing(img, b"EdmundLowry"):
+        for target in direct_calls(img, start):
+            for block in StackEmulator(img, target, None).run(start):
+                if len(block) < 1000 or len(block) % 16:
+                    continue
+                rows = [(struct.unpack_from("<I", block, k)[0],
+                         img.string(struct.unpack_from("<Q", block, k + 8)[0], b""))
+                        for k in range(0, len(block), 16)]
+                if all(h and n for h, n in rows):
+                    return rows
+    raise SystemExit("cutscene cast table not found")
+
+
+def overlay_tables(img):
+    """[(overlay, [(albedo, normal, material)...])...], [palette hashes]."""
+    for start in functions_referencing(img, b"spots"):
+        calls = direct_calls(img, start)
         # The vector allocator is also called 12 times: keep the pair whose
         # copies give one table per overlay.
         for memcpy in (t for t, n in calls.items() if n == 12):
@@ -294,6 +348,13 @@ def main(asi, dst):
     lines += ['{ "palette", 0x%08X, 0, 0 },' % p for p in palettes]
     write(os.path.join(dst, "OverlayTextures.inc"),
           "Overlay Textures TX Id and Palette Id tables. { overlay, albedo, normal, material }", lines)
+    write(os.path.join(dst, "CutsceneCast.inc"), "Cutscene Player populate table. { model, scene entity id }",
+          ['{ 0x%08X, "%s" },' % row for row in cutscene_cast(img)])
+    cutscenes = []
+    for kind, first in (("sp", b"cutscene@bou1_ext"), ("mp", b"cutscene@bhint_int")):
+        names = sorted({n[len("cutscene@"):].lower() for _, n in img.table(first, b"cutscene@", 8)})
+        cutscenes += ['{ "%s", "%s" },' % (kind, n) for n in names]
+    write(os.path.join(dst, "RampageCutscenes.inc"), "Cutscene Player lists. { sp|mp, name }", cutscenes)
     write(os.path.join(dst, "BlipLabels.inc"), "Blips label table. { blip type, label hash }",
           ["{ %d, 0x%08X }," % p for p in blip_labels(img)])
     write(os.path.join(dst, "LawDispatchRegions.inc"),

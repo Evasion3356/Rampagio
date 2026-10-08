@@ -115,7 +115,7 @@ STATUS = {
  'SubMusicPlayer':('Done','Miscellaneous > Music Player: Windows MCI on files in a RampagioMusic folder (ours; Rampage bundles FMOD)'),
  'SubGameMusic':('Done','Miscellaneous > Game Music: 314 music events from the game scripts'),
  'SubMobileTheater':('Done','Miscellaneous > Mobile Theater: screen position and size rows (ours)'),
- 'SubCutscenePlayer':('Partial','Miscellaneous > Cutscene Player: 428 mission cutscenes from the game scripts; Try to Populate (Rampage model table) and the Red Dead Online list not ported'),
+ 'SubCutscenePlayer':('Done','Miscellaneous > Cutscene Player: the story and Red Dead Online lists of Rampage plus the cutscenes the scripts name; Try to Populate casts peds from the model table of Rampage (data/CutsceneCast.inc) and Stop Current deletes them (ours)'),
  'SubMinigames':('Done','Miscellaneous > Minigames > Undead Nightmare II: own wave logic (kill count spawns bosses) on the models and bosses Rampage uses'),
  'SubEditVolume':('Done','Miscellaneous > Volume Editor: edits volumes created there (ours); relationship groups from the game scripts'),
  'SubFriendlist':('Dropped','Online only (Social Club friends)'),
