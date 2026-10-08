@@ -1,13 +1,17 @@
 /*
 	Weapon submenus: ports Rampage's Submenus::SubWeaponVisuals,
-	SubWeaponsAimbot and SubWeaponsBullets.
+	SubWeaponsAimbot and SubWeaponsBullets, and the SubWeapons,
+	SubWeaponsManage, SubWeaponsAmmunition and SubWeaponModifiers rows not
+	in Weapons.cpp (BuildWeaponExtras). Upgrade Weapon tries every
+	COMPONENT_ name the scripts use (tools/extract_weapons.py).
 
 	Ours: the Particle Gun uses the effects the game scripts start
 	(Effects.inc, the Player > Effects list); the Ped and Vehicle Guns pick
 	from our own short model lists; Remote Cannonball steers with the
 	camera and explodes on impact, without Rampage's overlay. Not ported:
 	Disable Hitmarker and Disable Hit Feedback (Rampage byte-patches the
-	game's HUD code for those).
+	game's HUD code for those). Rope Gun (a pull toward the impact, drawn
+	as a line) and Portal Gun (markers and blips) are our own takes.
 */
 
 #include "Menus.h"
@@ -460,6 +464,315 @@ namespace
 		Ui::Looped(b, "Vehicle Gun", VehicleGunTick);
 		std::vector<std::string> vehicles(std::begin(kVehicleGunModels), std::end(kVehicleGunModels));
 		Ui::Choice(b, "Vehicle Model", vehicles, &g_vehicleGun);
+	}
+	// --- the remaining SubWeapons / Manage / Ammunition / Modifiers rows -----------
+
+	void AlwaysKillCamTick()
+	{
+		Entity e = 0;
+		if (PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(MyPlayer(), &e) && ENTITY::IS_ENTITY_A_PED(e) && PED::IS_PED_SHOOTING(Me()))
+		{
+			CAMERA::_SET_START_CINEMATIC_DEATH_CAM(TRUE);
+			CAMERA::_FORCE_CINEMATIC_DEATH_CAM_ON_PED(e);
+		}
+	}
+
+	// Thunder Hawk: thrown tomahawks crackle and call lightning where they
+	// land; homing tomahawk ammo is topped up.
+	constexpr Hash WEAPON_THROWN_TOMAHAWK = 0xA5E972D7;
+	constexpr Hash AMMO_TOMAHAWK_HOMING = 0xABD7C401;
+	constexpr Hash ADD_REASON_DEFAULT = 0x2CD419DC;
+	bool g_hawkThrown = false;
+
+	bool LoadPtfx(const char* asset)
+	{
+		const Hash h = GameUtil::Joaat(asset);
+		STREAMING::REQUEST_NAMED_PTFX_ASSET(h);
+		for (int i = 0; i < 50 && !STREAMING::HAS_NAMED_PTFX_ASSET_LOADED(h); i++)
+			WAIT(0);
+		return STREAMING::HAS_NAMED_PTFX_ASSET_LOADED(h) != FALSE;
+	}
+
+	void ThunderHawkTick()
+	{
+		const Ped me = Me();
+		if (CurrentWeapon() != WEAPON_THROWN_TOMAHAWK)
+			return;
+		if (const Entity w = CurrentWeaponEntity(); w && LoadPtfx("scr_crackpot"))
+		{
+			GRAPHICS::USE_PARTICLE_FX_ASSET("scr_crackpot");
+			GRAPHICS::START_PARTICLE_FX_NON_LOOPED_ON_ENTITY("scr_crackpot_tesla_fail", w, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.3f, FALSE, FALSE, FALSE);
+		}
+		if (PED::IS_PED_SHOOTING(me))
+			g_hawkThrown = true;
+		Vector3 at{};
+		if (g_hawkThrown && WEAPON::GET_PED_LAST_WEAPON_IMPACT_COORD(me, &at) && (at.x != 0.0f || at.y != 0.0f || at.z != 0.0f))
+		{
+			MISC::_FORCE_LIGHTNING_FLASH_AT_COORDS(at.x, at.y, at.z, 0.0f);
+			WEAPON::_ADD_AMMO_TO_PED_BY_TYPE(me, AMMO_TOMAHAWK_HOMING, 400, ADD_REASON_DEFAULT);
+			g_hawkThrown = false;
+		}
+	}
+
+	// Rope Gun (ours): a shot anchors a rope at the impact; the player is
+	// pulled there until close, or R releases it. The rope is drawn as a
+	// line from the hand.
+	bool g_roped = false;
+	Vector3 g_ropeAnchor{};
+
+	void RopeGunTick()
+	{
+		const Ped me = Me();
+		Vector3 at;
+		if (Shot(at))
+		{
+			g_ropeAnchor = at;
+			g_roped = true;
+		}
+		if (!g_roped)
+			return;
+		const Vector3 p = ENTITY::GET_ENTITY_COORDS(me, TRUE, FALSE);
+		const Vector3 d{ g_ropeAnchor.x - p.x, g_ropeAnchor.y - p.y, g_ropeAnchor.z - p.z };
+		const float len = std::sqrt(d.x * d.x + d.y * d.y + d.z * d.z);
+		if (IsKeyJustUp('R') || len < 3.0f)
+		{
+			g_roped = false;
+			return;
+		}
+		const Vector3 hand = ENTITY::GET_WORLD_POSITION_OF_ENTITY_BONE(me, ENTITY::GET_ENTITY_BONE_INDEX_BY_NAME(me, "PH_R_Hand"));
+		GRAPHICS::DRAW_LINE(hand.x, hand.y, hand.z, g_ropeAnchor.x, g_ropeAnchor.y, g_ropeAnchor.z, 120, 90, 60, 255);
+		const float speed = 18.0f;
+		ENTITY::SET_ENTITY_VELOCITY(me, d.x / len * speed, d.y / len * speed, d.z / len * speed + 1.0f);
+	}
+
+	// Portal Gun (ours): shots place the blue or the orange portal (Shift
+	// switches); walking into one comes out of the other.
+	Vector3 g_portals[2] = {};
+	bool g_portalSet[2] = {};
+	int g_portalNext = 0;
+	Blip g_portalBlips[2] = {};
+	DWORD g_portalCooldown = 0;
+
+	void PortalGunTick()
+	{
+		const Ped me = Me();
+		if (IsKeyJustUp(VK_SHIFT))
+			g_portalNext ^= 1;
+		Vector3 at;
+		if (Shot(at))
+		{
+			const int i = g_portalNext;
+			g_portals[i] = at;
+			g_portalSet[i] = true;
+			if (g_portalBlips[i] && MAP::DOES_BLIP_EXIST(g_portalBlips[i]))
+				MAP::REMOVE_BLIP(&g_portalBlips[i]);
+			g_portalBlips[i] = MAP::BLIP_ADD_FOR_COORDS(0x97B6F06C, at.x, at.y, at.z);
+			MAP::_SET_BLIP_NAME(g_portalBlips[i], MISC::VAR_STRING(10, "LITERAL_STRING", i ? "Portal B" : "Portal A"));
+			g_portalNext ^= 1;
+		}
+		const int colors[2][3] = { { 0, 120, 255 }, { 255, 140, 0 } };
+		for (int i = 0; i < 2; i++)
+			if (g_portalSet[i])
+				GRAPHICS::_DRAW_MARKER(0x94FDAE17, g_portals[i].x, g_portals[i].y, g_portals[i].z, 0, 0, 0, 0, 0, 0,
+					1.5f, 1.5f, 2.0f, colors[i][0], colors[i][1], colors[i][2], 160, FALSE, FALSE, 2, FALSE, nullptr, nullptr, FALSE);
+		if (!g_portalSet[0] || !g_portalSet[1] || GetTickCount() < g_portalCooldown)
+			return;
+		const Vector3 p = ENTITY::GET_ENTITY_COORDS(me, TRUE, FALSE);
+		for (int i = 0; i < 2; i++)
+			if (GameUtil::DistanceSq(p, g_portals[i]) < 1.5f * 1.5f)
+			{
+				const Vector3& to = g_portals[i ^ 1];
+				ENTITY::SET_ENTITY_COORDS(me, to.x, to.y, to.z + 0.5f, FALSE, FALSE, TRUE, FALSE);
+				g_portalCooldown = GetTickCount() + 2000;
+				break;
+			}
+	}
+
+	void PortalGunOff()
+	{
+		for (int i = 0; i < 2; i++)
+		{
+			if (g_portalBlips[i] && MAP::DOES_BLIP_EXIST(g_portalBlips[i]))
+				MAP::REMOVE_BLIP(&g_portalBlips[i]);
+			g_portalBlips[i] = 0;
+			g_portalSet[i] = false;
+		}
+	}
+
+	// Debug Gun: details of the aimed entity next to it on screen.
+	void DebugGunTick()
+	{
+		Entity e = 0;
+		if (!PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(MyPlayer(), &e) || !ENTITY::DOES_ENTITY_EXIST(e))
+			return;
+		const Vector3 p = ENTITY::GET_ENTITY_COORDS(e, FALSE, FALSE);
+		float sx = 0, sy = 0;
+		if (!GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(p.x, p.y, p.z, &sx, &sy))
+			return;
+		const char* type = ENTITY::IS_ENTITY_A_PED(e) ? "Ped" : ENTITY::IS_ENTITY_A_VEHICLE(e) ? "Vehicle" : "Object";
+		const std::string text = std::format("Type: {}~n~Model: 0x{:08X}~n~Health: {}~n~Coords: {:.2f}, {:.2f}, {:.2f}~n~Heading: {:.1f}",
+			type, ENTITY::GET_ENTITY_MODEL(e), ENTITY::GET_ENTITY_HEALTH(e), p.x, p.y, p.z, ENTITY::GET_ENTITY_HEADING(e));
+		DrawTextAt(sx, sy, text.c_str(), 20, ColorRgba{ 255, 255, 255, 230 });
+	}
+
+	// Manage Weapons.
+	constexpr Hash kFavouriteWeaponStat = 0xE35BB51F; // the stat Rampage reads the favourite weapon from
+	const char* const kComponents[] = {
+#include "..\data\WeaponComponents.inc"
+	};
+
+	std::string GiveFavourite()
+	{
+		GameUtil::StatId id{ kFavouriteWeaponStat };
+		int weapon = 0;
+		if (!STATS::STAT_ID_GET_INT(id.Ptr(), &weapon) || !WEAPON::IS_WEAPON_VALID(static_cast<Hash>(weapon)))
+			return "No favourite weapon recorded";
+		int ammo = 900;
+		WEAPON::GET_MAX_AMMO(Me(), &ammo, static_cast<Hash>(weapon));
+		WEAPON::GIVE_WEAPON_TO_PED(Me(), static_cast<Hash>(weapon), ammo, TRUE, FALSE, 0, TRUE, 0.5f, 1.0f, ADD_REASON_DEFAULT, TRUE, 0.0f, FALSE);
+		return "";
+	}
+
+	std::string UpgradeWeapon()
+	{
+		const Hash weapon = CurrentWeapon();
+		const Entity e = CurrentWeaponEntity();
+		if (!WEAPON::IS_WEAPON_VALID(weapon) || !e)
+			return "Hold a weapon first";
+		for (const char* c : kComponents)
+			WEAPON::_GIVE_WEAPON_COMPONENT_TO_ENTITY(e, GameUtil::Joaat(c), weapon, TRUE);
+		return "";
+	}
+
+	std::string AddComponent()
+	{
+		std::string text;
+		if (!GameUtil::PromptText("Enter Component Hash:", text) || text.empty())
+			return "";
+		const Hash component = GameUtil::ParseHash(text);
+		const Entity e = CurrentWeaponEntity();
+		if (!e)
+			return "Hold a weapon first";
+		if (WEAPON::HAS_WEAPON_GOT_WEAPON_COMPONENT(ENTITY::GET_OBJECT_INDEX_FROM_ENTITY_INDEX(e), component))
+			return "Already fitted";
+		WEAPON::_GIVE_WEAPON_COMPONENT_TO_ENTITY(e, component, CurrentWeapon(), TRUE);
+		return "";
+	}
+
+	std::string DuplicateModel()
+	{
+		const Hash weapon = CurrentWeapon();
+		if (!WEAPON::IS_PED_ARMED(Me(), ARMED_ANY_GUN) || !WEAPON::IS_WEAPON_VALID(weapon))
+			return "Hold a gun first";
+		const char* name = WEAPON::_GET_WEAPON_NAME(weapon);
+		if (!name || !*name)
+			return "Unknown weapon";
+		const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
+		OBJECT::CREATE_PICKUP_ROTATE(GameUtil::Joaat(std::string("PICKUP_") + name), p.x, p.y, p.z, 90.0f, 0.0f, 0.0f, 0, -1, 2, TRUE, 0, 0, 0.0f, 0);
+		return "";
+	}
+
+	// Ammunition > Drop Ammo: an ammo box pickup of the chosen kind.
+	int g_dropAmmo = 0;
+	const char* const kAmmoPickups[] = { "PICKUP_AMMO_REVOLVER", "PICKUP_AMMO_PISTOL", "PICKUP_AMMO_REPEATER", "PICKUP_AMMO_RIFLE", "PICKUP_AMMO_SHOTGUN", "PICKUP_AMMO_ARROW" };
+
+	void DropAmmo(int i)
+	{
+		const Hash box = GameUtil::Joaat("p_ammobox01x");
+		if (!GameUtil::LoadModel(box))
+			return;
+		const Vector3 p = ENTITY::GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(Me(), 0.0f, 1.0f, 0.0f);
+		OBJECT::CREATE_AMBIENT_PICKUP(GameUtil::Joaat(kAmmoPickups[i]), p.x, p.y, p.z, 0, 1000, box, FALSE, TRUE, 0, 0.0f);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(box);
+	}
+
+	// Weapon Modifiers: weapon scale (a scaled copy over the hidden real
+	// one, as Rampage does) and the weapon skill stat.
+	float g_weaponScale = 1.5f;
+	Object g_scaled = 0;
+
+	void RemoveScaled()
+	{
+		if (const Entity real = CurrentWeaponEntity())
+			ENTITY::SET_ENTITY_ALPHA(real, 255, FALSE);
+		if (ENTITY::DOES_ENTITY_EXIST(g_scaled))
+		{
+			ENTITY::DETACH_ENTITY(g_scaled, TRUE, TRUE);
+			OBJECT::DELETE_OBJECT(&g_scaled);
+		}
+		g_scaled = 0;
+	}
+
+	void ApplyScaled()
+	{
+		RemoveScaled();
+		const Hash weapon = CurrentWeapon();
+		const Entity real = CurrentWeaponEntity();
+		if (!WEAPON::IS_WEAPON_VALID(weapon) || !real)
+			return;
+		const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), FALSE, FALSE);
+		g_scaled = WEAPON::_CREATE_WEAPON_OBJECT(weapon, 400, p.x, p.y, p.z, TRUE, g_weaponScale);
+		if (!ENTITY::DOES_ENTITY_EXIST(g_scaled))
+			return;
+		for (const char* c : kComponents)
+			if (WEAPON::HAS_WEAPON_GOT_WEAPON_COMPONENT(ENTITY::GET_OBJECT_INDEX_FROM_ENTITY_INDEX(real), GameUtil::Joaat(c)))
+				WEAPON::_GIVE_WEAPON_COMPONENT_TO_ENTITY(g_scaled, GameUtil::Joaat(c), weapon, FALSE);
+		ENTITY::ATTACH_ENTITY_TO_ENTITY(g_scaled, real, 0, 0, 0, 0, 0, 0, 0, FALSE, FALSE, FALSE, TRUE, 2, FALSE, FALSE, FALSE);
+		ENTITY::SET_ENTITY_ALPHA(real, 0, FALSE);
+	}
+
+	Hash g_scaledFor = 0;
+	void WeaponScaleTick()
+	{
+		// Re-apply when the player switches weapons.
+		if (CurrentWeapon() != g_scaledFor || !ENTITY::DOES_ENTITY_EXIST(g_scaled))
+		{
+			g_scaledFor = CurrentWeapon();
+			ApplyScaled();
+		}
+	}
+
+	float g_weaponSkill = 0.0f;
+
+	std::string SetWeaponSkill()
+	{
+		const Hash stat = WEAPON::_GET_WEAPON_STAT_ID(CurrentWeapon());
+		GameUtil::StatId id{ stat };
+		if (!stat || !STATS::STAT_ID_IS_VALID(id.Ptr()))
+			return "This weapon has no skill stat";
+		STATS::STAT_ID_SET_FLOAT(id.Ptr(), g_weaponSkill, TRUE);
+		return "";
+	}
+}
+
+namespace Menus
+{
+	void BuildWeaponExtras(MenuBase* weapons, MenuBase* manage, MenuBase* ammo, MenuBase* mods)
+	{
+		Ui::Looped(weapons, "Always Kill Cam", AlwaysKillCamTick);
+		Ui::Looped(weapons, "Thunder Hawk", ThunderHawkTick, [] { g_hawkThrown = false; });
+		Ui::Looped(weapons, "Rope Gun", RopeGunTick, [] { g_roped = false; });
+		Ui::Looped(weapons, "Portal Gun", PortalGunTick, PortalGunOff);
+		Ui::Looped(weapons, "Debug Gun", DebugGunTick);
+
+		Ui::Action(manage, "Give Favourite", GiveFavourite);
+		Ui::Action(manage, "Upgrade Weapon", UpgradeWeapon);
+		Ui::Action(manage, "Add Component", AddComponent);
+		Ui::Action(manage, "Get Duplicate Model", DuplicateModel);
+
+		std::vector<std::string> pickups;
+		for (const char* p : kAmmoPickups)
+			pickups.push_back(p + 12);
+		Ui::Choice(ammo, "Drop Ammo", pickups, &g_dropAmmo, DropAmmo);
+
+		Ui::Looped(mods, "Weapon Scale", WeaponScaleTick, [] { RemoveScaled(); g_scaledFor = 0; });
+		Ui::Number(mods, "Weapon Scale Size", &g_weaponScale, 0.1f, 10.0f, 0.1f, [] { g_scaledFor = 0; });
+		Ui::Section(mods, "Stats");
+		mods->AddItem(new MenuItemLabel([] {
+			const char* name = WEAPON::_GET_WEAPON_NAME(CurrentWeapon());
+			return std::string("Weapon: ") + (name ? name : "-");
+		}));
+		Ui::Number(mods, "Skill", &g_weaponSkill, 0.0f, 1000.0f, 10.0f, [] { SetWeaponSkill(); }, true);
 	}
 }
 

@@ -607,6 +607,7 @@ namespace Menus
 		Ui::Do(mods, "Reset", ResetModifiers);
 
 		BuildWeaponSubmenus(weapons); // Visuals, Aimbot, Bullets
+		BuildWeaponExtras(weapons, manage, ammo, mods);
 		Ui::Toggle(weapons, "Disable Dual Wield", [](bool on) { WEAPON::_SET_ALLOW_DUAL_WIELD(Me(), !on); });
 		Ui::Section(weapons, "Weapon Mods");
 		Ui::Looped(weapons, "Slow Motion on Aiming", SlowMoAimTick, [] { MISC::SET_TIME_SCALE(1.0f); });

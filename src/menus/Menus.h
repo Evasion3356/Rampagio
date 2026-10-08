@@ -28,6 +28,7 @@ namespace Menus
 	void BuildHorse(MenuBase* root);
 	void BuildWeapons(MenuBase* root);
 	void BuildWeaponSubmenus(MenuBase* weapons); // WeaponSubmenus.cpp
+	void BuildWeaponExtras(MenuBase* weapons, MenuBase* manage, MenuBase* ammo, MenuBase* mods); // WeaponSubmenus.cpp
 	void BuildVehicle(MenuBase* root);
 	void BuildTeleport(MenuBase* root);
 	void BuildSpawner(MenuBase* root);
