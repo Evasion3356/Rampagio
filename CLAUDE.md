@@ -33,22 +33,39 @@ MinHook, release workflow). PokerCheat uses the same submodule layout.
 The PostBuildEvent deploys to the game folder through
 `BuildTools\Find-RDR2GameDir.ps1`, the same as every sibling project. The
 user keeps the game running and uses ScriptHookRDR2's eject/re-inject
-instead of restarting. `GenerateDefaultIni` writes
-`bin\<Config>\Rampagio.ini` through `tools\IniGen`. Tests:
-`tests\LogFallbackTests.vcxproj` (build Debug, run
-`bin\Debug\LogFallbackTests.exe`).
+instead of restarting. Tests (build Debug, run the exe from `bin\Debug`):
+`tests\LogFallbackTests.vcxproj` and `tests\SettingsTests.vcxproj` (the
+settings and command core in `src/core`).
 
-Menu key: **F5** by default (`[General] MenuKey` in `Rampagio.ini`), the
-same key Rampage uses, at the user's request. Don't load Rampage and
+Menu key: **F5** by default (Settings > Core > Menu Key, saved as
+`settings.menukey` in `Rampagio.json`), the same key Rampage uses, at the
+user's request. Don't load Rampage and
 Rampagio together with default keys. Controls: NUMPAD 8/2 to move,
 NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back; on a gamepad RB +
-Left opens it and the d-pad, A and B navigate. F11 on a row binds a
-hotkey (Settings > Hotkey Manager).
+Left opens it and the d-pad, A and B navigate. F11 on a command row binds
+a hotkey: the keys held together, released to finish (Settings > Hotkey
+Manager lists and removes them).
 
 ## Layout
 
-- `src/script.cpp`: builds the root menu from the area builders and runs
-  the main loop, including the online kill switch.
+- `src/script.cpp`: builds the root menu from the area builders, loads
+  `Rampagio.json` and runs the main loop (looped commands, hotkeys, the
+  throttled settings writer), including the online kill switch
+  (`Commands::Suspend`, which undoes features without saving).
+- `src/core/`: HorseMenu's settings and command system, adapted
+  (`docs/CONFIG_REWRITE_PLAN.md` has the design and its decisions).
+  `settings/Settings` keeps `Rampagio.json` as `IStateSerializer`
+  components (`general`, `style`, `themes`, `commands`, `hotkeys`),
+  writing at most once a second and on eject. `commands/` holds
+  `Command` (stable dotted id, label, `std::function` hooks),
+  `Commands` (registry, the `commands` component, `ApplyLoaded`,
+  `Suspend`), `BoolCommand`/`LoopedCommand`, `ValueCommands.h`
+  (`IntCommand`, `FloatCommand`, `ListCommand`, `StringCommand`,
+  `ColorCommand`, optionally writing through the feature's own variable),
+  `ActionCommand` and `HotkeySystem` (key chains by command id). Only
+  `src/core/*.cpp`, `DataFile.cpp`, `Settings.cpp` and the four collection
+  menus include the full `<nlohmann/json.hpp>`; headers use
+  `json_fwd.hpp`.
 - `src/menus/<Area>.cpp`: one file per top-level menu (Player, Horse,
   Teleport, World, ...), declared in `src/menus/Menus.h`. Each holds both
   its rows and their implementations, with the Rampage submenu it ports
@@ -60,6 +77,21 @@ hotkey (Settings > Hotkey Manager).
   `Text`: a "Caption: value" row edited with the on-screen keyboard).
   `Toggle` takes `onChange(bool)` plus an optional `onTick()` that runs
   every frame while on, menu open or not; `Looped` is a tick-only toggle.
+  Rows built once in a `BuildXxx` use the overloads that take a command
+  id first (`Ui::Toggle(self, "player.godmode", "Godmode", ...)`): the
+  row is a command, saved in `Rampagio.json` under the id and bindable.
+  Ids are `<area>.<feature>`, lowercase, never renamed (the caption can
+  be); loop-built rows get theirs from `Ui::Id(prefix, caption)`. Rows
+  built inside a `ListMenu`/`DetachedListMenu` build, `NameList` entries
+  and the Ped Editor's per-ped toggles use the id-less overloads (plain
+  rows: not saved, not bindable; a Debug assert catches an id row in a
+  list build). `SetDefault` sets a toggle's starting state, `Sync` shows
+  a game state without running hooks, `SetTransient`/`Ui::Transient`
+  keep runs and mirrors of game state out of the file, and
+  `SetHotkeyable(false)` marks actions that open the keyboard. Toggles and
+  values with a change hook only come back on start when
+  `settings.restoretoggles` is on; plain values (parameters) and
+  `settings.*` always do.
   `ListMenu` rebuilds its rows each time it opens. Don't nest a `ListMenu`
   or `Submenu` inside a `ListMenu`'s build (each rebuild would register a
   new menu); use one `DetachedListMenu` built once and open it with
@@ -67,14 +99,16 @@ hotkey (Settings > Hotkey Manager).
   `PlayerActions.cpp`).
 - `src/scriptmenu.{h,cpp}`: the SDK NativeTrainer menu framework, same as
   the siblings', plus ChallengeCheat's item types and this repo's
-  additions: `MenuItemToggle`, `MenuItemNumber<T>`, `MenuItemChoice`,
+  additions: `MenuItemToggle` (plain toggles; command rows are in
+  `Menu.cpp`), `MenuItemNumber<T>`, `MenuItemChoice`,
   `MenuItemSection`, NUMPAD 4/6 left/right input, `MenuBase::SetOnOpen`,
   gamepad input, and `MenuStyle` (`Style()`: colors, position, rows per
-  page, sounds), which items read at draw time.
-- `src/menus/Settings.cpp`: Settings, plus the per-frame hotkeys,
-  overlays and toggle auto-save (`Menus::TickSettings`). Saves
-  `Rampagio_Settings.ini`, `Rampagio_Toggles.ini` (toggles by
-  `Ui::Key`, "Menu Title > Caption") and `Rampagio_Themes.ini`.
+  page, sounds), which items read at draw time, plus `MenuKey()` and
+  `WrapWidth()`.
+- `src/menus/Settings.cpp`: Settings, the `general`/`style`/`themes`
+  components and `settings.*` commands (`RegisterSettings`,
+  `ApplyLoadedSettings`), plus the F11 binding flow, hotkeys and
+  overlays every frame (`Menus::TickSettings`).
 - `src/menus/PedEditor.cpp`: the Ped Editor and `Menus::Target`. The
   Player submenus in `PlayerSubmenus.cpp`, `PlayerActions.cpp` and
   `Wardrobe.cpp` act on `Target::Get()` (their `Me()`), which is the ped
@@ -86,8 +120,10 @@ hotkey (Settings > Hotkey Manager).
 - `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, `PlayerMount`,
   `PlayerHorse`, `TeleportToGround`, entity pools, script globals,
   model/anim loading, `PromptText` on-screen keyboard, `Joaat`).
-- `src/DataFile.{h,cpp}`: named INI files for saved data (custom
-  teleports, ...), stored where `Rampagio.ini` is; `LoadLines` reads a
+- `src/DataFile.{h,cpp}`: `LoadJson`/`SaveJson` for the user's saved
+  collections, one file each (`Rampagio_Teleports.json`,
+  `Rampagio_Outfits.json`, `Rampagio_Horses.json`,
+  `Rampagio_Spooner.json`), stored where `Rampagio.json` is; `LoadLines` reads a
   plain list file from there (user-supplied lists such as
   `Rampagio_PedAnimList.txt`, `Rampagio_Speech*.txt` and
   `Rampagio_ClothingDb.xml`, the same formats as Rampage's
@@ -369,7 +405,7 @@ started. Open questions:
   a dependency at all or only a source to lift pieces from (e.g.
   `ScriptFunction`, `FiberPool`, `Pointers.cpp` patterns).
 - YEEAHSM uses `deps/minhook`; the others use `external/`. Shared
-  submodules (ScriptHookSDK, spdlog, inipp, RDR-Classes, minhook) would
+  submodules (ScriptHookSDK, spdlog, json, RDR-Classes, minhook) would
   nest; pick one copy and check version skew.
 - Conflicting hooks/patches (several use MinHook or byte patches) when
   all run in one process.
@@ -399,10 +435,10 @@ few items needing live testing first (Force Player Type) or engine
 patches (Disable Hitmarker). Everything builds clean (Debug); nothing is
 live-tested. Menu key is F5.
 
-0. **Config rewrite (next session's job).** Replace the INI config with
-   HorseMenu's settings/command system, following
-   `docs/CONFIG_REWRITE_PLAN.md` phase by phase. Start by confirming the
-   decisions it marks "(ask)".
+0. **Config rewrite: built, not live-tested** (branch `config-rewrite`,
+   2026-10-07). Phases 1-6 of `docs/CONFIG_REWRITE_PLAN.md` are done; its
+   "Implementation notes" list where the code differs from the plan.
+   Phase 7's live test checklist is still open.
 1. **Native header: done except GoldHorse.** Steps 1-3 of
    `docs/NATIVE_HEADER_PLAN.md` are done and pushed (fork `086e1ed`;
    Poker, Blackjack, Domino, ChallengeCheat, FFFCheat, FishingFix pushed;

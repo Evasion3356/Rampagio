@@ -1,6 +1,8 @@
 # Config rewrite: HorseMenu's settings and command system
 
-Plan written 2026-10-07; not started. This replaces Rampagio's INI-based
+Plan written 2026-10-07. Phases 1-6 implemented the same day on the
+`config-rewrite` branch (see "Implementation notes" at the end); Phase 7's
+live test is still open. This replaces Rampagio's INI-based
 config (ChallengeCheat's `Config` plus hand-written save/load in
 `src/menus/Settings.cpp`) with HorseMenu's design: one JSON settings file
 made of `IStateSerializer` components, and a registry of named commands
@@ -325,3 +327,54 @@ This phase is separable from the rest; do it last.
      file's modified time).
    - Corrupt `Rampagio.json` (truncate it) → defaults, logged, no crash.
    - Menu key change takes effect without restart.
+
+## Implementation notes
+
+Decisions 1 and 5 were confirmed as recommended. Where the code differs
+from the plan above:
+
+- **Restoring values.** Decision 5 said numbers, choices and text always
+  load. A value with a change hook acts on the game (weather, minimap
+  zoom), so it only comes back when `settings.restoretoggles` is on, like
+  a toggle; otherwise the row would show a value the game isn't in.
+  Plain values (parameters read by an action) always load. Toggles that
+  stay off start at their build default (`SetDefault`), not forced off.
+  Commands whose id starts with `settings.` always restore.
+  `Commands::ApplyLoaded(restore)` replaces `EnableBoolCommands`.
+- **Not-saved commands** (new): `Command::SetTransient` and
+  `Ui::Transient(menu)` keep runs (Auto Collect All, the vehicle drive
+  tasks, Pause Game) and mirrors of game state (menus re-read on open:
+  hair, meta tags, horse stats, cores, config flags, world states, the
+  backup-inventory flag) out of the file. They can still be bound.
+- **Late components** load on the next `Settings::Tick`/`Flush`, not in
+  `AddComponent`: that runs inside `IStateSerializer`'s constructor,
+  where the derived `LoadStateImpl` doesn't exist yet (a pure virtual
+  call). `Flush` saves every component; `Tick` only dirty ones. A corrupt
+  file is kept as `<file>.bad`. Startup writes the file once after
+  loading, so it always exists with every value.
+- **DllMain detach** calls `Settings::TryFlush` (a try-lock), since a
+  thread killed at process exit could have died holding the lock.
+- **Style toggles.** "Gamepad Controls", "Menu Sounds", "Gamepad Open
+  Key", the position rows and the color editor edit `MenuStyle` directly
+  and mark the `style` component dirty; they aren't commands. The
+  premade themes are action commands (`settings.theme.*`).
+- **Menu key.** A row that captures the next key press (validated with
+  `KeyNames`), backed by `settings.menukey`; `settings.wrapwidth` is a
+  0-120 number row in Settings > Core. `general` only holds a format
+  `version`.
+- **Hotkeys** fire once per press (HorseMenu repeated every 100 ms while
+  held), a chain held as part of a longer bound chain doesn't fire, and
+  bindings for unknown ids are kept. Key names come from
+  `GetKeyNameTextA`.
+- **Search** (2.4) needed no change: every command row is in a static
+  menu, all built at start, so searching built menus finds them.
+- **Rows inside `NameList` extras** (Stop Playing, Clear all, Timecycle
+  Strength, ...) run once at build time, so they became commands.
+- **Phase 4 counts:** 578 rows converted by a script (literal caption,
+  static context; it also turned `->SetState(x)` on new toggles into
+  `->SetDefault(x)`), plus about 30 loop-built rows by hand with
+  `Ui::Id`. `Unlocks.cpp`'s `StateToggle` rows stay plain on purpose.
+- **Collections** (Phase 6) store numbers and arrays, not formatted
+  strings; a damaged entry is skipped instead of failing the load.
+- The core `Settings.cpp` shares a file name with `menus/Settings.cpp`,
+  so the vcxproj gives it its own object path.
