@@ -120,7 +120,7 @@ STATUS = {
  'SubEditVolume':('Done','Miscellaneous > Volume Editor: edits volumes created there (ours); relationship groups from the game scripts'),
  'SubFriendlist':('Dropped','Online only (Social Club friends)'),
  'SubStatEditor':('Done','Miscellaneous > Stat Editor'),
- 'SubSettings':('Partial','Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Plugins and Language have no Rampagio counterpart'),
+ 'SubSettings':('Partial','Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Language picks one of the 13 compiled-in translations or follows the game (ours); Plugins has no Rampagio counterpart'),
  'SubSettingsCore':('Done','Settings > Core: Gamepad Controls, Menu Sounds, Mouse Controls (ours: hover, click, right-click back, wheel), Show Controller Screen; welcome/ToS/update/landing rows dropped'),
  'SubSettingsLoadSave':('Done','Settings > Load / Save: Rampagio.json'),
  'SubSettingsColor':('Done','Settings > Theme: eight colors, Main Font and Body Font (the faces of Rampage), Menu Title, menu position and Max Display Options'),

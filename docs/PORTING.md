@@ -158,7 +158,7 @@ Submenus: 150 done, 5 partial, 0 pending, 10 tabled, 2 dropped.
 | SubCreatorSettings | 2 | Done | Spawner > Object Spawner > Cam Settings |
 | SubLanguageManager | 2 | Dropped | The label translation files of Rampage; Rampagio has no translated labels |
 | SubOverlaySettings | 17 | Done | Settings > Overlay Settings |
-| SubSettings | 1 | Partial | Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Plugins and Language have no Rampagio counterpart |
+| SubSettings | 1 | Partial | Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Language picks one of the 13 compiled-in translations or follows the game (ours); Plugins has no Rampagio counterpart |
 | SubSettingsColor | 12 | Done | Settings > Theme: eight colors, Main Font and Body Font (the faces of Rampage), Menu Title, menu position and Max Display Options |
 | SubSettingsCore | 10 | Done | Settings > Core: Gamepad Controls, Menu Sounds, Mouse Controls (ours: hover, click, right-click back, wheel), Show Controller Screen; welcome/ToS/update/landing rows dropped |
 | SubSettingsCustomThemes | 2 | Done | Settings > Theme > Custom Themes: the themes component of Rampagio.json |

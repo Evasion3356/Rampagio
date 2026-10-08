@@ -503,21 +503,17 @@ header) belongs here too, later.
 
 ## Next steps
 
-Resume point (2026-10-07, end of the porting loop). Every non-tabled
-Rampage submenu is ported: 134 done, 21 partial, 10 tabled, 2 dropped,
-0 pending (`docs/PORTING.md`). The last batch added Miscellaneous,
-Settings (theme via `MenuStyle`, toggle save/load, F11 hotkeys, search,
-overlays, gamepad input), the Ped Editor with `Menus::Target`, the rest
-of Horse, Weapon Visuals/Aimbot/Bullets and the leftover Weapon rows, IPL
-Sets and Teleport > Shops. The Partial rows are mostly deliberate: data
-Rampage keeps in its own tables (effect presets, outfit-preset
-legendaries, overlay textures), which may now be carried over (see
-Ground rules), plus a
-few items needing live testing first (Force Player Type) or engine
-patches (Disable Hitmarker). Everything builds clean (Debug); nothing is
+Resume point (2026-10-08). Every non-tabled Rampage submenu is ported:
+150 done, 5 partial, 10 tabled, 2 dropped, 0 pending (`docs/PORTING.md`).
+The table data Rampage keeps in its binary (effect presets, legendaries,
+overlay textures, ...) is carried over as `src/data/*.inc`, Disable
+Hitmarker uses `BytePatch`, and the menu is translated into 13
+languages. The 5 Partial rows wait on tabled areas or the ImGui overlay,
+except Force Player Type (needs live testing first) and Settings >
+Plugins (no counterpart). Everything builds clean (Debug); nothing is
 live-tested. Menu key is F5.
 
-0. **Config rewrite: built, not live-tested** (branch `config-rewrite`,
+0. **Config rewrite: built, not live-tested** (merged into `master`,
    2026-10-07). Phases 1-6 of `docs/CONFIG_REWRITE_PLAN.md` are done; its
    "Implementation notes" list where the code differs from the plan.
    Phase 7's live test checklist is still open.
