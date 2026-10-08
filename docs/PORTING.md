@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 135 done, 20 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 137 done, 18 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -57,7 +57,7 @@ Submenus: 135 done, 20 partial, 0 pending, 10 tabled, 2 dropped.
 | SubPedEditorCombat | 4 | Done | Ped Editor > General > Combat Style: 27 styles and 10 mods from the game scripts |
 | SubPedEditorCombatAttributes | 0 | Done | Ped Editor > General > Combat Style > Combat Attributes: by number, 0-127 |
 | SubPedEditorDamagePacks | 3 | Done | Ped Editor > Wardrobe > Apply Damage Packs: the shared Player menu, opened from the Ped Editor (Menus::Target) |
-| SubPedEditorEffects | 25 | Partial | Ped Editor > Effects: the shared Player menu, opened from the Ped Editor (Menus::Target); the 25 presets of Rampage not ported |
+| SubPedEditorEffects | 25 | Done | Ped Editor > Effects: the shared Player menu, opened from the Ped Editor (Menus::Target) |
 | SubPedEditorEmotes | 8 | Done | Ped Editor > Emotes: the shared Player menu, opened from the Ped Editor (Menus::Target) |
 | SubPedEditorFacialAnimations | 4 | Done | Ped Editor > Animations > Facial Animations: the shared Player menu, opened from the Ped Editor (Menus::Target) |
 | SubPedEditorGeneral | 13 | Done | Ped Editor > General |
@@ -87,7 +87,7 @@ Submenus: 135 done, 20 partial, 0 pending, 10 tabled, 2 dropped.
 | SubAnimPostFx | 3 | Done | Player > Vision > Screen Effects: list from the game scripts |
 | SubAnimationDictsList | 5 | Done | Player > Animations > Dictionaries > (dictionary): picking one also fills in Custom Animations (ours) |
 | SubDamagePacks | 3 | Done | Player > Wardrobe > Apply Damage Packs: list from the game scripts |
-| SubEffects | 29 | Partial | Player > Effects: Scale, Loop, Custom asset/effect, 6 effects from the game scripts; Rampage's 25 named presets are its own table and not ported |
+| SubEffects | 29 | Done | Player > Effects: the 25 Rampage presets (data/EffectPresets.inc), Scale, Loop, Custom, plus 6 effects from the game scripts |
 | SubEmotes | 11 | Done | Player > Emotes: every emote type listed under its own heading instead of an Emote Type choice; adds gun twirls (alloc8or eEmote list) |
 | SubModelChangerAnimal | 2 | Done | Player > Wardrobe > Model Changer > Animals: one list from the game scripts |
 | SubModelChangerHorses | 0 | Done | Player > Wardrobe > Model Changer > Horses: one list from the game scripts |

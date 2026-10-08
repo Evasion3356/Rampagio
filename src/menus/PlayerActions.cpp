@@ -46,6 +46,14 @@ namespace
 		const char* second;
 	};
 
+	struct EffectPreset
+	{
+		const char* label;
+		const char* asset;
+		const char* effect;
+		float scale;
+	};
+
 	struct EmoteName
 	{
 		const char* name;
@@ -57,6 +65,9 @@ namespace
 	};
 	const NamePair kEffects[] = {
 #include "..\data\Effects.inc"
+	};
+	const EffectPreset kEffectPresets[] = {
+#include "..\data\EffectPresets.inc"
 	};
 	const EmoteName kEmotes[] = {
 #include "..\data\Emotes.inc"
@@ -413,13 +424,23 @@ namespace
 		Ui::Do(anims, "player.stopanimation", "Stop Animation", StopAnim);
 	}
 
-	// SubEffects. Rampage's 25 named presets are its own table; ours lists
-	// the effects the scripts start with a literal asset, plus Custom.
+	// SubEffects: Rampage's 25 named presets (data/EffectPresets.inc), plus
+	// the effects the scripts start with a literal asset (ours).
 	void BuildEffects(MenuBase* self)
 	{
 		MenuBase* fx = Menus::Shared().effects = Ui::Submenu(self, "Effects");
 		Ui::Number(fx, "player.scale", "Scale", &g_effectScale, 0.1f, 10.0f, 0.1f);
 		Ui::Looped(fx, "player.loop", "Loop", LoopEffectTick);
+		Ui::Section(fx, "Presets");
+		for (const EffectPreset& e : kEffectPresets)
+		{
+			Ui::Action(fx, Ui::Id("player.effectpreset", e.label), e.label, [&e]
+			{
+				g_effectAsset = e.asset;
+				g_effectName = e.effect;
+				return PlayEffect(e.asset, e.effect, e.scale * g_effectScale);
+			});
+		}
 		Ui::Section(fx, "Custom");
 		Ui::Text(fx, "player.asset", "Asset", &g_effectAsset);
 		Ui::Text(fx, "player.effectname", "Effect Name", &g_effectName);
