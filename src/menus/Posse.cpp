@@ -251,25 +251,25 @@ namespace Menus
 	void BuildPlayerPosse(MenuBase* self)
 	{
 		MenuBase* posse = Ui::Submenu(self, "Posse");
-		Ui::Text(posse, "Name", &g_name, ApplyName);
+		Ui::Text(posse, "posse.name", "Name", &g_name, ApplyName);
 		posse->AddItem(new MenuItemLabel([] { return std::format("Members: {}", Posse::Members().size()); }));
-		Ui::Choice(posse, "Formation", { "Default", "Circle Around Leader", "Alternative Circle", "Line" }, &g_formation,
+		Ui::Choice(posse, "posse.formation", "Formation", { "Default", "Circle Around Leader", "Alternative Circle", "Line" }, &g_formation,
 			[](int f) { PED::SET_GROUP_FORMATION(PlayerGroup(), f); });
 
 		Ui::Section(posse, "Commands");
-		Ui::Action(posse, "Posse Attack aimed target", AttackAimed);
-		Ui::Action(posse, "Closest Member Attack aimed target", ClosestAttackAimed);
-		Ui::Action(posse, "Closest Member Lasso aimed target", ClosestLassoAimed);
-		Ui::Do(posse, "All Members keep their position", KeepPosition);
-		Ui::Do(posse, "All Members will come to you", ComeToMe);
-		Ui::Do(posse, "All Members play a random emote", RandomEmote);
-		Ui::Do(posse, "All Members cower in place", Cower);
+		Ui::Action(posse, "posse.posseattackaimedtarget", "Posse Attack aimed target", AttackAimed);
+		Ui::Action(posse, "posse.closestmemberattackaimedtarget", "Closest Member Attack aimed target", ClosestAttackAimed);
+		Ui::Action(posse, "posse.closestmemberlassoaimedtarget", "Closest Member Lasso aimed target", ClosestLassoAimed);
+		Ui::Do(posse, "posse.allmemberskeeptheirposition", "All Members keep their position", KeepPosition);
+		Ui::Do(posse, "posse.allmemberswillcometoyou", "All Members will come to you", ComeToMe);
+		Ui::Do(posse, "posse.allmembersplayarandomemote", "All Members play a random emote", RandomEmote);
+		Ui::Do(posse, "posse.allmemberscowerinplace", "All Members cower in place", Cower);
 
 		Ui::Section(posse, "Members");
-		Ui::Action(posse, "Add Aimed Ped", [] { return AddPed(AimedTarget()); });
-		Ui::Action(posse, "Add Nearest Ped", AddNearest);
-		Ui::Do(posse, "Teleport Members to Me", TeleportToMe);
-		Ui::Do(posse, "Dismiss All", DismissAll);
-		Ui::Do(posse, "Delete All", DeleteAll);
+		Ui::Action(posse, "posse.addaimedped", "Add Aimed Ped", [] { return AddPed(AimedTarget()); });
+		Ui::Action(posse, "posse.addnearestped", "Add Nearest Ped", AddNearest);
+		Ui::Do(posse, "posse.teleportmemberstome", "Teleport Members to Me", TeleportToMe);
+		Ui::Do(posse, "posse.dismissall", "Dismiss All", DismissAll);
+		Ui::Do(posse, "posse.deleteall", "Delete All", DeleteAll);
 	}
 }
