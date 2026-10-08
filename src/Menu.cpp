@@ -78,9 +78,9 @@ namespace
 		{
 			MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 			if constexpr (std::is_floating_point_v<T>)
-				DrawRowValue(this, lineTop, lineLeft, active, std::format("< {:.2f} >", m_command->GetState()));
+				DrawRowValue(this, lineTop, lineLeft, active, std::format("{:.2f}", m_command->GetState()));
 			else
-				DrawRowValue(this, lineTop, lineLeft, active, std::format("< {} >", m_command->GetState()));
+				DrawRowValue(this, lineTop, lineLeft, active, std::format("{}", m_command->GetState()));
 		}
 	};
 
@@ -97,7 +97,7 @@ namespace
 		{
 			MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 			if (!m_command->GetList().empty())
-				DrawRowValue(this, lineTop, lineLeft, active, "< " + m_command->GetSelected() + " >");
+				DrawRowValue(this, lineTop, lineLeft, active, m_command->GetSelected());
 		}
 	};
 
@@ -134,12 +134,12 @@ namespace
 		}
 	};
 
-	// The root menu's title: Style().title (Settings > Theme > Menu Title).
+	// The root menu's subheader name, Rampage's "Home". The header shows
+	// Style().title (Settings > Theme > Menu Title) on every menu.
 	class RootTitle : public MenuItemTitle
 	{
 	public:
-		RootTitle() : MenuItemTitle("Rampagio") {}
-		std::string GetCaption() override { return Style().title.empty() ? "Rampagio" : Style().title; }
+		RootTitle() : MenuItemTitle("Home") {}
 	};
 }
 

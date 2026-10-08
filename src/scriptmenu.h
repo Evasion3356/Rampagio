@@ -31,28 +31,34 @@ class MenuController;
 
 // Rampagio addition: the menu's look and input options, edited live in
 // Settings and saved by it. Items read their colors from here at draw
-// time (MenuItemBase::GetColor*), so a change shows at once.
+// time, so a change shows at once. The defaults are Rampage's own (its
+// theme globals and Settings.json defaults): a red header and scroller
+// over translucent black, the $title1/$body fonts, top left, 12 rows.
 struct MenuStyle
 {
-	ColorRgba titleRect { 0, 0, 0, 230 };
+	ColorRgba main { 138, 3, 3, 255 };          // accent line (Rampage's "Main Color")
+	ColorRgba header { 138, 3, 3, 255 };        // the title box
 	ColorRgba titleText { 255, 255, 255, 255 };
-	ColorRgba itemRect { 50, 50, 50, 180 };
-	ColorRgba itemText { 255, 255, 255, 200 };
-	ColorRgba itemTextActive { 255, 255, 255, 255 };
-	ColorRgba border { 204, 0, 0, 255 };       // around the selected row
-	ColorRgba sectionRect { 20, 20, 20, 200 };
-	ColorRgba sectionText { 200, 160, 90, 255 };
-	float left = 0.39f;                         // menu's left edge, 0..1
-	float top = 0.05f;
-	int linesPerScreen = 11;
+	ColorRgba subheader { 0, 0, 0, 255 };       // submenu name and counter bar
+	ColorRgba base { 0, 0, 0, 170 };            // behind the rows
+	ColorRgba scroller { 138, 3, 3, 255 };      // the selected row's bar
+	ColorRgba text { 255, 255, 255, 255 };      // row text (fixed white in Rampage)
+	ColorRgba selectedText { 255, 255, 255, 255 };
+	ColorRgba footer { 0, 0, 0, 220 };
+	ColorRgba sectionText { 170, 170, 170, 255 }; // ours: Section captions
+	float left = 0.03f;                         // menu's left edge, 0..1
+	float top = 0.02f;
+	int linesPerScreen = 12;
 	bool sounds = true;
 	bool gamepad = true;                        // navigate with the d-pad, A and B
 	int gamepadOpen = 1;                        // index into MenuInput::kGamepadOpenNames
-	int titleFont = 1;                          // index into kTitleFonts (title rows)
-	int bodyFont = 2;                           // index into kBodyFonts (everything else)
-	std::string title = "Rampagio";             // the root menu's title
+	int titleFont = 0;                          // index into kTitleFonts (the header)
+	int bodyFont = 0;                           // index into kBodyFonts (everything else)
+	std::string title = "Rampagio";             // the header's text
 	bool invertColors = false;                  // draw every menu color inverted
-	bool centeredTitle = false;                 // center title rows' text
+	bool centeredTitle = true;                  // center the header's text
+	bool smoothScroll = true;                   // the scroller glides to the selected row
+	int scrollSmoothness = 4;                   // frames' divisor for that glide (Rampage's default)
 	bool mouse = false;                         // cursor: hover, click, right-click back, wheel
 };
 
@@ -118,22 +124,34 @@ public:
 	float GetLineWidth()  { return m_lineWidth;  }
 	virtual float GetLineHeight() { return m_lineHeight; }
 
-	// Rampagio: from Style(), title rows vs. everything else.
-	bool IsTitle() { return GetClass() == eMenuItemClass::Title || GetClass() == eMenuItemClass::ListTitle; }
-	ColorRgba GetColorRect() { return IsTitle() ? Style().titleRect : Style().itemRect; }
-	ColorRgba GetColorText() { return IsTitle() ? Style().titleText : Style().itemText; }
-
-	ColorRgba GetColorRectActive() { return IsTitle() ? Style().titleRect : Style().itemRect; }
-	ColorRgba GetColorTextActive() { return IsTitle() ? Style().titleText : Style().itemTextActive; }
+	// Rampagio: the row's text color from Style().
+	ColorRgba GetTextColor(bool active) { return active ? Style().selectedText : Style().text; }
+	// Rampagio: false for rows the selection skips (Section).
+	virtual bool IsSelectable() { return true; }
 
 	void SetMenu(MenuBase *menu) { m_menu = menu; };
 	MenuBase *GetMenu() { return m_menu; };
 };
 
+// Rampagio: Rampage's menu geometry (screen units, 0..1), read from its
+// draw code. The menu is one column kWidth wide whose left edge is
+// Style().left - 0.001 (Rampage centers every box at left + 0.114). From
+// Style().top down: the header box (centered at +0.046, 0.105 tall), the
+// subheader bar (centered at +0.1115, 0.035 tall), the rows from +0.128,
+// kRowHeight each, then a footer row. See MenuBase::OnDraw.
+namespace MenuLayout
+{
+	constexpr float kWidth = 0.23f;
+	constexpr float kRowHeight = 0.033f;
+	constexpr float kTextPad = 0.005f;      // row text's x from the box's left edge
+	constexpr float kTextDrop = 0.003f;     // row text's y from the row's top
+	constexpr float kTextScale = 0.32f;     // _BG_SET_TEXT_SCALE for row text
+}
+
 const float
-	MenuItemTitle_lineWidth	 = 0.22f,
-	MenuItemTitle_lineHeight = 0.06f,
-	MenuItemTitle_textLeft	 = 0.01f;
+	MenuItemTitle_lineWidth	 = MenuLayout::kWidth,
+	MenuItemTitle_lineHeight = MenuLayout::kRowHeight,
+	MenuItemTitle_textLeft	 = MenuLayout::kTextPad;
 
 const ColorRgba
 	MenuItemTitle_colorRect { 0, 0, 0, 230 },
@@ -162,19 +180,18 @@ public:
 		: MenuItemTitle(caption),
 			m_currentItemIndex(0), m_itemsTotal(0) {}
 	virtual eMenuItemClass GetClass() { return eMenuItemClass::ListTitle; }
-	virtual	string GetCaption() { return MenuItemTitle::GetCaption() + "  " + to_string(m_currentItemIndex) + "/" + to_string(m_itemsTotal); }
+	// Rampagio: the counter is drawn in the subheader (MenuBase::OnDraw).
+	virtual	string GetCaption() { return MenuItemTitle::GetCaption(); }
 	void SetCurrentItemInfo(int index, int total) { m_currentItemIndex = index, m_itemsTotal = total; }
 };
 
 const float
-	MenuItemDefault_lineWidth	= 0.22f,
-	MenuItemDefault_lineHeight	= 0.05f,
-	MenuItemDefault_textLeft	= 0.01f;
+	MenuItemDefault_lineWidth	= MenuLayout::kWidth,
+	MenuItemDefault_lineHeight	= MenuLayout::kRowHeight,
+	MenuItemDefault_textLeft	= MenuLayout::kTextPad;
 
-// RDR2-styled palette: a plain grey highlight bar behind every item
-// (selected or not, same as the game's own menus), white text throughout,
-// and the selected item picked out by a thin red border drawn separately
-// in MenuItemBase::OnDraw -- not by a different fill/text color here.
+// Unused since the Rampage-style renderer: rows take their colors from
+// Style() (the box, base and scroller are drawn by MenuBase::OnDraw).
 const ColorRgba
 	MenuItemDefault_colorRect			{ 50, 50, 50, 180 },
 	MenuItemDefault_colorText			{ 255, 255, 255, 200 },
@@ -335,17 +352,32 @@ public:
 	}
 };
 
-// Rampagio addition: draws `text` right-aligned-ish at the row's right end,
-// the spot MenuItemSwitchable puts [Y]/[N]. Shared by the value rows below.
-void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& text);
+// Rampagio addition: draws a value row's `value` right-aligned at the row's
+// right end, as Rampage does: "<- value ->" with $Font5 arrows while the row
+// is selected, the plain value otherwise. Shared by the value rows below.
+void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& value);
 
-// Screen text in the menu's font (x, y in 0..1); also used for the
-// scanners' world labels.
+// Screen text in the menu's font (x, y in 0..1); used by the overlays and
+// the scanners' world labels. fontSize is the Scaleform SIZE.
 // face: a Scaleform font face; nullptr uses Style()'s body font. With
 // center, x is the text's center (0..1) instead of its left edge.
 void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color, const char* face = nullptr, bool center = false);
 
-// Rampagio addition: a number edited with NUMPAD 4/6, drawn as "< value >"
+// Rampagio: menu text the way Rampage draws it (scriptmenu.cpp): sized by
+// _BG_SET_TEXT_SCALE instead of a SIZE tag. Center and Right need the game's
+// text format struct (found by pattern on first use): Center puts the
+// text's center at x, Right its right end at x + 0.5. Without the struct
+// they fall back to an estimate. title also sets the format flag Rampage
+// sets for its header text.
+enum class TextAlign { Left, Center, Right };
+void DrawMenuText(const std::string& text, float x, float y, float scale, ColorRgba color, const char* face = nullptr,
+	TextAlign align = TextAlign::Left, bool title = false);
+
+// Rampagio: a texture from a streamed dictionary (requested on first use,
+// drawn once loaded), centered at x, y.
+void DrawMenuSprite(const char* dict, const char* name, float x, float y, float width, float height, float heading, ColorRgba color);
+
+// Rampagio addition: a number edited with NUMPAD 4/6, drawn as "<- value ->"
 // on the right. The value lives with the feature (`value` points at it);
 // onChange runs after every step, and on select if applyOnSelect.
 template <typename T>
@@ -373,9 +405,9 @@ public:
 	{
 		MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 		if constexpr (std::is_floating_point_v<T>)
-			DrawRowValue(this, lineTop, lineLeft, active, std::format("< {:.2f} >", *m_value));
+			DrawRowValue(this, lineTop, lineLeft, active, std::format("{:.2f}", *m_value));
 		else
-			DrawRowValue(this, lineTop, lineLeft, active, std::format("< {} >", *m_value));
+			DrawRowValue(this, lineTop, lineLeft, active, std::format("{}", *m_value));
 	}
 };
 
@@ -397,23 +429,16 @@ public:
 };
 
 // Rampagio addition: a heading inside a menu ("Toggles", "Tanks", ...).
-// Drawn dimmed; selecting it does nothing.
+// The selection skips it and the counter leaves it out, like Rampage's
+// breaks. Drawn as a centered dimmed caption, or Rampage's divider line
+// when the caption is empty.
 class MenuItemSection : public MenuItemDefault
 {
 public:
 	MenuItemSection(string caption) : MenuItemDefault(caption) {}
 	virtual void OnDraw(float lineTop, float lineLeft, bool active) override;
+	virtual bool IsSelectable() override { return false; }
 };
-
-const float
-	MenuBase_lineOverlap = 1.0f / 40.0f,
-	// Thickness of the red border MenuItemBase::OnDraw adds around
-	// whichever item is currently active, in the same 0..1 normalized
-	// units as everything else -- RDR2's own menus (and
-	// Githubs/RDR2-Native-Menu-Base's DrawSelectionBox()) pick out the
-	// selected row with exactly this: a plain grey fill on every row,
-	// red only on the selected one's edge.
-	MenuBase_activeBorderThickness = 0.0025f;
 
 class MenuBase
 {
@@ -428,6 +453,10 @@ class MenuBase
 	vector<DrawnRow>	m_drawnRows;
 	float	m_lastCursorX = -1.0f, m_lastCursorY = -1.0f;
 	int		OnMouse();
+	// Rampagio: the next selectable row from `from` going `step` (+1/-1),
+	// wrapping; `from` itself if none is.
+	int		NextSelectable(int from, int step) const;
+	void	SkipToSelectable();
 
 	MenuController *			m_controller;
 	std::function<void(MenuBase*)>	m_onOpen; // Rampagio addition
@@ -444,7 +473,7 @@ public:
 	// (lists of nearby peds, saved files, ...). onOpen runs right before
 	// the menu is pushed; it usually calls ClearItems() and re-adds rows.
 	void SetOnOpen(std::function<void(MenuBase*)> onOpen) { m_onOpen = std::move(onOpen); }
-	void Open() { if (m_onOpen) m_onOpen(this); }
+	void Open() { if (m_onOpen) m_onOpen(this); SkipToSelectable(); }
 	// Rebuilds the rows in place, keeping the selection where it still fits.
 	void Reopen()
 	{
@@ -452,6 +481,7 @@ public:
 		Open();
 		const int last = static_cast<int>(m_items.size()) - 1;
 		m_activeIndex = index > last ? (last < 0 ? 0 : last) : index;
+		SkipToSelectable();
 	}
 	void ClearItems()
 	{
@@ -465,7 +495,7 @@ public:
 	// Rampagio additions, for Settings > Search and the hotkeys.
 	MenuItemTitle* GetTitle() { return m_itemTitle; }
 	const vector<MenuItemBase *>& GetItems() const { return m_items; }
-	void SetActiveItemIndex(int index) { if (index >= 0 && index < static_cast<int>(m_items.size())) m_activeIndex = index; }
+	void SetActiveItemIndex(int index) { if (index >= 0 && index < static_cast<int>(m_items.size())) m_activeIndex = index; SkipToSelectable(); }
 	void OnDraw();
 	int OnInput();
 	void OnFrame()

@@ -18,27 +18,29 @@
 	    same thing) -- this game is build 1491.50, long past that. Ported
 	    the working replacement those sibling projects already use for
 	    every piece of real user-facing text: UIDEBUG::_BG_DISPLAY_TEXT/
-	    _BG_SET_TEXT_COLOR, fed a `$Font5` ("Redemption", RDR2's own
-	    western-stencil font) rich-text tag through Scaleform instead of
-	    the legacy single-font text path. This is the menu's actual F9
-	    surface, not a Debug-only diagnostic, so unlike those siblings'
-	    own scriptmenu.cpp copies (still on the dead legacy path, since
-	    their F-key menus are pure reversing tools that never needed a
-	    real font), this one had to move.
-	  - Styling (2026-09-19): recolored to match RDR2's own menu chrome --
-	    solid black behind titles, a plain grey bar behind every item
-	    whether selected or not, and the active item picked out with a
-	    thin red border (DrawRectBorder(), below) instead of a color
-	    swap -- the same "grey rows + one red-bordered row" look
-	    Githubs/RDR2-Native-Menu-Base's DrawSelectionBox() uses (that
-	    project achieves it with 4 stretched border sprites off
-	    "menu_textures"; this just draws 4 solid GRAPHICS::DRAW_RECT
-	    strips, since DrawRect() was already here and needed no new
-	    texture-dict dependency).
+	    _BG_SET_TEXT_COLOR, fed a Scaleform rich-text font tag.
+	  - Look (2026-10-08): Rampage's menu, re-implemented from its draw
+	    code (Rampage.asi 2026-01-04: sub_1801F6A60 draws the frame,
+	    sub_1801ED140 a row's label, sub_1801EE020 a toggle). A red header
+	    box with the title in $title1, a black subheader with the submenu
+	    name and an "n/total" counter, the rows over translucent black with
+	    a red scroller bar behind the selected one (gliding to it), a
+	    footer with up/down arrows, toggles as checkbox sprites, submenus
+	    with an arrow sprite and values as "<- value ->". Text is sized
+	    with _BG_SET_TEXT_SCALE and aligned through the game's text format
+	    struct, both as Rampage does (DrawMenuText). Every size and offset
+	    below is Rampage's; MenuLayout (scriptmenu.h) names the shared ones.
+	    Replaces the ChallengeCheat look (grey rows, red border).
 */
 
 #include "scriptmenu.h"
+#include "PatternScan.h"
+#include "Log.h"
+#include <algorithm>
 #include <climits>
+#include <cmath>
+
+using namespace MenuLayout;
 
 int& MenuKey()
 {
@@ -61,34 +63,99 @@ MenuStyle& Style()
 	return style;
 }
 
-// Wraps `str` in the Scaleform rich-text tags UIDEBUG::_BG_DISPLAY_TEXT
-// needs to actually render it -- see this file's own header comment.
-// Ported from DominoCheat/BlackjackCheat/PokerCheat's identical BgText()
-// helper. Always left-aligned (RIGHTMARGIN/ALIGN fixed) -- every menu
-// item in this file is; the one exception (the centered status-text
-// popup) builds its own tag directly in MenuController::DrawStatusText().
 namespace
 {
 	// Set while MenuBase::OnDraw draws, so Invert Colors only touches the
-	// menu, not the overlays that share DrawTextAt/DrawRect.
+	// menu, not the overlays that share DrawTextAt.
 	bool g_drawingMenu = false;
 
-	// Settings > XUI > Invert Colors: every menu color drawn inverted.
+	// Settings > Theme > Invert Colors: every menu color drawn inverted.
 	ColorRgba Shown(ColorRgba c)
 	{
 		if (!g_drawingMenu || !Style().invertColors)
 			return c;
 		return { static_cast<unsigned char>(255 - c.r), static_cast<unsigned char>(255 - c.g), static_cast<unsigned char>(255 - c.b), c.a };
 	}
+
+	const char* BodyFace()
+	{
+		const int body = Style().bodyFont;
+		return body >= 0 && body < static_cast<int>(std::size(kBodyFonts)) ? kBodyFonts[body] : "$body";
+	}
+
+	const char* TitleFace()
+	{
+		const int title = Style().titleFont;
+		return title >= 0 && title < static_cast<int>(std::size(kTitleFonts)) ? kTitleFonts[title] : "$title1";
+	}
+
+	// Rampage gives sprite sizes in pixels of a 1280x720 screen.
+	constexpr float PxW(float px) { return px / 1280.0f; }
+	constexpr float PxH(float px) { return px / 720.0f; }
+
+	constexpr ColorRgba kWhite{ 255, 255, 255, 255 };
+	constexpr ColorRgba kCheckbox{ 220, 220, 220, 255 }; // Rampage's unselected checkbox tint
+
+	// The game's format for the next _BG_DISPLAY_TEXT, found the way
+	// Rampage finds it (its Pointers::Run, lambda 1): a LEA of the struct.
+	// Rampage clears byte 28 before text it centers or right-aligns, which
+	// makes the text field centered on x, 1.0 wide (so Right ends at
+	// x + 0.5), and sets byte 30 for its header title. The game resets
+	// them after each display: Rampage never sets them back.
+	constexpr const char* kTextFormatPattern = "48 8D 05 ? ? ? ? 48 89 44 24 ? 8B 05 ? ? ? ? 89 44 24 28 8B 05 ? ? ? ? 89 44 24 20";
+	constexpr size_t kFormatAlignByte = 28;
+	constexpr size_t kFormatTitleByte = 30;
+
+	unsigned char* TextFormat()
+	{
+		static unsigned char* format = nullptr;
+		static bool scanned = false;
+		if (!scanned)
+		{
+			scanned = true;
+			if (const auto match = PatternScan::FindInMainModule(kTextFormatPattern))
+				format = reinterpret_cast<unsigned char*>(PatternScan::ResolveRip(*match, 3));
+			if (format)
+				Log::Write("[Menu] Text format struct at RDR2.exe+0x{:X}", reinterpret_cast<uintptr_t>(format) - reinterpret_cast<uintptr_t>(GetModuleHandleA(nullptr)));
+			else
+				Log::Write("[Menu] Text format pattern not found: centered and right-aligned menu text use an estimate");
+		}
+		return format;
+	}
+
+	// Characters shown, for the no-struct fallback's width estimate: skips
+	// markup tags and counts an entity (&#8592;) as one.
+	size_t VisibleLength(const std::string& text)
+	{
+		size_t n = 0;
+		for (size_t i = 0; i < text.size(); i++)
+		{
+			const char c = text[i];
+			if (c == '<')
+				i = (std::min)(text.find('>', i), text.size());
+			else if (c == '&')
+			{
+				i = (std::min)(text.find(';', i), text.size());
+				n++;
+			}
+			else if ((static_cast<unsigned char>(c) & 0xC0) != 0x80)
+				n++;
+		}
+		return n;
+	}
+
+	// A box centered at x, y, as Rampage draws its menu boxes.
+	void DrawBox(float x, float y, float width, float height, ColorRgba color)
+	{
+		color = Shown(color);
+		GRAPHICS::DRAW_RECT(x, y, width, height, color.r, color.g, color.b, color.a, FALSE, TRUE);
+	}
 }
 
 void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color, const char* face, bool center)
 {
 	if (!face)
-	{
-		const int body = Style().bodyFont;
-		face = body >= 0 && body < static_cast<int>(std::size(kBodyFonts)) ? kBodyFonts[body] : "$Font5";
-	}
+		face = BodyFace();
 	// A Center-aligned field's x is a -1..1 offset from the screen center
 	// (see MenuController::DrawStatusText).
 	std::string formatText = std::string("<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='") + (center ? "Center" : "Left") + "'><FONT FACE='"
@@ -98,23 +165,48 @@ void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color
 	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), center ? -1.0f + x * 2.0f : x, y);
 }
 
-void DrawRect(float lineLeft, float lineTop, float lineWidth, float lineHeight, int r, int g, int b, int a)
+void DrawMenuText(const std::string& text, float x, float y, float scale, ColorRgba color, const char* face, TextAlign align, bool title)
 {
-	if (g_drawingMenu && Style().invertColors)
-		r = 255 - r, g = 255 - g, b = 255 - b;
-	GRAPHICS::DRAW_RECT((lineLeft + (lineWidth * 0.5f)), (lineTop + (lineHeight * 0.5f)), lineWidth, lineHeight, r, g, b, a, 0, 0);
+	if (!face)
+		face = BodyFace();
+	unsigned char* format = TextFormat();
+	std::string markup;
+	if (format || align == TextAlign::Left)
+	{
+		if (format && align != TextAlign::Left)
+			format[kFormatAlignByte] = 0;
+		markup = std::string("~s~<FONT FACE='") + face + "'>"
+			+ (align == TextAlign::Right ? "<P ALIGN='RIGHT'>" + text + "</P>" : text) + "</FONT>";
+	}
+	else if (align == TextAlign::Center)
+	{
+		markup = std::string("<P ALIGN='Center'>~s~<FONT FACE='") + face + "'>" + text + "</FONT></P>";
+		x = -1.0f + x * 2.0f;
+	}
+	else
+	{
+		// Right without the struct: back off from the right end by an
+		// estimated width (~0.0065 per character at Rampage's 0.32).
+		markup = std::string("~s~<FONT FACE='") + face + "'>" + text + "</FONT>";
+		x = x + 0.5f - 0.0065f * (scale / kTextScale) * static_cast<float>(VisibleLength(text));
+	}
+	color = Shown(color);
+	UIDEBUG::_BG_SET_TEXT_COLOR(color.r, color.g, color.b, color.a);
+	UIDEBUG::_BG_SET_TEXT_SCALE(0.0f, scale);
+	if (format && title)
+		format[kFormatTitleByte] = 1;
+	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", markup.c_str()), x, y);
 }
 
-// Thin rectangular outline (top/bottom/left/right strips, each `thickness`
-// wide) traced around the given box -- used to pick out the active menu
-// item with a red border instead of a fill/text color change, RDR2's own
-// menu style (see this file's header comment).
-void DrawRectBorder(float lineLeft, float lineTop, float lineWidth, float lineHeight, float thickness, int r, int g, int b, int a)
+void DrawMenuSprite(const char* dict, const char* name, float x, float y, float width, float height, float heading, ColorRgba color)
 {
-	DrawRect(lineLeft, lineTop, lineWidth, thickness, r, g, b, a);
-	DrawRect(lineLeft, lineTop + lineHeight - thickness, lineWidth, thickness, r, g, b, a);
-	DrawRect(lineLeft, lineTop, thickness, lineHeight, r, g, b, a);
-	DrawRect(lineLeft + lineWidth - thickness, lineTop, thickness, lineHeight, r, g, b, a);
+	if (!TXD::HAS_STREAMED_TEXTURE_DICT_LOADED(dict))
+	{
+		TXD::REQUEST_STREAMED_TEXTURE_DICT(dict, FALSE);
+		return;
+	}
+	color = Shown(color);
+	GRAPHICS::DRAW_SPRITE(dict, name, x, y, width, height, heading, color.r, color.g, color.b, color.a, FALSE);
 }
 
 void MenuItemBase::WaitAndDraw(int ms)
@@ -137,35 +229,11 @@ void MenuItemBase::SetStatusText(string text, int ms)
 		controller->SetStatusText(text, ms);
 }
 
-// Font size (the Scaleform $Font5 pipeline's point-size SIZE tag) scales
-// off the item's own line height, same idea the old SET_TEXT_SCALE(0.0,
-// m_lineHeight * 8.0f) call captured for the dead legacy pipeline -- a
-// title row (taller line) gets visibly bigger text than a regular item
-// row, with no separate per-class font-size constant needed.
-constexpr float kMenuFontSizeScale = 500.0f;
-
+// A row's label (Rampage's sub_1801ED140). lineLeft is the box's left edge
+// and lineTop the row's top; MenuBase::OnDraw draws the row's background.
 void MenuItemBase::OnDraw(float lineTop, float lineLeft, bool active)
 {
-	// rect: plain grey behind every item, selected or not
-	ColorRgba rectColor = active ? GetColorRectActive() : GetColorRect();
-	DrawRect(lineLeft, lineTop, m_lineWidth, m_lineHeight, rectColor.r, rectColor.g, rectColor.b, rectColor.a);
-	// red border: only around the active item
-	const ColorRgba border = Style().border;
-	if (active)
-		DrawRectBorder(lineLeft, lineTop, m_lineWidth, m_lineHeight, MenuBase_activeBorderThickness, border.r, border.g, border.b, border.a);
-	// text
-	ColorRgba textColor = active ? GetColorTextActive() : GetColorText();
-	int fontSize = static_cast<int>(m_lineHeight * kMenuFontSizeScale);
-	// Title rows use the title font.
-	const char* face = nullptr;
-	const int titleFont = Style().titleFont;
-	const bool title = GetClass() == eMenuItemClass::Title || GetClass() == eMenuItemClass::ListTitle;
-	if (title && titleFont >= 0 && titleFont < static_cast<int>(std::size(kTitleFonts)))
-		face = kTitleFonts[titleFont];
-	if (title && Style().centeredTitle)
-		DrawTextAt(lineLeft + m_lineWidth / 2.0f, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor, face, true);
-	else
-		DrawTextAt(lineLeft + m_textLeft, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor, face);
+	DrawMenuText(GetCaption(), lineLeft + m_textLeft, lineTop + kTextDrop, kTextScale, GetTextColor(active));
 }
 
 namespace
@@ -174,9 +242,9 @@ namespace
 	// Latin/Cyrillic character = 1, a CJK/Hangul/kana one = 2) since the
 	// Scaleform text has no measuring call here -- the width is
 	// WrapWidth() (settings.wrapwidth), tunable in-game.
-	constexpr int kParagraphFontSize = 21;
-	constexpr float kParagraphLineStep = 0.034f;
-	constexpr float kParagraphPadding = 0.016f;
+	constexpr float kParagraphScale = 0.28f;
+	constexpr float kParagraphLineStep = 0.024f;
+	constexpr float kParagraphPadding = 0.009f;
 
 	// Decodes the UTF-8 code point at s[i]; returns its byte length (>= 1,
 	// so malformed input still makes progress).
@@ -289,56 +357,44 @@ void MenuItemParagraph::Refresh()
 float MenuItemParagraph::GetLineHeight()
 {
 	Refresh();
-	return static_cast<float>(m_lines.size()) * kParagraphLineStep + kParagraphPadding;
+	return (std::max)(kRowHeight, static_cast<float>(m_lines.size()) * kParagraphLineStep + kParagraphPadding);
 }
 
 void MenuItemParagraph::OnDraw(float lineTop, float lineLeft, bool active)
 {
-	const float height = GetLineHeight();
-	const float width = GetLineWidth();
-	const ColorRgba rect = active ? GetColorRectActive() : GetColorRect();
-	DrawRect(lineLeft, lineTop, width, height, rect.r, rect.g, rect.b, rect.a);
-	if (active)
-		DrawRectBorder(lineLeft, lineTop, width, height, MenuBase_activeBorderThickness,
-			Style().border.r, Style().border.g, Style().border.b, Style().border.a);
-
-	const ColorRgba color = active ? GetColorTextActive() : GetColorText();
+	Refresh();
+	const ColorRgba color = GetTextColor(active);
 	for (size_t line = 0; line < m_lines.size(); line++)
-		DrawTextAt(lineLeft + MenuItemDefault_textLeft, lineTop + kParagraphPadding / 2.0f + static_cast<float>(line) * kParagraphLineStep,
-			m_lines[line].c_str(), kParagraphFontSize, color);
+		DrawMenuText(m_lines[line], lineLeft + kTextPad, lineTop + kParagraphPadding / 2.0f + static_cast<float>(line) * kParagraphLineStep,
+			kParagraphScale, color);
 }
 
+// Rampage's checkbox: commonmenu's shop_box_blank, with generic_textures'
+// tick inside while on, at the row's right end.
 void MenuItemSwitchable::OnDraw(float lineTop, float lineLeft, bool active)
 {
 	MenuItemDefault::OnDraw(lineTop, lineLeft, active);
-	float lineWidth = GetLineWidth();
-	float lineHeight = GetLineHeight();
-	ColorRgba color = active ? GetColorTextActive() : GetColorText();
-	color.a = static_cast<unsigned char>(color.a / 1.1f);
-	int fontSize = static_cast<int>(lineHeight * kMenuFontSizeScale);
-	DrawTextAt(lineLeft + lineWidth - lineWidth / 6.35f, lineTop + lineHeight / 4.8f, GetState() ? "[Y]" : "[N]", fontSize, color);
+	const float x = lineLeft + 0.218f, y = lineTop + kRowHeight / 2.0f;
+	DrawMenuSprite("commonmenu", "shop_box_blank", x, y, PxW(34), PxH(34), 0.0f, active ? Style().selectedText : kCheckbox);
+	if (GetState())
+		DrawMenuSprite("generic_textures", "tick", x, y, PxW(14), PxH(14), 0.0f, GetTextColor(active));
 }
 
+// Rampage's submenu row: menu_textures' selection_arrow_right at the right end.
 void MenuItemMenu::OnDraw(float lineTop, float lineLeft, bool active)
 {
 	MenuItemDefault::OnDraw(lineTop, lineLeft, active);
-	float lineWidth = GetLineWidth();
-	float lineHeight = GetLineHeight();
-	ColorRgba color = active ? GetColorTextActive() : GetColorText();
-	color.a = color.a / 2;
-	int fontSize = static_cast<int>(lineHeight * kMenuFontSizeScale);
-	DrawTextAt(lineLeft + lineWidth - lineWidth / 8, lineTop + lineHeight / 3.5f, "*", fontSize, color);
+	DrawMenuSprite("menu_textures", "selection_arrow_right", lineLeft + 0.221f, lineTop + 0.015f, PxW(9), PxH(9), 0.0f, GetTextColor(active));
 }
 
-void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& text)
+// Rampage's value rows (sub_1802049E0 and friends): right-aligned at
+// left - 0.275, with $Font5 arrows around the value while selected.
+void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& value)
 {
-	const float lineWidth = item->GetLineWidth();
-	const float lineHeight = item->GetLineHeight();
-	const ColorRgba color = active ? item->GetColorTextActive() : item->GetColorText();
-	const int fontSize = static_cast<int>(lineHeight * kMenuFontSizeScale * 0.8f);
-	// No text measuring on the Scaleform path: back off ~0.0075 per char.
-	const float x = lineLeft + lineWidth - 0.008f - 0.0075f * static_cast<float>(text.size());
-	DrawTextAt(x, lineTop + lineHeight / 4.0f, text.c_str(), fontSize, color);
+	const std::string text = active
+		? "<FONT FACE='$Font5'>&#8592;</FONT> " + value + " <FONT FACE='$Font5'>&#8594;</FONT>"
+		: value;
+	DrawMenuText(text, lineLeft - 0.274f, lineTop + kTextDrop, kTextScale, item->GetTextColor(active), nullptr, TextAlign::Right);
 }
 
 void MenuItemChoice::OnLeft()
@@ -363,20 +419,16 @@ void MenuItemChoice::OnDraw(float lineTop, float lineLeft, bool active)
 {
 	MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 	if (*m_index >= 0 && *m_index < static_cast<int>(m_options.size()))
-		DrawRowValue(this, lineTop, lineLeft, active, "< " + m_options[*m_index] + " >");
+		DrawRowValue(this, lineTop, lineLeft, active, m_options[*m_index]);
 }
 
 void MenuItemSection::OnDraw(float lineTop, float lineLeft, bool active)
 {
-	const float lineWidth = GetLineWidth();
-	const float lineHeight = GetLineHeight();
-	const MenuStyle& style = Style();
-	DrawRect(lineLeft, lineTop, lineWidth, lineHeight, style.sectionRect.r, style.sectionRect.g, style.sectionRect.b, style.sectionRect.a);
-	if (active)
-		DrawRectBorder(lineLeft, lineTop, lineWidth, lineHeight, MenuBase_activeBorderThickness,
-			style.border.r, style.border.g, style.border.b, style.border.a);
-	DrawTextAt(lineLeft + MenuItemDefault_textLeft, lineTop + lineHeight / 4.5f, GetCaption().c_str(),
-		static_cast<int>(lineHeight * kMenuFontSizeScale * 0.85f), style.sectionText);
+	const std::string caption = GetCaption();
+	if (caption.empty())
+		DrawMenuSprite("menu_textures", "divider_line", lineLeft + kWidth / 2.0f, lineTop + 0.015f, 0.2f, 0.0011f, 0.0f, kWhite);
+	else
+		DrawMenuText(caption, lineLeft + kWidth / 2.0f, lineTop + kTextDrop, kTextScale, Style().sectionText, nullptr, TextAlign::Center);
 }
 
 void MenuItemMenu::OnSelect()
@@ -389,29 +441,119 @@ void MenuItemMenu::OnSelect()
 		}
 }
 
+int MenuBase::NextSelectable(int from, int step) const
+{
+	const int count = static_cast<int>(m_items.size());
+	for (int k = 1; k <= count; k++)
+	{
+		const int i = ((from + step * k) % count + count) % count;
+		if (m_items[i]->IsSelectable())
+			return i;
+	}
+	return from;
+}
+
+void MenuBase::SkipToSelectable()
+{
+	const int count = static_cast<int>(m_items.size());
+	if (m_activeIndex >= count)
+		m_activeIndex = count ? count - 1 : 0;
+	if (count && !m_items[m_activeIndex]->IsSelectable())
+		m_activeIndex = NextSelectable(m_activeIndex, 1);
+}
+
+// Rampage's frame (sub_1801F6A60 and sub_1801F7640). x, y below are
+// Style().left/top; every box is centered at x + 0.114.
 void MenuBase::OnDraw()
 {
 	g_drawingMenu = true;
 	struct Done { ~Done() { g_drawingMenu = false; } } done;
-	float lineTop = Style().top;
-	float lineLeft = Style().left;
-	const int lines = Style().linesPerScreen > 0 ? Style().linesPerScreen : 1;
-	const int first = m_activeIndex / lines * lines;
-	if (m_itemTitle->GetClass() == eMenuItemClass::ListTitle)
-		reinterpret_cast<MenuItemListTitle *>(m_itemTitle)->
-			SetCurrentItemInfo(GetActiveItemIndex() + 1, static_cast<int>(m_items.size()));
-	m_itemTitle->OnDraw(lineTop, lineLeft, false);
-	lineTop += m_itemTitle->GetLineHeight();
-	m_drawnRows.clear();
-	for (int i = 0; i < lines; i++)
+	const MenuStyle& style = Style();
+	const float x = style.left, y = style.top;
+	const float centerX = x + 0.114f, boxLeft = centerX - kWidth / 2.0f;
+	GRAPHICS::SET_SCRIPT_GFX_DRAW_ORDER(0);
+
+	// Header: the title over the header color.
+	DrawBox(centerX, y + 0.046f, kWidth, 0.105f, style.header);
+	const std::string title = style.title.empty() ? "Rampagio" : style.title;
+	if (style.centeredTitle)
+		DrawMenuText(title, centerX, y + 0.0135f, 0.95f, style.titleText, TitleFace(), TextAlign::Center, true);
+	else
+		DrawMenuText(title, x + 0.004f, y + 0.0135f, 0.95f, style.titleText, TitleFace(), TextAlign::Left, true);
+
+	// Subheader: the menu's name in capitals, and "position/total" over the
+	// selectable rows.
+	DrawBox(centerX, y + 0.1115f, kWidth, 0.035f, style.subheader);
+	std::string name = m_itemTitle->GetCaption();
+	for (char& c : name)
+		if (c >= 'a' && c <= 'z')
+			c = static_cast<char>(c - 'a' + 'A');
+	DrawMenuText(name, x + 0.0041f, y + 0.099f, kTextScale, style.text);
+	const int count = static_cast<int>(m_items.size());
+	int position = 0, total = 0;
+	for (int i = 0; i < count; i++)
+		if (m_items[i]->IsSelectable())
+		{
+			total++;
+			if (i <= m_activeIndex)
+				position = total;
+		}
+	DrawMenuText(std::format("{}/{}", position, total), x - 0.275f, y + 0.099f, kTextScale, style.text, nullptr, TextAlign::Right);
+
+	// Rows: a window of linesPerScreen ending at the selection, scrolling
+	// one row at a time, over the base color.
+	const int lines = style.linesPerScreen > 0 ? style.linesPerScreen : 1;
+	const int first = (std::max)(0, m_activeIndex - lines + 1);
+	const int last = (std::min)(count, first + lines);
+	const float rowsTop = y + 0.128f;
+	float rowsHeight = 0.0f, activeTop = 0.0f, activeHeight = kRowHeight;
+	for (int i = first; i < last; i++)
 	{
-		int itemIndex = first + i;
-		if (itemIndex >= static_cast<int>(m_items.size()))
-			break;
-		MenuItemBase *item = m_items[itemIndex];
-		item->OnDraw(lineTop, lineLeft, itemIndex == m_activeIndex);
-		m_drawnRows.push_back({ itemIndex, lineLeft, lineTop, item->GetLineWidth(), item->GetLineHeight() });
-		lineTop += item->GetLineHeight() - item->GetLineHeight() * MenuBase_lineOverlap;
+		if (i == m_activeIndex)
+			activeTop = rowsHeight, activeHeight = m_items[i]->GetLineHeight();
+		rowsHeight += m_items[i]->GetLineHeight();
+	}
+	if (rowsHeight > 0.0f)
+		DrawBox(centerX, rowsTop + rowsHeight / 2.0f, kWidth, rowsHeight, style.base);
+
+	// Scroller: glides a 1/scrollSmoothness of the way each frame.
+	static float s_scrollerTop = -1.0f; // from rowsTop
+	if (style.smoothScroll && s_scrollerTop >= 0.0f && style.scrollSmoothness > 1)
+	{
+		const float step = (activeTop - s_scrollerTop) / static_cast<float>(style.scrollSmoothness);
+		s_scrollerTop = std::fabs(s_scrollerTop - activeTop) > std::fabs(step) + 0.00005f ? s_scrollerTop + step : activeTop;
+	}
+	else
+		s_scrollerTop = activeTop;
+	if (count && m_items[m_activeIndex]->IsSelectable())
+		DrawBox(centerX, rowsTop + s_scrollerTop + activeHeight / 2.0f, kWidth, activeHeight, style.scroller);
+
+	m_drawnRows.clear();
+	float lineTop = rowsTop;
+	for (int i = first; i < last; i++)
+	{
+		MenuItemBase* item = m_items[i];
+		const float height = item->GetLineHeight();
+		item->OnDraw(lineTop, boxLeft, i == m_activeIndex);
+		m_drawnRows.push_back({ i, boxLeft, lineTop, kWidth, height });
+		lineTop += height;
+	}
+
+	// Footer, with Rampage's arrows (selection_arrow_left/right turned 270
+	// degrees): one at the first or last row, both in between.
+	const float footerY = rowsTop - 0.001f + rowsHeight + kRowHeight / 2.0f;
+	DrawBox(centerX, footerY, kWidth, kRowHeight, style.footer);
+	const int firstSelectable = count ? NextSelectable(count - 1, 1) : 0;
+	const int lastSelectable = count ? NextSelectable(0, -1) : 0;
+	const float arrowW = PxW(10), arrowH = PxH(10);
+	if (m_activeIndex == firstSelectable)
+		DrawMenuSprite("menu_textures", "selection_arrow_left", centerX, footerY - 0.0005f, arrowW, arrowH, 270.0f, kWhite);
+	else if (m_activeIndex == lastSelectable)
+		DrawMenuSprite("menu_textures", "selection_arrow_right", centerX, footerY - 0.0005f, arrowW, arrowH, 270.0f, kWhite);
+	else
+	{
+		DrawMenuSprite("menu_textures", "selection_arrow_right", centerX, footerY - 0.0065f, arrowW, arrowH, 270.0f, kWhite);
+		DrawMenuSprite("menu_textures", "selection_arrow_left", centerX, footerY + 0.0065f, arrowW, arrowH, 270.0f, kWhite);
 	}
 }
 
@@ -437,7 +579,8 @@ int MenuBase::OnMouse()
 	const float y = PAD::GET_DISABLED_CONTROL_NORMAL(0, INPUT_CURSOR_Y);
 	const DrawnRow* hovered = nullptr;
 	for (const DrawnRow& row : m_drawnRows)
-		if (x >= row.left && x <= row.left + row.width && y >= row.top && y < row.top + row.height)
+		if (x >= row.left && x <= row.left + row.width && y >= row.top && y < row.top + row.height
+			&& m_items[row.index]->IsSelectable())
 			hovered = &row;
 	// Hover only moves the selection when the cursor moves, so the
 	// keyboard and gamepad keep working with the cursor parked on a row.
@@ -475,7 +618,7 @@ int MenuBase::OnMouse()
 				m_items[m_activeIndex]->OnLeft();
 		}
 		else
-			m_activeIndex = (m_activeIndex + (up ? itemCount - 1 : 1)) % itemCount;
+			m_activeIndex = NextSelectable(m_activeIndex, up ? -1 : 1);
 		MenuInput::MenuInputBeep();
 		return 50;
 	}
@@ -485,8 +628,7 @@ int MenuBase::OnMouse()
 int MenuBase::OnInput()
 {
 	const int itemCount = static_cast<int>(m_items.size());
-	if (m_activeIndex >= itemCount)
-		m_activeIndex = itemCount ? itemCount - 1 : 0;
+	SkipToSelectable();
 	if (const int mouseWait = OnMouse())
 		return mouseWait;
 
@@ -523,11 +665,11 @@ int MenuBase::OnInput()
 	} else
 	if (buttons.up)
 	{
-		m_activeIndex = (m_activeIndex + itemCount - 1) % itemCount;
+		m_activeIndex = NextSelectable(m_activeIndex, -1);
 	} else
 	if (buttons.down)
 	{
-		m_activeIndex = (m_activeIndex + 1) % itemCount;
+		m_activeIndex = NextSelectable(m_activeIndex, 1);
 	}
 
 	return waitTime;

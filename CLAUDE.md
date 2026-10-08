@@ -114,7 +114,15 @@ Manager lists and removes them).
   `MenuItemSection`, NUMPAD 4/6 left/right input, `MenuBase::SetOnOpen`,
   gamepad input, and `MenuStyle` (`Style()`: colors, position, rows per
   page, sounds), which items read at draw time, plus `MenuKey()` and
-  `WrapWidth()`.
+  `WrapWidth()`. The look is Rampage's, re-implemented from its draw code with its
+  measurements and default theme (branch `rampage-style`, untested
+  live): `MenuBase::OnDraw` draws the header, the subheader (menu name,
+  counter), base, gliding scroller and footer; rows draw only their text
+  and sprites (checkbox, submenu arrow, "<- value ->"). `DrawMenuText`
+  sizes text with `_BG_SET_TEXT_SCALE` and centers/right-aligns it
+  through the game's text format struct (pattern in `scriptmenu.cpp`),
+  as Rampage does. Sections are skipped by the selection, like
+  Rampage's breaks.
 - `src/menus/Settings.cpp`: Settings, the `general`/`style`/`themes`
   components and `settings.*` commands (`RegisterSettings`,
   `ApplyLoadedSettings`), plus the F11 binding flow, hotkeys and

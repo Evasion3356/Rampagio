@@ -3,7 +3,8 @@
 	submenus that have a Rampagio counterpart: SubSettingsCore,
 	SubSettingsLoadSave, SubSettingsColor with SubSettingsPremadeThemes and
 	SubSettingsCustomThemes, SubOverlaySettings, SubSettingsXUI's Max
-	Display Options, Invert Colors and Centered Title, plus Search and the Hotkey Manager. The About page is
+	Display Options, Invert Colors, Centered Title, Smooth Scroller and
+	Scroll Smoothness, plus Search and the Hotkey Manager. The About page is
 	Rampagio's own (SubAbout).
 
 	Saved data is all in Rampagio.json (src/core/settings): this file owns
@@ -56,15 +57,20 @@ namespace
 		const char* key; // in Rampagio.json
 		ColorRgba MenuStyle::* field;
 	};
+	// Rampage's SubSettingsColor rows, plus Text and Section Text (ours).
+	// The keys are new with the Rampage look, so colors saved for the old
+	// one don't carry over.
 	const NamedColor kColors[] = {
-		{ "Title Background", "titleRect", &MenuStyle::titleRect },
-		{ "Title Text", "titleText", &MenuStyle::titleText },
-		{ "Row Background", "itemRect", &MenuStyle::itemRect },
-		{ "Row Text", "itemText", &MenuStyle::itemText },
-		{ "Selected Text", "itemTextActive", &MenuStyle::itemTextActive },
-		{ "Selection Border", "border", &MenuStyle::border },
-		{ "Section Background", "sectionRect", &MenuStyle::sectionRect },
-		{ "Section Text", "sectionText", &MenuStyle::sectionText },
+		{ "Main Color", "mainColor", &MenuStyle::main },
+		{ "Title Text Color", "titleTextColor", &MenuStyle::titleText },
+		{ "Header Color", "headerColor", &MenuStyle::header },
+		{ "Subheader Color", "subheaderColor", &MenuStyle::subheader },
+		{ "Base Color", "baseColor", &MenuStyle::base },
+		{ "Scroller Color", "scrollerColor", &MenuStyle::scroller },
+		{ "Text Color", "textColor", &MenuStyle::text },
+		{ "Selected Text Color", "selectedTextColor", &MenuStyle::selectedText },
+		{ "Footer Color", "footerColor", &MenuStyle::footer },
+		{ "Section Text Color", "sectionTextColor", &MenuStyle::sectionText },
 	};
 
 	nlohmann::json ColorJson(ColorRgba c) { return nlohmann::json::array({ c.r, c.g, c.b, c.a }); }
@@ -125,6 +131,8 @@ namespace
 			j["title"] = style.title;
 			j["invertColors"] = style.invertColors;
 			j["centeredTitle"] = style.centeredTitle;
+			j["smoothScroll"] = style.smoothScroll;
+			j["scrollSmoothness"] = style.scrollSmoothness;
 			j["mouse"] = style.mouse;
 		}
 		void LoadStateImpl(nlohmann::json& j) override
@@ -141,6 +149,8 @@ namespace
 			ReadValue(j, "bodyFont", style.bodyFont);
 			ReadValue(j, "invertColors", style.invertColors);
 			ReadValue(j, "centeredTitle", style.centeredTitle);
+			ReadValue(j, "smoothScroll", style.smoothScroll);
+			ReadValue(j, "scrollSmoothness", style.scrollSmoothness);
 			ReadValue(j, "mouse", style.mouse);
 			if (auto it = j.find("title"); it != j.end() && it->is_string())
 				style.title = it->get<std::string>();
@@ -149,6 +159,7 @@ namespace
 			style.left = std::clamp(style.left, 0.0f, 0.78f);
 			style.top = std::clamp(style.top, 0.0f, 0.5f);
 			style.linesPerScreen = std::clamp(style.linesPerScreen, 3, 25);
+			style.scrollSmoothness = std::clamp(style.scrollSmoothness, 1, 20);
 			style.gamepadOpen = std::clamp(style.gamepadOpen, 0, static_cast<int>(std::size(MenuInput::kGamepadOpenNames)) - 1);
 		}
 	};
@@ -210,16 +221,25 @@ namespace
 		}
 	};
 
-	MenuStyle Preset(ColorRgba title, ColorRgba row, ColorRgba text, ColorRgba border, ColorRgba section)
+	// header: the title box; base: behind the rows (the subheader and
+	// footer are darker, more opaque versions); accent: the scroller.
+	MenuStyle Preset(ColorRgba header, ColorRgba base, ColorRgba text, ColorRgba accent, ColorRgba section)
 	{
 		MenuStyle s = Style(); // keeps position and input options
-		s.titleRect = title;
-		s.itemRect = row;
-		s.itemText = { text.r, text.g, text.b, 200 };
-		s.itemTextActive = text;
-		s.border = border;
+		const auto darker = [](ColorRgba c, unsigned char a)
+		{
+			return ColorRgba{ static_cast<unsigned char>(c.r / 2), static_cast<unsigned char>(c.g / 2), static_cast<unsigned char>(c.b / 2), a };
+		};
+		s.main = accent;
+		s.header = header;
+		s.titleText = text;
+		s.subheader = darker(base, 255);
+		s.base = base;
+		s.scroller = accent;
+		s.text = text;
+		s.selectedText = text;
+		s.footer = darker(base, 220);
 		s.sectionText = section;
-		s.sectionRect = { static_cast<unsigned char>(row.r / 2), static_cast<unsigned char>(row.g / 2), static_cast<unsigned char>(row.b / 2), 200 };
 		return s;
 	}
 
@@ -239,7 +259,7 @@ namespace
 		Ui::Do(premade, "settings.theme.saintdenisgold", "Saint Denis Gold", [white] { ApplyColors(Preset({ 20, 15, 5, 235 }, { 45, 38, 25, 190 }, { 255, 235, 190, 255 }, { 212, 175, 55, 255 }, { 212, 175, 55, 255 })); });
 		Ui::Do(premade, "settings.theme.lagrasswamp", "Lagras Swamp", [white] { ApplyColors(Preset({ 20, 45, 30, 230 }, { 25, 40, 30, 185 }, white, { 110, 190, 90, 255 }, { 150, 210, 140, 255 })); });
 		Ui::Do(premade, "settings.theme.guarmasea", "Guarma Sea", [white] { ApplyColors(Preset({ 0, 50, 90, 230 }, { 15, 35, 55, 185 }, white, { 0, 170, 220, 255 }, { 120, 200, 240, 255 })); });
-		Ui::Do(premade, "settings.theme.ghosttrain", "Ghost Train", [] { ApplyColors(Preset({ 220, 220, 220, 230 }, { 235, 235, 235, 200 }, { 20, 20, 20, 255 }, { 80, 80, 80, 255 }, { 60, 60, 60, 255 })); });
+		Ui::Do(premade, "settings.theme.ghosttrain", "Ghost Train", [] { ApplyColors(Preset({ 220, 220, 220, 230 }, { 235, 235, 235, 200 }, { 20, 20, 20, 255 }, { 150, 150, 150, 255 }, { 60, 60, 60, 255 })); });
 		Ui::Do(premade, "settings.theme.nightfolk", "Night Folk", [white] { ApplyColors(Preset({ 10, 10, 10, 240 }, { 15, 15, 15, 200 }, { 200, 200, 200, 255 }, { 120, 0, 160, 255 }, { 170, 110, 210, 255 })); });
 
 		Ui::ListMenu(theme, "Custom Themes", [](MenuBase* menu)
@@ -301,11 +321,14 @@ namespace
 		// SubSettingsXUI's native-menu rows.
 		MenuItemToggle* invert = Ui::Toggle(theme, "Invert Colors", [](bool on) { Style().invertColors = on; StyleChanged(); });
 		MenuItemToggle* centered = Ui::Toggle(theme, "Centered Title", [](bool on) { Style().centeredTitle = on; StyleChanged(); });
+		MenuItemToggle* smooth = Ui::Toggle(theme, "Smooth Scroller", [](bool on) { Style().smoothScroll = on; StyleChanged(); });
+		Ui::Number(theme, "Scroll Smoothness", &Style().scrollSmoothness, 1, 20, 1, StyleChanged);
 		// The style loads after the menus are built: show its values on open.
-		theme->SetOnOpen([invert, centered](MenuBase*)
+		theme->SetOnOpen([invert, centered, smooth](MenuBase*)
 		{
 			invert->SetState(Style().invertColors);
 			centered->SetState(Style().centeredTitle);
+			smooth->SetState(Style().smoothScroll);
 		});
 	}
 
