@@ -11,6 +11,7 @@
 
 #include "script.h"
 #include "keyboard.h"
+#include "ColorRgba.h"
 #include "Config.h"
 
 #include <windows.h>
@@ -26,10 +27,6 @@ using namespace std;
 class MenuBase;
 class MenuController;
 
-struct ColorRgba
-{
-	unsigned char	r, g, b, a;
-};
 
 // Rampagio addition: the menu's look and input options, edited live in
 // Settings and saved by it. Items read their colors from here at draw

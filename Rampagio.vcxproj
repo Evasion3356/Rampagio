@@ -27,6 +27,14 @@
     <ClCompile Include="src\GamePointers.cpp" />
     <ClCompile Include="src\ScriptFunction.cpp" />
     <ClCompile Include="src\NativeHooks.cpp" />
+    <!-- Own object path: src\menus\Settings.cpp would overwrite tmp\...\Settings.obj. -->
+    <ClCompile Include="src\core\settings\Settings.cpp">
+      <ObjectFileName>$(IntDir)core\</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\core\commands\Commands.cpp" />
+    <ClCompile Include="src\core\commands\BoolCommand.cpp" />
+    <ClCompile Include="src\core\commands\ValueCommands.cpp" />
+    <ClCompile Include="src\core\commands\HotkeySystem.cpp" />
     <ClCompile Include="external\minhook\src\hook.c" />
     <ClCompile Include="external\minhook\src\buffer.c" />
     <ClCompile Include="external\minhook\src\trampoline.c" />
@@ -53,6 +61,16 @@
     <ClInclude Include="src\GamePointers.h" />
     <ClInclude Include="src\ScriptFunction.h" />
     <ClInclude Include="src\NativeHooks.h" />
+    <ClInclude Include="src\ColorRgba.h" />
+    <ClInclude Include="src\core\settings\Settings.h" />
+    <ClInclude Include="src\core\settings\IStateSerializer.h" />
+    <ClInclude Include="src\core\commands\Command.h" />
+    <ClInclude Include="src\core\commands\Commands.h" />
+    <ClInclude Include="src\core\commands\BoolCommand.h" />
+    <ClInclude Include="src\core\commands\LoopedCommand.h" />
+    <ClInclude Include="src\core\commands\ValueCommands.h" />
+    <ClInclude Include="src\core\commands\ActionCommand.h" />
+    <ClInclude Include="src\core\commands\HotkeySystem.h" />
     <ClInclude Include="external\RDR-Classes\rage\joaat.hpp" />
     <ClInclude Include="external\spdlog\include\spdlog\spdlog.h" />
     <ClInclude Include="external\spdlog\include\spdlog\sinks\basic_file_sink.h" />
@@ -127,7 +145,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>external\spdlog\include;external\minhook\include;external\RDR-Classes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>external\spdlog\include;external\json\include;external\minhook\include;external\RDR-Classes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -158,7 +176,7 @@ copy /Y "$(TargetPath)" "%GAMEDIR%\$(TargetFileName)"</Command>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>external\spdlog\include;external\minhook\include;external\RDR-Classes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>external\spdlog\include;external\json\include;external\minhook\include;external\RDR-Classes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

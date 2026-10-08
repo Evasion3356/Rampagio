@@ -399,6 +399,10 @@ few items needing live testing first (Force Player Type) or engine
 patches (Disable Hitmarker). Everything builds clean (Debug); nothing is
 live-tested. Menu key is F5.
 
+0. **Config rewrite (next session's job).** Replace the INI config with
+   HorseMenu's settings/command system, following
+   `docs/CONFIG_REWRITE_PLAN.md` phase by phase. Start by confirming the
+   decisions it marks "(ask)".
 1. **Native header: done except GoldHorse.** Steps 1-3 of
    `docs/NATIVE_HEADER_PLAN.md` are done and pushed (fork `086e1ed`;
    Poker, Blackjack, Domino, ChallengeCheat, FFFCheat, FishingFix pushed;
