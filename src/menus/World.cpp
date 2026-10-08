@@ -1,6 +1,6 @@
 /*
 	World menu: ports Rampage's Submenus::SubWorld, SubWorldTime and
-	SubWorldWeather rows.
+	SubWorldWeather rows; the other World submenus are in WorldSubmenus.cpp.
 */
 
 #include "Menus.h"
@@ -278,6 +278,8 @@ namespace Menus
 		Ui::Toggle(weather, "Snowy Map", SetSnowyMap);
 		Ui::Choice(weather, "Coverage Type", { "0", "1", "2", "3" }, &g_coverage, [](int i) { GRAPHICS::_SET_SNOW_COVERAGE_TYPE(i); });
 
+		BuildWorldSubmenus(world);
+
 		Ui::Section(world, "Toggles");
 		Ui::Toggle(world, "Disable Interior Lightning", SetInteriorLights);
 		Ui::Toggle(world, "Disable Distant Lights", [](bool on) { GRAPHICS::_DISABLE_FAR_ARTIFICIAL_LIGHTS(on); });
@@ -293,6 +295,13 @@ namespace Menus
 		Ui::Do(world, "Clean Area", CleanArea);
 		Ui::Do(world, "Delete All Trains", [] { VEHICLE::DELETE_ALL_TRAINS(); });
 		Ui::Do(world, "Delete All Pickups", DeleteAllPickups);
+		Ui::Action(world, "Door Unlocker", [] {
+			std::string text;
+			if (!GameUtil::PromptText("Enter Door Hash", text) || text.empty())
+				return std::string();
+			OBJECT::DOOR_SYSTEM_SET_DOOR_STATE(GameUtil::ParseHash(text), 0);
+			return std::string();
+		});
 		Ui::Action(world, "Quick Camp", QuickCamp);
 	}
 }

@@ -32,6 +32,7 @@ namespace Menus
 	void BuildSpawner(MenuBase* root);
 	void BuildObjectSpawner(MenuBase* spawner); // ObjectSpawner.cpp
 	void BuildWorld(MenuBase* root);
+	void BuildWorldSubmenus(MenuBase* world); // WorldSubmenus.cpp
 	void BuildRecovery(MenuBase* root);
 	void BuildRecoveryUnlocks(MenuBase* recovery); // Unlocks.cpp
 	void BuildRecoveryCollectibles(MenuBase* recovery); // Collectibles.cpp

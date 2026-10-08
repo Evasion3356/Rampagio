@@ -295,6 +295,10 @@ public:
 // the spot MenuItemSwitchable puts [Y]/[N]. Shared by the value rows below.
 void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active, const std::string& text);
 
+// Screen text in the menu's font (x, y in 0..1); also used for the
+// scanners' world labels.
+void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color);
+
 // Rampagio addition: a number edited with NUMPAD 4/6, drawn as "< value >"
 // on the right. The value lives with the feature (`value` points at it);
 // onChange runs after every step, and on select if applyOnSelect.

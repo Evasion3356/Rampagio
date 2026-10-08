@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.
 
-Submenus: 71 done, 17 partial, 70 pending, 9 tabled.
+Submenus: 80 done, 17 partial, 61 pending, 9 tabled.
 
 ## Debug
 
@@ -228,17 +228,17 @@ Submenus: 71 done, 17 partial, 70 pending, 9 tabled.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubIMAPCustom | 3 | Pending |  |
-| SubIMAPCustomSet | 3 | Pending |  |
-| SubWorld | 12 | Partial | World: main rows done; Water, Cloud Editor, managers, Door Manager, Tornado, IPL, World States, Ambient Light pending |
-| SubWorldDoorManager | 2 | Pending |  |
-| SubWorldIMAPLoader | 6 | Pending |  |
-| SubWorldLocalObjects | 3 | Pending |  |
-| SubWorldLocalPeds | 19 | Pending |  |
-| SubWorldLocalVehicles | 11 | Pending |  |
-| SubWorldOcean | 5 | Pending |  |
-| SubWorldStates | 1 | Pending |  |
+| SubIMAPCustom | 3 | Done | World > IPL Loader > Custom: Rampagio_IPLList.xml (same format as Rampage) |
+| SubIMAPCustomSet | 3 | Pending | IPL set files (Rampage IPLS folder XML) not ported |
+| SubWorld | 12 | Done | World: also the Cloud Editor and Ambient Light submenus (unnamed builders in Rampage) |
+| SubWorldDoorManager | 2 | Done | World > Door Manager: the doors the game scripts name, listed when registered (Rampage uses its own door table) |
+| SubWorldIMAPLoader | 6 | Done | World > IPL Loader: Map Sets lists the 173 IPLs the game scripts load (Rampage has its own set table); interior entity sets by name |
+| SubWorldLocalObjects | 3 | Partial | World > Object Manager: Object Finder belongs to the tabled Object Editor area |
+| SubWorldLocalPeds | 19 | Done | World > Ped Manager: scanner labels instead of the ESP toggle; Hostile Peds gives a repeater (Rampage picks from its own weapon list) |
+| SubWorldLocalVehicles | 11 | Done | World > Vehicle Manager: scanner labels instead of the ESP toggle |
+| SubWorldOcean | 5 | Done | World > Water |
+| SubWorldStates | 1 | Done | World > World States: by state id (Global_40.f_283 bitset), no names |
 | SubWorldTime | 10 | Done | World > Time |
-| SubWorldTornado | 10 | Pending |  |
+| SubWorldTornado | 10 | Done | World > Tornado & Black Hole: own force maths; meteors use script rock models |
 | SubWorldWeather | 13 | Done | World > Weather |
 
