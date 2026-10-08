@@ -821,34 +821,36 @@ namespace Menus
 			const float* w = WeightSlot();
 			return std::format("Current Weight: {:.0f}", w ? *w : 0.0f);
 		}));
-		Ui::Action(hair, "Change Weight", ChangeWeight);
+		Ui::Action(hair, "wardrobe.changeweight", "Change Weight", ChangeWeight)->SetHotkeyable(false);
 		const char* const kBeard[] = { "Chin Length", "Chops Length", "Stache Length" };
 		for (int i = 0; i < 3; i++)
-			Ui::Number(hair, kBeard[i], &g_beard[i], 0, 10, 1, [i] { SetBeard(i); });
-		Ui::Number(hair, "Hair Length", &g_hair, 0, 9, 1, SetHair);
-		Ui::Do(hair, "Apply Instantly", [] {
+			Ui::Number(hair, Ui::Id("wardrobe.beard", kBeard[i]), kBeard[i], &g_beard[i], 0, 10, 1, [i] { SetBeard(i); });
+		Ui::Number(hair, "wardrobe.hairlength", "Hair Length", &g_hair, 0, 9, 1, SetHair);
+		Ui::Do(hair, "wardrobe.applyinstantly", "Apply Instantly", [] {
 			CAMERA::DO_SCREEN_FADE_OUT(500);
 			WAIT(1000);
 			CAMERA::DO_SCREEN_FADE_IN(500);
 		});
 		hair->SetOnOpen([](MenuBase*) { ReadHair(); });
+		Ui::Transient(hair);
 
 		// SubSelfPedMetaTags.
 		MenuBase* tags = Menus::Shared().metaTags = Ui::Submenu(wardrobe, "Meta Ped Tags");
 		std::vector<std::string> categories(std::begin(kCategories), std::end(kCategories));
-		Ui::Choice(tags, "Category", categories, &g_tagCategory, [](int) { ReadTag(); });
+		Ui::Choice(tags, "wardrobe.category", "Category", categories, &g_tagCategory, [](int) { ReadTag(); });
 		// Rampage's horse tags read by component index instead (a horse has
 		// no clothing categories).
-		Ui::Number(tags, "Index", &g_tagIndex, 0, 60, 1);
-		Ui::Do(tags, "Load Data from Index", [] { ReadTagAt(g_tagIndex); });
+		Ui::Number(tags, "wardrobe.index", "Index", &g_tagIndex, 0, 60, 1);
+		Ui::Do(tags, "wardrobe.loaddatafromindex", "Load Data from Index", [] { ReadTagAt(g_tagIndex); });
 		const char* const kFields[] = { "Drawable", "Albedo", "Normal", "Material", "Palette" };
 		for (int i = 0; i < 5; i++)
-			Ui::Text(tags, kFields[i], &g_tagFields[i]);
+			Ui::Text(tags, Ui::Id("wardrobe.tag", kFields[i]), kFields[i], &g_tagFields[i]);
 		const char* const kTints[] = { "Primary Color", "Secondary Color", "Tertiary Color" };
 		for (int i = 0; i < 3; i++)
-			Ui::Number(tags, kTints[i], &g_tagTints[i], 0, 255, 1);
-		Ui::Do(tags, "Apply", ApplyTag);
+			Ui::Number(tags, Ui::Id("wardrobe.tag", kTints[i]), kTints[i], &g_tagTints[i], 0, 255, 1);
+		Ui::Do(tags, "wardrobe.apply", "Apply", ApplyTag);
 		tags->SetOnOpen([](MenuBase*) { ReadTag(); });
+		Ui::Transient(tags);
 
 		// SubSelfPedMetaExpressions / SubHorsePedMetaExpressions /
 		// SubPedEditorMetaExpressions: the human or the horse expressions,
@@ -870,18 +872,18 @@ namespace Menus
 		// SubSelfCustomizations.
 		Shared().overlays = Ui::ListMenu(wardrobe, "Overlay Textures", BuildOverlay);
 
-		Ui::Toggle(wardrobe, "Wardrobe Cam", [](bool on) { if (!on) WardrobeCamOff(); }, WardrobeCamTick);
-		Ui::Number(wardrobe, "Outfit Variation", &g_outfitVariation, 0, 200, 1, ApplyOutfitVariation);
-		Ui::Toggle(wardrobe, "Keep Facial Hair", [](bool on) { g_keepFacialHair = on; });
-		Ui::Action(wardrobe, "Random Components", RandomComponents);
-		Ui::Do(wardrobe, "Remove all Components", RemoveAllComponents);
-		Ui::Do(wardrobe, "Load Clean Body", LoadCleanBody);
-		Ui::Do(wardrobe, "Load Default Components", LoadDefaultComponents);
-		Ui::Do(wardrobe, "Apply Dev Belt Buckle", [] { ApplyShopItem(0xD0B13749); });
-		Ui::Do(wardrobe, "Drop Hat", [] { PED::KNOCK_OFF_PED_PROP(Me(), FALSE, FALSE, FALSE, TRUE); });
-		Ui::Looped(wardrobe, "Remove Off-Hand Holster", [] { RemoveTagTick(kOffHandHolster, true); });
-		Ui::Looped(wardrobe, "Remove Satchel", [] { RemoveTagTick(kSatchel, false); });
-		Ui::Looped(wardrobe, "Never Lose Hat", NeverLoseHatTick);
+		Ui::Toggle(wardrobe, "wardrobe.wardrobecam", "Wardrobe Cam", [](bool on) { if (!on) WardrobeCamOff(); }, WardrobeCamTick);
+		Ui::Number(wardrobe, "wardrobe.outfitvariation", "Outfit Variation", &g_outfitVariation, 0, 200, 1, ApplyOutfitVariation);
+		Ui::Toggle(wardrobe, "wardrobe.keepfacialhair", "Keep Facial Hair", [](bool on) { g_keepFacialHair = on; });
+		Ui::Action(wardrobe, "wardrobe.randomcomponents", "Random Components", RandomComponents);
+		Ui::Do(wardrobe, "wardrobe.removeallcomponents", "Remove all Components", RemoveAllComponents);
+		Ui::Do(wardrobe, "wardrobe.loadcleanbody", "Load Clean Body", LoadCleanBody);
+		Ui::Do(wardrobe, "wardrobe.loaddefaultcomponents", "Load Default Components", LoadDefaultComponents);
+		Ui::Do(wardrobe, "wardrobe.applydevbeltbuckle", "Apply Dev Belt Buckle", [] { ApplyShopItem(0xD0B13749); });
+		Ui::Do(wardrobe, "wardrobe.drophat", "Drop Hat", [] { PED::KNOCK_OFF_PED_PROP(Me(), FALSE, FALSE, FALSE, TRUE); });
+		Ui::Looped(wardrobe, "wardrobe.removeoffhandholster", "Remove Off-Hand Holster", [] { RemoveTagTick(kOffHandHolster, true); });
+		Ui::Looped(wardrobe, "wardrobe.removesatchel", "Remove Satchel", [] { RemoveTagTick(kSatchel, false); });
+		Ui::Looped(wardrobe, "wardrobe.neverlosehat", "Never Lose Hat", NeverLoseHatTick);
 
 		// SubSelfWardrobeComponent / SubSelfWardrobeWearableState.
 		g_stateMenu = Ui::DetachedListMenu("Wearable State", BuildStateMenu);
@@ -889,10 +891,10 @@ namespace Menus
 		Shared().components = Ui::ListMenu(wardrobe, "Components", BuildComponents);
 
 		Ui::Section(wardrobe, "Custom");
-		Ui::Action(wardrobe, "Enable Ped Component", EnableComponent);
-		Ui::Action(wardrobe, "Disable Ped Component", DisableComponent);
-		Ui::Action(wardrobe, "Set Body Component", SetBodyComponent);
-		Ui::Action(wardrobe, "Apply Shop Item", ApplyShopItemPrompt);
-		Ui::Action(wardrobe, "Load from Datafile", LoadOutfitPrompt);
+		Ui::Action(wardrobe, "wardrobe.enablepedcomponent", "Enable Ped Component", EnableComponent);
+		Ui::Action(wardrobe, "wardrobe.disablepedcomponent", "Disable Ped Component", DisableComponent);
+		Ui::Action(wardrobe, "wardrobe.setbodycomponent", "Set Body Component", SetBodyComponent);
+		Ui::Action(wardrobe, "wardrobe.applyshopitem", "Apply Shop Item", ApplyShopItemPrompt);
+		Ui::Action(wardrobe, "wardrobe.loadfromdatafile", "Load from Datafile", LoadOutfitPrompt)->SetHotkeyable(false);
 	}
 }
