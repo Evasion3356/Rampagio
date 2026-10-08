@@ -350,6 +350,7 @@ namespace Menus
 		Ui::Looped(self, "player.cleanped", "Clean Ped", CleanPed);
 		Ui::Looped(self, "player.drunkmode", "Drunk Mode", DrunkTick, DrunkOff);
 		Ui::Number(self, "player.drunklevel", "Drunk Level", &g_drunk, 0.0f, 1.0f, 0.01f);
+		BuildPlayerFixes(self);
 
 		Ui::Section(self, "Actions");
 		Ui::Do(self, "player.boostcores", "Boost Cores", [] { SetOverpower(true); });

@@ -26,6 +26,7 @@ namespace Menus
 	void BuildWardrobe(MenuBase* wardrobe);
 	void BuildModelChanger(MenuBase* wardrobe); // ModelChanger.cpp
 	void BuildPlayerPosse(MenuBase* self); // Posse.cpp
+	void BuildPlayerFixes(MenuBase* self); // PlayerFixes.cpp
 	void BuildHorse(MenuBase* root);
 	void BuildWeapons(MenuBase* root);
 	void BuildWeaponSubmenus(MenuBase* weapons); // WeaponSubmenus.cpp
