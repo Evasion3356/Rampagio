@@ -248,34 +248,34 @@ namespace Menus
 	{
 		MenuBase* tp = Ui::Submenu(root, "Teleport");
 
-		Ui::Action(tp, "Teleport to Waypoint", ToWaypoint);
-		Ui::Looped(tp, "Auto Teleport to Waypoint", AutoWaypointTick);
-		Ui::Do(tp, "Remove Waypoint", [] { MAP::CLEAR_GPS_PLAYER_WAYPOINT(); });
+		Ui::Action(tp, "teleport.teleporttowaypoint", "Teleport to Waypoint", ToWaypoint);
+		Ui::Looped(tp, "teleport.autoteleporttowaypoint", "Auto Teleport to Waypoint", AutoWaypointTick);
+		Ui::Do(tp, "teleport.removewaypoint", "Remove Waypoint", [] { MAP::CLEAR_GPS_PLAYER_WAYPOINT(); });
 
 		Ui::Section(tp, "Custom Locations");
-		Ui::Action(tp, "Save Current", SaveCurrent);
-		Ui::Action(tp, "Custom Input", CustomInput);
+		Ui::Action(tp, "teleport.savecurrent", "Save Current", SaveCurrent)->SetHotkeyable(false);
+		Ui::Action(tp, "teleport.custominput", "Custom Input", CustomInput)->SetHotkeyable(false);
 		Ui::ListMenu(tp, "Load Custom", BuildCustomList);
 		Ui::ListMenu(tp, "Delete Custom", BuildDeleteList);
 
 		Ui::Section(tp, "Directional");
-		Ui::Action(tp, "Forward", [] { return Step(5.0f, false); });
-		Ui::Action(tp, "Forward (Elevation Safe)", [] { return Step(5.0f, true); });
-		Ui::Action(tp, "Backward", [] { return Step(-5.0f, false); });
-		Ui::Action(tp, "Backward (Elevation Safe)", [] { return Step(-5.0f, true); });
+		Ui::Action(tp, "teleport.forward", "Forward", [] { return Step(5.0f, false); });
+		Ui::Action(tp, "teleport.forwardelevationsafe", "Forward (Elevation Safe)", [] { return Step(5.0f, true); });
+		Ui::Action(tp, "teleport.backward", "Backward", [] { return Step(-5.0f, false); });
+		Ui::Action(tp, "teleport.backwardelevationsafe", "Backward (Elevation Safe)", [] { return Step(-5.0f, true); });
 
 		Ui::Section(tp, "Vehicle / Horse");
-		Ui::Action(tp, "Last Vehicle", LastVehicle);
-		Ui::Action(tp, "Last Horse", LastHorse);
-		Ui::Action(tp, "Nearest Vehicle", NearestVehicle);
-		Ui::Action(tp, "Nearest Train Track", NearestTrainTrack);
+		Ui::Action(tp, "teleport.lastvehicle", "Last Vehicle", LastVehicle);
+		Ui::Action(tp, "teleport.lasthorse", "Last Horse", LastHorse);
+		Ui::Action(tp, "teleport.nearestvehicle", "Nearest Vehicle", NearestVehicle);
+		Ui::Action(tp, "teleport.nearesttraintrack", "Nearest Train Track", NearestTrainTrack);
 
 		Ui::ListMenu(tp, "Shops and Services", BuildShops);
 		MenuBase* towns = Ui::Submenu(tp, "Common Locations");
 		for (const Place& place : kTowns)
 		{
 			const float x = place.x, y = place.y;
-			Ui::Action(towns, place.name, [x, y] { return ToGround(x, y); });
+			Ui::Action(towns, Ui::Id("teleport.town", place.name), place.name, [x, y] { return ToGround(x, y); });
 		}
 	}
 }
