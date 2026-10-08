@@ -1,5 +1,6 @@
 // es-MX: { English, translation }, sorted by English. Written by hand; tools/lang_sync.py checks it.
 { "Add Entities to Database", "Agregar entidades a la base de datos" },
+{ "Add lines to {}", "Agrega líneas a {}" },
 { "Added to the database", "Agregado a la base de datos" },
 { "All Members will stay in place.", "Todos los miembros se quedan en su lugar." },
 { "Change ped way of movement.", "Cambia la forma de caminar del NPC." },
@@ -17,6 +18,7 @@
 { "Enter a custom hash to unload that IPL.", "Ingresa un hash para descargar ese IPL." },
 { "Enter custom object name or hash.", "Ingresa el nombre o hash de un objeto." },
 { "Enter custom ped name or hash.", "Ingresa el nombre o hash de un NPC." },
+{ "Enter Speech Line:", "Ingresa la línea:" },
 { "Everyone cowers in place.", "Todos se acobardan en su lugar." },
 { "Freeze aimed Entities.\nPress [SHIFT] while aiming to switch modes.", "Congela las entidades apuntadas.\nPresiona [SHIFT] al apuntar para cambiar de modo." },
 { "Freezes the ped in place.", "Congela al NPC en su lugar." },
