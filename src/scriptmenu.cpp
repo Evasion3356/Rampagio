@@ -40,6 +40,21 @@
 #include "scriptmenu.h"
 #include <climits>
 
+int& MenuKey()
+{
+	static int key = VK_F5;
+	return key;
+}
+
+int& WrapWidth()
+{
+	// How many "units" of text fit on one line (a Latin/Cyrillic character
+	// = 1, a CJK/Hangul/kana one = 2). An estimate, since there's no
+	// text-measuring call: raise it if lines wrap too early.
+	static int width = 50;
+	return width;
+}
+
 MenuStyle& Style()
 {
 	static MenuStyle style;
@@ -124,7 +139,7 @@ namespace
 	// MenuItemParagraph layout. The wrap width is an ESTIMATE in "units" (a
 	// Latin/Cyrillic character = 1, a CJK/Hangul/kana one = 2) since the
 	// Scaleform text has no measuring call here -- the width is
-	// Rampagio.ini [General] WrapWidth (Config.h), tunable in-game.
+	// WrapWidth() (settings.wrapwidth), tunable in-game.
 	constexpr int kParagraphFontSize = 21;
 	constexpr float kParagraphLineStep = 0.034f;
 	constexpr float kParagraphPadding = 0.016f;
@@ -231,7 +246,7 @@ void MenuItemParagraph::Refresh()
 	if (m_lines.empty() || text != m_lastText)
 	{
 		m_lastText.assign(text);
-		m_lines = WrapText(m_lastText, Config::Get().WrapWidth);
+		m_lines = WrapText(m_lastText, WrapWidth());
 		if (m_lines.empty())
 			m_lines.emplace_back();
 	}

@@ -6,14 +6,14 @@
 	Display Options, plus Search and the Hotkey Manager. The About page is
 	Rampagio's own (SubAbout).
 
-	Saved data, all next to Rampagio.ini:
-	- Rampagio_Settings.ini: the menu style (MenuStyle), toggle saving
-	  options and hotkeys.
-	- Rampagio_Toggles.ini: which toggles are on, by "Menu > Caption".
-	- Rampagio_Themes.ini: saved custom themes.
+	Saved data is all in Rampagio.json (src/core/settings): this file owns
+	its "general", "style" (MenuStyle) and "themes" (saved custom themes)
+	parts, and the settings.* commands (menu key, wrap width, restore
+	toggles). Command states and hotkeys are saved by src/core/commands.
 
-	Hotkeys (ours): highlight any row and press F11, then the key to bind;
-	the key then selects that row with the menu closed. The premade themes
+	Hotkeys (ours): highlight a command row and press F11, then the key or
+	keys to bind (held together, released to finish; Esc cancels). The
+	chain then runs that command with the menu closed. The premade themes
 	are our own presets, not Rampage's 26.
 
 	Not ported: Rampage's plugins, language files, ImGui windows (Window
@@ -23,188 +23,176 @@
 
 #include "Menus.h"
 #include "..\GameUtil.h"
-#include "..\DataFile.h"
 #include "..\KeyNames.h"
 #include "..\keyboard.h"
 #include "..\Log.h"
+#include "..\core\settings\Settings.h"
+#include "..\core\settings\IStateSerializer.h"
+#include "..\core\commands\Commands.h"
+#include "..\core\commands\HotkeySystem.h"
+
+// The only menu file that needs the full JSON header: it implements the
+// style and themes components.
+#include <nlohmann/json.hpp>
 
 #include <chrono>
 #include <ctime>
 #include <format>
 #include <map>
 
+using Rampagio::Commands;
+using Rampagio::HotkeySystem;
+
 namespace
 {
-	const std::wstring kSettingsFile = L"Rampagio_Settings.ini";
-	const std::wstring kTogglesFile = L"Rampagio_Toggles.ini";
-	const std::wstring kThemesFile = L"Rampagio_Themes.ini";
-
 	constexpr DWORD kBindKey = VK_F11;
 
-	bool g_toggleSaving = false;
-	bool g_autoSaveToggles = false;
-	std::map<std::string, DWORD> g_hotkeys; // row key -> virtual key
-
-	// --- style <-> ini ---------------------------------------------------------------
+	// --- style and themes ------------------------------------------------------------
 
 	struct NamedColor
 	{
 		const char* name;
+		const char* key; // in Rampagio.json
 		ColorRgba MenuStyle::* field;
 	};
 	const NamedColor kColors[] = {
-		{ "Title Background", &MenuStyle::titleRect },
-		{ "Title Text", &MenuStyle::titleText },
-		{ "Row Background", &MenuStyle::itemRect },
-		{ "Row Text", &MenuStyle::itemText },
-		{ "Selected Text", &MenuStyle::itemTextActive },
-		{ "Selection Border", &MenuStyle::border },
-		{ "Section Background", &MenuStyle::sectionRect },
-		{ "Section Text", &MenuStyle::sectionText },
+		{ "Title Background", "titleRect", &MenuStyle::titleRect },
+		{ "Title Text", "titleText", &MenuStyle::titleText },
+		{ "Row Background", "itemRect", &MenuStyle::itemRect },
+		{ "Row Text", "itemText", &MenuStyle::itemText },
+		{ "Selected Text", "itemTextActive", &MenuStyle::itemTextActive },
+		{ "Selection Border", "border", &MenuStyle::border },
+		{ "Section Background", "sectionRect", &MenuStyle::sectionRect },
+		{ "Section Text", "sectionText", &MenuStyle::sectionText },
 	};
 
-	std::string ColorString(ColorRgba c) { return std::format("{},{},{},{}", c.r, c.g, c.b, c.a); }
+	nlohmann::json ColorJson(ColorRgba c) { return nlohmann::json::array({ c.r, c.g, c.b, c.a }); }
 
-	bool ParseColor(const std::string& text, ColorRgba& out)
+	void ReadColor(const nlohmann::json& j, ColorRgba& out)
 	{
-		int v[4];
-		if (sscanf_s(text.c_str(), "%d,%d,%d,%d", &v[0], &v[1], &v[2], &v[3]) != 4)
-			return false;
-		out = { static_cast<unsigned char>(v[0]), static_cast<unsigned char>(v[1]), static_cast<unsigned char>(v[2]), static_cast<unsigned char>(v[3]) };
-		return true;
+		if (!j.is_array() || j.size() != 4)
+			return;
+		auto channel = [&j](size_t i) { return static_cast<unsigned char>(std::clamp(j[i].is_number() ? j[i].get<int>() : 0, 0, 255)); };
+		out = { channel(0), channel(1), channel(2), channel(3) };
 	}
 
-	void WriteColors(DataFile::Ini::Section& sec, const MenuStyle& style)
+	void WriteColors(nlohmann::json& j, const MenuStyle& style)
 	{
 		for (const NamedColor& c : kColors)
-			sec[c.name] = ColorString(style.*c.field);
+			j[c.key] = ColorJson(style.*c.field);
 	}
 
-	void ReadColors(DataFile::Ini::Section& sec, MenuStyle& style)
+	void ReadColors(const nlohmann::json& j, MenuStyle& style)
 	{
 		for (const NamedColor& c : kColors)
-			if (auto it = sec.find(c.name); it != sec.end())
-				ParseColor(it->second, style.*c.field);
+			if (auto it = j.find(c.key); it != j.end())
+				ReadColor(*it, style.*c.field);
 	}
 
 	template <typename T>
-	void ReadValue(DataFile::Ini::Section& sec, const char* key, T& value)
+	void ReadValue(const nlohmann::json& j, const char* key, T& value)
 	{
-		if (auto it = sec.find(key); it != sec.end())
-			try
-			{
-				if constexpr (std::is_same_v<T, bool>) value = it->second == "1";
-				else if constexpr (std::is_floating_point_v<T>) value = std::stof(it->second);
-				else value = std::stoi(it->second);
-			}
-			catch (const std::exception&) {}
-	}
-
-	MenuItemToggle* g_soundsToggle = nullptr;
-	MenuItemToggle* g_gamepadToggle = nullptr;
-	MenuItemToggle* g_toggleSavingToggle = nullptr;
-	MenuItemToggle* g_autoSaveToggle = nullptr;
-
-	// Shows the loaded options on their toggles without running them.
-	void SyncSettingToggles()
-	{
-		if (g_soundsToggle) g_soundsToggle->SetState(Style().sounds);
-		if (g_gamepadToggle) g_gamepadToggle->SetState(Style().gamepad);
-		if (g_toggleSavingToggle) g_toggleSavingToggle->SetState(g_toggleSaving);
-		if (g_autoSaveToggle) g_autoSaveToggle->SetState(g_autoSaveToggles);
-	}
-
-	std::string SaveSettings()
-	{
-		DataFile::Ini ini;
-		MenuStyle& style = Style();
-		auto& s = ini.sections["Style"];
-		WriteColors(s, style);
-		s["Left"] = std::format("{:.3f}", style.left);
-		s["Top"] = std::format("{:.3f}", style.top);
-		s["Rows"] = std::to_string(style.linesPerScreen);
-		s["Sounds"] = style.sounds ? "1" : "0";
-		s["Gamepad"] = style.gamepad ? "1" : "0";
-		s["GamepadOpen"] = std::to_string(style.gamepadOpen);
-		auto& t = ini.sections["Toggles"];
-		t["Enable"] = g_toggleSaving ? "1" : "0";
-		t["AutoSave"] = g_autoSaveToggles ? "1" : "0";
-		auto& h = ini.sections["Hotkeys"];
-		for (const auto& [row, vk] : g_hotkeys)
-			h[row] = KeyNames::Format(vk);
-		return DataFile::Save(kSettingsFile, ini) ? "Settings saved" : "Couldn't write Rampagio_Settings.ini";
-	}
-
-	std::string LoadSettingsFile()
-	{
-		DataFile::Ini ini = DataFile::Load(kSettingsFile);
-		if (ini.sections.empty())
-			return "No saved settings";
-		MenuStyle& style = Style();
-		auto& s = ini.sections["Style"];
-		ReadColors(s, style);
-		ReadValue(s, "Left", style.left);
-		ReadValue(s, "Top", style.top);
-		ReadValue(s, "Rows", style.linesPerScreen);
-		ReadValue(s, "Sounds", style.sounds);
-		ReadValue(s, "Gamepad", style.gamepad);
-		ReadValue(s, "GamepadOpen", style.gamepadOpen);
-		style.linesPerScreen = std::clamp(style.linesPerScreen, 3, 25);
-		auto& t = ini.sections["Toggles"];
-		ReadValue(t, "Enable", g_toggleSaving);
-		ReadValue(t, "AutoSave", g_autoSaveToggles);
-		g_hotkeys.clear();
-		for (const auto& [row, name] : ini.sections["Hotkeys"])
+		auto it = j.find(key);
+		if (it == j.end())
+			return;
+		if constexpr (std::is_same_v<T, bool>)
 		{
-			DWORD vk = 0;
-			if (KeyNames::Parse(name, vk))
-				g_hotkeys[row] = vk;
+			if (it->is_boolean())
+				value = it->get<bool>();
 		}
-		SyncSettingToggles();
-		return "Settings loaded";
+		else if (it->is_number())
+			value = it->get<T>();
 	}
 
-	// --- toggles -------------------------------------------------------------------------
-
-	std::map<std::string, bool> ToggleSnapshot()
+	// "style": the menu's look and input options (MenuStyle).
+	class StyleComponent : public Rampagio::IStateSerializer
 	{
-		std::map<std::string, bool> on;
-		for (MenuItemToggle* t : Ui::AllToggles())
-			if (t->Persist() && t != g_toggleSavingToggle && t != g_autoSaveToggle && t != g_soundsToggle && t != g_gamepadToggle)
-				on[Ui::Key(t)] = t->GetState();
-		return on;
-	}
-
-	std::string SaveToggles()
-	{
-		DataFile::Ini ini;
-		auto& sec = ini.sections["Toggles"];
-		for (const auto& [key, on] : ToggleSnapshot())
-			if (on)
-				sec[key] = "1";
-		return DataFile::Save(kTogglesFile, ini) ? std::format("Saved {} toggles", sec.size()) : "Couldn't write Rampagio_Toggles.ini";
-	}
-
-	std::string LoadToggles()
-	{
-		DataFile::Ini ini = DataFile::Load(kTogglesFile);
-		int count = 0;
-		for (const auto& [key, value] : ini.sections["Toggles"])
+	public:
+		StyleComponent() : IStateSerializer("style") {}
+		void SaveStateImpl(nlohmann::json& j) override
 		{
-			if (value != "1")
-				continue;
-			for (MenuItemToggle* t : Ui::AllToggles())
-				if (Ui::Key(t) == key)
-				{
-					t->SetOn();
-					++count;
-					break;
-				}
+			const MenuStyle& style = Style();
+			WriteColors(j, style);
+			j["left"] = style.left;
+			j["top"] = style.top;
+			j["linesPerScreen"] = style.linesPerScreen;
+			j["sounds"] = style.sounds;
+			j["gamepad"] = style.gamepad;
+			j["gamepadOpen"] = style.gamepadOpen;
 		}
-		return std::format("Turned on {} toggles", count);
+		void LoadStateImpl(nlohmann::json& j) override
+		{
+			MenuStyle& style = Style();
+			ReadColors(j, style);
+			ReadValue(j, "left", style.left);
+			ReadValue(j, "top", style.top);
+			ReadValue(j, "linesPerScreen", style.linesPerScreen);
+			ReadValue(j, "sounds", style.sounds);
+			ReadValue(j, "gamepad", style.gamepad);
+			ReadValue(j, "gamepadOpen", style.gamepadOpen);
+			style.left = std::clamp(style.left, 0.0f, 0.78f);
+			style.top = std::clamp(style.top, 0.0f, 0.5f);
+			style.linesPerScreen = std::clamp(style.linesPerScreen, 3, 25);
+			style.gamepadOpen = std::clamp(style.gamepadOpen, 0, static_cast<int>(std::size(MenuInput::kGamepadOpenNames)) - 1);
+		}
+	};
+
+	// "themes": { "<name>": { colors } }, the saved custom themes.
+	class ThemesComponent : public Rampagio::IStateSerializer
+	{
+	public:
+		std::map<std::string, MenuStyle> themes; // only the colors are used
+		ThemesComponent() : IStateSerializer("themes") {}
+		void SaveStateImpl(nlohmann::json& j) override
+		{
+			j = nlohmann::json::object();
+			for (const auto& [name, style] : themes)
+				WriteColors(j[name], style);
+		}
+		void LoadStateImpl(nlohmann::json& j) override
+		{
+			themes.clear();
+			for (auto& [name, value] : j.items())
+				if (value.is_object())
+					ReadColors(value, themes[name]);
+		}
+	};
+
+	// "general": a format version, for future changes to the file.
+	class GeneralComponent : public Rampagio::IStateSerializer
+	{
+	public:
+		GeneralComponent() : IStateSerializer("general") {}
+		void SaveStateImpl(nlohmann::json& j) override { j["version"] = 1; }
+		void LoadStateImpl(nlohmann::json&) override {}
+	};
+
+	StyleComponent* g_style = nullptr;
+	ThemesComponent* g_themes = nullptr;
+
+	void StyleChanged()
+	{
+		if (g_style)
+			g_style->MarkStateDirty();
 	}
 
-	// --- themes ----------------------------------------------------------------------------
+	// A toggle row bound to one of MenuStyle's flags.
+	class StyleFlagItem : public MenuItemSwitchable
+	{
+		bool MenuStyle::* m_field;
+	public:
+		StyleFlagItem(string caption, bool MenuStyle::* field) : MenuItemSwitchable(caption), m_field(field) {}
+		void OnSelect() override
+		{
+			Style().*m_field = !(Style().*m_field);
+			StyleChanged();
+		}
+		void OnDraw(float lineTop, float lineLeft, bool active) override
+		{
+			SetState(Style().*m_field);
+			MenuItemSwitchable::OnDraw(lineTop, lineLeft, active);
+		}
+	};
 
 	MenuStyle Preset(ColorRgba title, ColorRgba row, ColorRgba text, ColorRgba border, ColorRgba section)
 	{
@@ -223,19 +211,20 @@ namespace
 	{
 		for (const NamedColor& c : kColors)
 			Style().*c.field = from.*c.field;
+		StyleChanged();
 	}
 
 	void BuildThemes(MenuBase* theme)
 	{
 		MenuBase* premade = Ui::Submenu(theme, "Premade Themes");
 		const ColorRgba white{ 255, 255, 255, 255 };
-		Ui::Do(premade, "Rampagio", [] { ApplyColors(MenuStyle{}); });
-		Ui::Do(premade, "Blood Red", [white] { ApplyColors(Preset({ 120, 0, 0, 230 }, { 30, 10, 10, 190 }, white, { 230, 30, 30, 255 }, { 230, 120, 120, 255 })); });
-		Ui::Do(premade, "Saint Denis Gold", [white] { ApplyColors(Preset({ 20, 15, 5, 235 }, { 45, 38, 25, 190 }, { 255, 235, 190, 255 }, { 212, 175, 55, 255 }, { 212, 175, 55, 255 })); });
-		Ui::Do(premade, "Lagras Swamp", [white] { ApplyColors(Preset({ 20, 45, 30, 230 }, { 25, 40, 30, 185 }, white, { 110, 190, 90, 255 }, { 150, 210, 140, 255 })); });
-		Ui::Do(premade, "Guarma Sea", [white] { ApplyColors(Preset({ 0, 50, 90, 230 }, { 15, 35, 55, 185 }, white, { 0, 170, 220, 255 }, { 120, 200, 240, 255 })); });
-		Ui::Do(premade, "Ghost Train", [] { ApplyColors(Preset({ 220, 220, 220, 230 }, { 235, 235, 235, 200 }, { 20, 20, 20, 255 }, { 80, 80, 80, 255 }, { 60, 60, 60, 255 })); });
-		Ui::Do(premade, "Night Folk", [white] { ApplyColors(Preset({ 10, 10, 10, 240 }, { 15, 15, 15, 200 }, { 200, 200, 200, 255 }, { 120, 0, 160, 255 }, { 170, 110, 210, 255 })); });
+		Ui::Do(premade, "settings.theme.rampagio", "Rampagio", [] { ApplyColors(MenuStyle{}); });
+		Ui::Do(premade, "settings.theme.bloodred", "Blood Red", [white] { ApplyColors(Preset({ 120, 0, 0, 230 }, { 30, 10, 10, 190 }, white, { 230, 30, 30, 255 }, { 230, 120, 120, 255 })); });
+		Ui::Do(premade, "settings.theme.saintdenisgold", "Saint Denis Gold", [white] { ApplyColors(Preset({ 20, 15, 5, 235 }, { 45, 38, 25, 190 }, { 255, 235, 190, 255 }, { 212, 175, 55, 255 }, { 212, 175, 55, 255 })); });
+		Ui::Do(premade, "settings.theme.lagrasswamp", "Lagras Swamp", [white] { ApplyColors(Preset({ 20, 45, 30, 230 }, { 25, 40, 30, 185 }, white, { 110, 190, 90, 255 }, { 150, 210, 140, 255 })); });
+		Ui::Do(premade, "settings.theme.guarmasea", "Guarma Sea", [white] { ApplyColors(Preset({ 0, 50, 90, 230 }, { 15, 35, 55, 185 }, white, { 0, 170, 220, 255 }, { 120, 200, 240, 255 })); });
+		Ui::Do(premade, "settings.theme.ghosttrain", "Ghost Train", [] { ApplyColors(Preset({ 220, 220, 220, 230 }, { 235, 235, 235, 200 }, { 20, 20, 20, 255 }, { 80, 80, 80, 255 }, { 60, 60, 60, 255 })); });
+		Ui::Do(premade, "settings.theme.nightfolk", "Night Folk", [white] { ApplyColors(Preset({ 10, 10, 10, 240 }, { 15, 15, 15, 200 }, { 200, 200, 200, 255 }, { 120, 0, 160, 255 }, { 170, 110, 210, 255 })); });
 
 		Ui::ListMenu(theme, "Custom Themes", [](MenuBase* menu)
 		{
@@ -244,20 +233,15 @@ namespace
 				std::string name;
 				if (!GameUtil::PromptText("Theme Name:", name) || name.empty())
 					return "";
-				DataFile::Ini ini = DataFile::Load(kThemesFile);
-				WriteColors(ini.sections[name], Style());
+				g_themes->themes[name] = Style();
+				g_themes->MarkStateDirty();
 				Ui::Controller().ReopenActiveLater();
-				return DataFile::Save(kThemesFile, ini) ? "Saved " + name : "Couldn't write Rampagio_Themes.ini";
+				return "Saved " + name;
 			});
-			DataFile::Ini ini = DataFile::Load(kThemesFile);
-			if (ini.sections.empty())
+			if (g_themes->themes.empty())
 				Ui::Section(menu, "No Themes found");
-			for (const auto& [name, sec] : ini.sections)
-				Ui::Do(menu, name, [name]
-				{
-					DataFile::Ini file = DataFile::Load(kThemesFile);
-					ReadColors(file.sections[name], Style());
-				});
+			for (const auto& [name, style] : g_themes->themes)
+				Ui::Do(menu, name, [name] { ApplyColors(g_themes->themes[name]); });
 		});
 
 		Ui::Section(theme, "Customize");
@@ -268,7 +252,11 @@ namespace
 		{
 			ColorRgba& c = Style().*editing;
 			rgba[0] = c.r; rgba[1] = c.g; rgba[2] = c.b; rgba[3] = c.a;
-			auto write = [] { ColorRgba& d = Style().*editing; d = { (unsigned char)rgba[0], (unsigned char)rgba[1], (unsigned char)rgba[2], (unsigned char)rgba[3] }; };
+			auto write = []
+			{
+				Style().*editing = { (unsigned char)rgba[0], (unsigned char)rgba[1], (unsigned char)rgba[2], (unsigned char)rgba[3] };
+				StyleChanged();
+			};
 			Ui::Number(menu, "Red", &rgba[0], 0, 255, 5, write);
 			Ui::Number(menu, "Green", &rgba[1], 0, 255, 5, write);
 			Ui::Number(menu, "Blue", &rgba[2], 0, 255, 5, write);
@@ -280,10 +268,40 @@ namespace
 			Ui::Do(theme, c.name, [field] { editing = field; Ui::Push(colorMenu); });
 		}
 		Ui::Section(theme, "Position");
-		Ui::Number(theme, "Menu X", &Style().left, 0.0f, 0.78f, 0.01f);
-		Ui::Number(theme, "Menu Y", &Style().top, 0.0f, 0.5f, 0.01f);
-		Ui::Number(theme, "Max Display Options", &Style().linesPerScreen, 3, 25, 1);
+		Ui::Number(theme, "Menu X", &Style().left, 0.0f, 0.78f, 0.01f, StyleChanged);
+		Ui::Number(theme, "Menu Y", &Style().top, 0.0f, 0.5f, 0.01f, StyleChanged);
+		Ui::Number(theme, "Max Display Options", &Style().linesPerScreen, 3, 25, 1, StyleChanged);
 	}
+
+	// --- settings commands -------------------------------------------------------------
+
+	// A key the menu can open with: one KeyNames round-trips that isn't used
+	// for navigation or binding.
+	bool IsUsableMenuKey(int vk)
+	{
+		DWORD parsed = 0;
+		return vk > 0 && vk < 0xFF && vk != static_cast<int>(kBindKey) && vk != VK_ESCAPE
+			&& KeyNames::Parse(KeyNames::Format(static_cast<DWORD>(vk)), parsed) && parsed == static_cast<DWORD>(vk);
+	}
+
+	// settings.menukey: MenuKey() as a VK code; an unusable saved key falls
+	// back to F5 (logged).
+	class MenuKeyCommand : public Rampagio::IntCommand
+	{
+	protected:
+		int Clamp(const int& value) const override
+		{
+			if (IsUsableMenuKey(value))
+				return value;
+			Log::Write("[Settings] Menu key {} isn't usable (reserved for navigation, or unknown); using F5", value);
+			return VK_F5;
+		}
+	public:
+		MenuKeyCommand() : Rampagio::IntCommand("settings.menukey", "Menu Key", "", 1, 0xFE, 1, VK_F5, &MenuKey()) {}
+	};
+
+	Rampagio::BoolCommand* g_restoreToggles = nullptr;
+	MenuKeyCommand* g_menuKey = nullptr;
 
 	// --- search ----------------------------------------------------------------------------
 
@@ -293,6 +311,17 @@ namespace
 		return s;
 	}
 
+	// "Menu Title > Caption", how a search result names a row.
+	std::string RowPath(MenuItemBase* item)
+	{
+		MenuBase* menu = item->GetMenu();
+		const std::string title = menu ? menu->GetTitle()->MenuItemTitle::GetCaption() : "";
+		return title + " > " + item->GetCaption();
+	}
+
+	// Every static menu (and so every command row) is built at start, so
+	// searching the built menus also finds rows in menus never opened.
+	// ListMenu rows only exist once their list has been opened.
 	void BuildSearch(MenuBase* results)
 	{
 		std::string text;
@@ -313,7 +342,7 @@ namespace
 					continue;
 				++found;
 				const int index = static_cast<int>(i);
-				Ui::Do(results, Ui::Key(item), [menu, index]
+				Ui::Do(results, RowPath(item), [menu, index]
 				{
 					Ui::Controller().PushMenu(menu);
 					menu->SetActiveItemIndex(index);
@@ -321,43 +350,86 @@ namespace
 			}
 		}
 		if (!found)
-			Ui::Section(results, "No matches (lists only count once opened)");
+			Ui::Section(results, "No matches (list menus only count once opened)");
 	}
 
 	// --- hotkeys ---------------------------------------------------------------------------
 
-	std::string g_bindingRow; // row waiting for its key
+	enum class Capture
+	{
+		None,
+		Hotkey,  // a key chain for g_bindingCommand
+		MenuKey, // one key for settings.menukey
+	};
+	Capture g_capture = Capture::None;
+	Rampagio::Command* g_bindingCommand = nullptr;
+	std::vector<int> g_chain;
 
 	bool IsNavigationKey(DWORD vk)
 	{
 		return vk == VK_NUMPAD0 || vk == VK_NUMPAD2 || vk == VK_NUMPAD4 || vk == VK_NUMPAD5 || vk == VK_NUMPAD6 || vk == VK_NUMPAD8
 			|| vk == VK_BACK || vk == VK_RETURN || vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL
-			|| vk == VK_UP || vk == VK_DOWN || vk == VK_LEFT || vk == VK_RIGHT || vk == kBindKey || vk == Config::Get().MenuKey;
+			|| vk == VK_UP || vk == VK_DOWN || vk == VK_LEFT || vk == VK_RIGHT || vk == kBindKey || vk == static_cast<DWORD>(MenuKey());
+	}
+
+	void StartCapture(Capture capture, Rampagio::Command* command, const std::string& prompt)
+	{
+		g_capture = capture;
+		g_bindingCommand = command;
+		g_chain.clear();
+		Ui::Controller().SetStatusText(prompt + " (Esc cancels)", 10000);
+	}
+
+	void FinishCapture()
+	{
+		MenuController& menus = Ui::Controller();
+		if (g_capture == Capture::Hotkey)
+		{
+			HotkeySystem::Bind(g_bindingCommand->GetName(), g_chain);
+			menus.SetStatusText(std::format("{} bound to {}", HotkeySystem::ChainLabel(g_chain), g_bindingCommand->GetLabel()), 3000);
+		}
+		else if (g_capture == Capture::MenuKey)
+		{
+			const int vk = g_chain.front();
+			if (IsUsableMenuKey(vk) && !KeyNames::IsReserved(static_cast<DWORD>(vk)))
+			{
+				g_menuKey->SetState(vk);
+				menus.SetStatusText("Menu key: " + KeyNames::Format(static_cast<DWORD>(vk)), 3000);
+			}
+			else
+				menus.SetStatusText(HotkeySystem::KeyLabel(vk) + " can't open the menu", 3000);
+		}
+		g_capture = Capture::None;
+		g_chain.clear();
+	}
+
+	// Collects the keys held while binding; the chain is done once every
+	// key in it is released.
+	void CaptureTick()
+	{
+		if (IsKeyJustUp(VK_ESCAPE))
+		{
+			g_capture = Capture::None;
+			Ui::Controller().SetStatusText("Cancelled", 2000);
+			return;
+		}
+		for (DWORD vk = 0x08; vk < 0xFF; ++vk)
+			if (vk != VK_ESCAPE && !IsNavigationKey(vk) && IsKeyDown(vk) && std::find(g_chain.begin(), g_chain.end(), static_cast<int>(vk)) == g_chain.end())
+				if (g_capture == Capture::Hotkey || g_chain.empty())
+					g_chain.push_back(static_cast<int>(vk));
+		if (!g_chain.empty() && std::none_of(g_chain.begin(), g_chain.end(), [](int vk) { return IsKeyDown(static_cast<DWORD>(vk)); }))
+		{
+			for (int vk : g_chain)
+				ResetKeyState(static_cast<DWORD>(vk)); // don't fire the new binding at once
+			FinishCapture();
+		}
 	}
 
 	void HotkeyTick()
 	{
 		MenuController& menus = Ui::Controller();
-		if (!g_bindingRow.empty())
-		{
-			if (IsKeyJustUp(VK_ESCAPE))
-			{
-				g_bindingRow.clear();
-				menus.SetStatusText("Hotkey cancelled", 2000);
-				return;
-			}
-			for (DWORD vk = 0x08; vk < 0xFF; ++vk)
-				if (!IsNavigationKey(vk) && vk != VK_ESCAPE && IsKeyJustUp(vk, false))
-				{
-					std::erase_if(g_hotkeys, [vk](const auto& kv) { return kv.second == vk; });
-					g_hotkeys[g_bindingRow] = vk;
-					menus.SetStatusText(std::format("{} bound to {}", KeyNames::Format(vk), g_bindingRow), 3000);
-					g_bindingRow.clear();
-					SaveSettings();
-					return;
-				}
-			return;
-		}
+		if (g_capture != Capture::None)
+			return CaptureTick();
 		if (menus.HasActiveMenu())
 		{
 			if (IsKeyJustUp(kBindKey))
@@ -365,27 +437,39 @@ namespace
 				{
 					const int index = menu->GetActiveItemIndex();
 					const auto& items = menu->GetItems();
-					if (index >= 0 && index < static_cast<int>(items.size()))
-					{
-						g_bindingRow = Ui::Key(items[index]);
-						menus.SetStatusText("Press a key for " + g_bindingRow + " (Esc cancels)", 10000);
-					}
+					if (index < 0 || index >= static_cast<int>(items.size()))
+						return;
+					Rampagio::Command* command = items[index]->GetCommand();
+					if (command && command->IsRegistered() && command->Hotkeyable())
+						StartCapture(Capture::Hotkey, command, "Press the key(s) for " + command->GetLabel());
+					else
+						menus.SetStatusText("This row can't be bound", 2500);
 				}
 			return;
 		}
-		for (const auto& [row, vk] : g_hotkeys)
-			if (IsKeyJustUp(vk))
+		if (Rampagio::Command* fired = HotkeySystem::Update([](int vk) { return IsKeyDown(static_cast<DWORD>(vk)); }))
+			menus.SetStatusText(fired->StatusText(), 1500);
+	}
+
+	void BuildHotkeyManager(MenuBase* settings)
+	{
+		Ui::ListMenu(settings, "Hotkey Manager", [](MenuBase* menu)
+		{
+			Ui::Section(menu, "F11 on a row binds it; select one to remove it");
+			if (HotkeySystem::GetBindings().empty())
+				Ui::Section(menu, "No hotkeys");
+			for (const auto& [name, chain] : HotkeySystem::GetBindings())
 			{
-				if (MenuItemBase* item = Ui::Find(row))
+				Rampagio::Command* command = Commands::GetCommand(name);
+				const std::string label = command ? command->GetLabel() : name + " (not found)";
+				Ui::Action(menu, HotkeySystem::ChainLabel(chain) + ": " + label, [name, label]
 				{
-					item->OnSelect();
-					if (auto* t = dynamic_cast<MenuItemSwitchable*>(item))
-						menus.SetStatusText(row + (t->GetState() ? ": on" : ": off"), 1500);
-				}
-				else
-					menus.SetStatusText(row + " isn't built yet (open its menu once)", 2500);
-				break;
+					HotkeySystem::Clear(name);
+					Ui::Controller().ReopenActiveLater();
+					return "Removed " + label;
+				});
 			}
+		});
 	}
 
 	// --- overlays --------------------------------------------------------------------------
@@ -441,23 +525,25 @@ namespace
 	void BuildOverlays(MenuBase* settings)
 	{
 		MenuBase* o = Ui::Submenu(settings, "Overlay Settings");
-		Ui::Looped(o, "Display FPS", [] { Overlay(std::format("{} FPS", g_fps)); });
-		Ui::Looped(o, "Display Day & Time (Real time)", RealTimeOverlay);
-		Ui::Looped(o, "Display Time (Ingame)", GameTimeOverlay);
-		Ui::Looped(o, "Display Coordinates", CoordsOverlay);
-		Ui::Looped(o, "Display Temperature", TemperatureOverlay);
-		Ui::Looped(o, "Display Waypoint Distance", WaypointOverlay);
-		Ui::Toggle(o, "Always Show Player Cores", [](bool on) { HUD::_SHOW_PLAYER_CORES(on); });
-		Ui::Toggle(o, "Always Show Horse Cores", [](bool on) { HUD::_SHOW_HORSE_CORES(on); });
-		Ui::Looped(o, "Always Show Honor", [] { HUD::_ENABLE_HUD_CONTEXT_THIS_FRAME(HUD_CTX_HONOR_SHOW); });
-		Ui::Looped(o, "Hide HUD", [] { HUD::HIDE_HUD_AND_RADAR_THIS_FRAME(); });
-		Ui::Toggle(o, "Hide Radar", [](bool on) { MAP::DISPLAY_RADAR(!on); });
-		Ui::Looped(o, "Hide POIs", [] { MAP::_HIDE_ACTIVE_POINTS_OF_INTEREST(); });
-		Ui::Looped(o, "No Menu Slow-Down", [] { HUD::_DISABLE_REDUCED_MENU_TIME_SCALE(); });
-		Ui::Looped(o, "Remove All Screen Effects", [] { GRAPHICS::ANIMPOSTFX_STOP_ALL(); });
-		Ui::Looped(o, "Disable Notifications", [] { UIFEED::_UI_FEED_CLEAR_ALL_CHANNELS(); });
-		Ui::Looped(o, "Disable Help Text", [] { HUD::CLEAR_ALL_HELP_MESSAGES(); });
-		Ui::Number(o, "Minimap Zoom", &g_minimapZoom, 0, 1400, 50, [] { MAP::SET_RADAR_ZOOM(g_minimapZoom); });
+		Ui::Looped(o, "settings.overlay.fps", "Display FPS", [] { Overlay(std::format("{} FPS", g_fps)); });
+		Ui::Looped(o, "settings.overlay.realtime", "Display Day & Time (Real time)", RealTimeOverlay);
+		Ui::Looped(o, "settings.overlay.gametime", "Display Time (Ingame)", GameTimeOverlay);
+		Ui::Looped(o, "settings.overlay.coords", "Display Coordinates", CoordsOverlay);
+		Ui::Looped(o, "settings.overlay.temperature", "Display Temperature", TemperatureOverlay);
+		Ui::Looped(o, "settings.overlay.waypoint", "Display Waypoint Distance", WaypointOverlay);
+		// These act on the game, so they're feature states (overlay.*, not
+		// settings.*): they follow settings.restoretoggles.
+		Ui::Toggle(o, "overlay.playercores", "Always Show Player Cores", [](bool on) { HUD::_SHOW_PLAYER_CORES(on); });
+		Ui::Toggle(o, "overlay.horsecores", "Always Show Horse Cores", [](bool on) { HUD::_SHOW_HORSE_CORES(on); });
+		Ui::Looped(o, "overlay.honor", "Always Show Honor", [] { HUD::_ENABLE_HUD_CONTEXT_THIS_FRAME(HUD_CTX_HONOR_SHOW); });
+		Ui::Looped(o, "overlay.hidehud", "Hide HUD", [] { HUD::HIDE_HUD_AND_RADAR_THIS_FRAME(); });
+		Ui::Toggle(o, "overlay.hideradar", "Hide Radar", [](bool on) { MAP::DISPLAY_RADAR(!on); });
+		Ui::Looped(o, "overlay.hidepois", "Hide POIs", [] { MAP::_HIDE_ACTIVE_POINTS_OF_INTEREST(); });
+		Ui::Looped(o, "overlay.nomenuslowdown", "No Menu Slow-Down", [] { HUD::_DISABLE_REDUCED_MENU_TIME_SCALE(); });
+		Ui::Looped(o, "overlay.noscreeneffects", "Remove All Screen Effects", [] { GRAPHICS::ANIMPOSTFX_STOP_ALL(); });
+		Ui::Looped(o, "overlay.nonotifications", "Disable Notifications", [] { UIFEED::_UI_FEED_CLEAR_ALL_CHANNELS(); });
+		Ui::Looped(o, "overlay.nohelptext", "Disable Help Text", [] { HUD::CLEAR_ALL_HELP_MESSAGES(); });
+		Ui::Number(o, "overlay.minimapzoom", "Minimap Zoom", &g_minimapZoom, 0, 1400, 50, [] { MAP::SET_RADAR_ZOOM(g_minimapZoom); });
 	}
 
 	void DrawOverlays()
@@ -490,10 +576,11 @@ namespace
 		Ui::Section(about, "Thanks to");
 		Ui::Action(about, "alloc8or", [] { return std::string("Native database (natives.h)"); });
 		Ui::Action(about, "Alexander Blade", [] { return std::string("ScriptHookRDR2 and its SDK"); });
-		Ui::Action(about, "HorseMenu", [] { return std::string("Script function caller, native hooks, pointers"); });
+		Ui::Action(about, "HorseMenu", [] { return std::string("Settings and commands, script function caller, native hooks, pointers"); });
 		Ui::Action(about, "Halen84", [] { return std::string("RDR3 native flags and enums"); });
 		Ui::Section(about, "Libraries used");
 		Ui::Action(about, "MinHook", [] { return std::string("Hooking library (Tsuda Kageyu)"); });
+		Ui::Action(about, "nlohmann/json", [] { return std::string("JSON for Modern C++ (Niels Lohmann)"); });
 		Ui::Action(about, "inipp", [] { return std::string("INI parsing (Matthias C. M. Troffaes)"); });
 		Ui::Action(about, "spdlog", [] { return std::string("Logging (Gabi Melman)"); });
 	}
@@ -501,7 +588,7 @@ namespace
 	void ShowControls()
 	{
 		Ui::Controller().SetStatusText(
-			"F5 or RB + Left: open / close~n~NUMPAD 8/2 or d-pad: move~n~NUMPAD 5 or A: select~n~NUMPAD 4/6 or d-pad: change value~n~NUMPAD 0, Backspace or B: back~n~F11 on a row: bind a hotkey",
+			KeyNames::Format(static_cast<DWORD>(MenuKey())) + " or RB + Left: open / close~n~NUMPAD 8/2 or d-pad: move~n~NUMPAD 5 or A: select~n~NUMPAD 4/6 or d-pad: change value~n~NUMPAD 0, Backspace or B: back~n~F11 on a row: bind a hotkey",
 			8000);
 	}
 }
@@ -514,78 +601,67 @@ namespace Menus
 		Ui::ListMenu(settings, "Search", BuildSearch);
 
 		MenuBase* core = Ui::Submenu(settings, "Core");
-		g_gamepadToggle = Ui::Toggle(core, "Gamepad Controls", [](bool on) { Style().gamepad = on; });
-		g_soundsToggle = Ui::Toggle(core, "Menu Sounds", [](bool on) { Style().sounds = on; });
+		g_menuKey = new MenuKeyCommand();
+		core->AddItem(new MenuItemActionStatus(
+			[] { return "Menu Key: " + KeyNames::Format(static_cast<DWORD>(MenuKey())); },
+			[] { StartCapture(Capture::MenuKey, nullptr, "Press the new menu key"); return std::string(); }));
+		core->AddItem(new StyleFlagItem("Gamepad Controls", &MenuStyle::gamepad));
+		core->AddItem(new StyleFlagItem("Menu Sounds", &MenuStyle::sounds));
 		static std::vector<std::string> openNames(std::begin(MenuInput::kGamepadOpenNames), std::end(MenuInput::kGamepadOpenNames));
-		Ui::Choice(core, "Gamepad Open Key", openNames, &Style().gamepadOpen);
-		Ui::Do(core, "Show Controller Screen", ShowControls);
+		Ui::Choice(core, "Gamepad Open Key", openNames, &Style().gamepadOpen, [](int) { StyleChanged(); });
+		Ui::Number(core, "settings.wrapwidth", "Text Wrap Width", &WrapWidth(), 0, 120, 10);
+		Ui::Do(core, "settings.showcontrols", "Show Controller Screen", ShowControls);
 
 		BuildThemes(Ui::Submenu(settings, "Theme"));
-
-		Ui::ListMenu(settings, "Hotkey Manager", [](MenuBase* menu)
-		{
-			Ui::Section(menu, "F11 on any row binds it to a key");
-			if (g_hotkeys.empty())
-				Ui::Section(menu, "No hotkeys");
-			for (const auto& [row, vk] : g_hotkeys)
-			{
-				const std::string key = row;
-				Ui::Action(menu, KeyNames::Format(vk) + ": " + row, [key]
-				{
-					g_hotkeys.erase(key);
-					Ui::Controller().ReopenActiveLater();
-					SaveSettings();
-					return "Removed " + key;
-				});
-			}
-		});
+		BuildHotkeyManager(settings);
 
 		MenuBase* io = Ui::Submenu(settings, "Load / Save");
-		Ui::Action(io, "Save Settings", SaveSettings);
-		Ui::Action(io, "Load Settings", LoadSettingsFile);
+		Ui::Section(io, "Saved to Rampagio.json as you change things");
+		Ui::Action(io, "Save Settings", []
+		{
+			return std::string(Rampagio::Settings::Flush() ? "Settings saved" : "Couldn't write Rampagio.json (see Rampagio.log)");
+		});
+		Ui::Action(io, "Load Settings", []
+		{
+			Rampagio::Settings::Reload();
+			ApplyLoadedSettings();
+			return std::string("Settings loaded");
+		});
 		Ui::Action(io, "Restore Defaults", []
 		{
+			Commands::ResetToDefaults();
 			Style() = MenuStyle{};
-			SyncSettingToggles();
-			return std::string("Defaults restored (Save Settings to keep them)");
+			StyleChanged();
+			return std::string("Defaults restored");
 		});
-		Ui::Section(io, "Toggles");
-		g_toggleSavingToggle = Ui::Toggle(io, "Enable Toggle Saving", [](bool on) { g_toggleSaving = on; SaveSettings(); });
-		g_autoSaveToggle = Ui::Toggle(io, "Auto Save Toggles", [](bool on) { g_autoSaveToggles = on; SaveSettings(); });
-		Ui::Action(io, "Save Toggles", SaveToggles);
-		Ui::Action(io, "Load Toggles", LoadToggles);
+		g_restoreToggles = Ui::Toggle(io, "settings.restoretoggles", "Restore Toggles on Start", nullptr);
 
 		BuildOverlays(settings);
 		BuildAbout(settings);
-
-		SyncSettingToggles();
 	}
 
-	void LoadSettings()
+	void RegisterSettings()
 	{
-		Log::Write("[Settings] {}", LoadSettingsFile());
-		if (g_toggleSaving)
-			Log::Write("[Settings] {}", LoadToggles());
+		static GeneralComponent general;
+		static StyleComponent style;
+		static ThemesComponent themes;
+		g_style = &style;
+		g_themes = &themes;
+		HotkeySystem::GetInstance();
+		Commands::GetInstance();
+	}
+
+	void ApplyLoadedSettings()
+	{
+		// restoretoggles is a settings. command, so it always loads; it then
+		// decides whether the other feature states do.
+		g_restoreToggles->ApplyLoaded(true);
+		Commands::ApplyLoaded(g_restoreToggles->GetState());
 	}
 
 	void TickSettings()
 	{
 		HotkeyTick();
 		DrawOverlays();
-		if (g_toggleSaving && g_autoSaveToggles)
-		{
-			static DWORD last = GetTickCount();
-			static std::map<std::string, bool> saved = ToggleSnapshot();
-			if (GetTickCount() - last > 5000)
-			{
-				last = GetTickCount();
-				auto now = ToggleSnapshot();
-				if (now != saved)
-				{
-					SaveToggles();
-					saved = std::move(now);
-				}
-			}
-		}
 	}
 }

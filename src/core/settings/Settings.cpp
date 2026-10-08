@@ -147,6 +147,16 @@ namespace Rampagio
 		return self.WriteImpl(true);
 	}
 
+	bool Settings::TryFlush()
+	{
+		Settings& self = GetInstance();
+		std::unique_lock lock(self.m_Mutex, std::try_to_lock);
+		if (!lock.owns_lock() || !self.m_InitialLoadDone)
+			return false;
+		self.LoadLateComponents();
+		return self.WriteImpl(true);
+	}
+
 	void Settings::Reload()
 	{
 		Settings& self = GetInstance();

@@ -14,7 +14,6 @@
     <!-- As in ChallengeCheat, keyboard.cpp and scriptmenu.cpp are built in
          Release too: the F5 menu is this mod's whole interface. -->
     <ClCompile Include="src\keyboard.cpp" />
-    <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\KeyNames.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\script.cpp" />
@@ -46,7 +45,6 @@
     <ClInclude Include="external\ScriptHookSDK\inc\natives.h" />
     <ClInclude Include="external\ScriptHookSDK\inc\types.h" />
     <ClInclude Include="src\keyboard.h" />
-    <ClInclude Include="src\Config.h" />
     <ClInclude Include="src\KeyNames.h" />
     <ClInclude Include="external\inipp\inipp\inipp.h" />
     <ClInclude Include="src\script.h" />
@@ -198,17 +196,4 @@ copy /Y "$(TargetDir)$(TargetName).pdb" "%GAMEDIR%\$(TargetName).pdb"</Command>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <!-- Writes bin\$(Configuration)\$(TargetName).ini with this configuration's
-       defaults, for the release package: builds and runs tools\IniGen, which
-       calls the mod's own Config code in an empty folder (see IniGen.cpp).
-       Deliberately not deployed to the game folder. -->
-  <Target Name="GenerateDefaultIni" AfterTargets="Build" Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='Release'">
-    <PropertyGroup>
-      <IniGenDir>$(MSBuildProjectDirectory)\tmp\$(Configuration)\IniGen\</IniGenDir>
-    </PropertyGroup>
-    <MSBuild Projects="tools\IniGen\IniGen.vcxproj" Properties="Configuration=$(Configuration);Platform=$(Platform)" />
-    <Delete Files="$(IniGenDir)$(TargetName).ini" />
-    <Exec Command="&quot;$(IniGenDir)IniGen.exe&quot;" />
-    <Copy SourceFiles="$(IniGenDir)$(TargetName).ini" DestinationFolder="$(OutDir)" />
-  </Target>
 </Project>

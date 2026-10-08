@@ -40,7 +40,8 @@ env:
   PROJECT: Rampagio
   ASI: bin/Release/Rampagio.asi
   CHANGELOG: docs/CHANGELOG.md
-  INI: bin/Release/Rampagio.ini
+  # No INI: settings live in Rampagio.json, created on first start.
+  INI: ''
   # Rampagio has no Nexus page yet: with these empty the Nexus step is
   # skipped. Fill both in once the mod page and its main file exist.
   NEXUS_MOD_ID: ''

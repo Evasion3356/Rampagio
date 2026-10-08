@@ -64,6 +64,9 @@ namespace Rampagio
 		// Saves every component and writes the file now. False if the file
 		// couldn't be written.
 		static bool Flush();
+		// Flush, unless another thread holds the lock (DllMain detach: a
+		// thread killed at process exit may have died holding it).
+		static bool TryFlush();
 		// Re-reads the file (from the write path once it exists) and loads
 		// every component again.
 		static void Reload();

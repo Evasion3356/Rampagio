@@ -15,8 +15,11 @@
 
 #include "Menu.h"
 #include "Log.h"
+#include "LogFallback.h"
 #include "GameUtil.h"
 #include "menus/Menus.h"
+#include "core/settings/Settings.h"
+#include "core/commands/Commands.h"
 
 namespace
 {
@@ -35,6 +38,20 @@ namespace
 		Menus::BuildSettings(root);
 		Menus::PedEditor::Build(); // links to the Player menus, so after them
 	}
+
+	// Rampagio.json next to the .asi, or in %LOCALAPPDATA%\RDR2ASIMods\ when
+	// the game folder isn't writable.
+	void LoadSettings()
+	{
+		const LogFallback::SettingsPaths paths = LogFallback::ResolveSettings(
+			LogFallback::ModuleDirectory(), L"Rampagio.json", LogFallback::FallbackDirectory());
+		if (paths.usedFallback)
+			Log::Write("The game folder isn't writable, so settings are saved to {}", LogFallback::ToUtf8(paths.write));
+		Menus::RegisterSettings();
+		Rampagio::Settings::Initialize(paths.read, paths.write);
+		Menus::ApplyLoadedSettings();
+		Rampagio::Settings::Flush(); // creates the file, with every value
+	}
 }
 
 void ScriptMain()
@@ -42,7 +59,7 @@ void ScriptMain()
 	Log::Write("Rampagio started");
 
 	BuildMenu();
-	Menus::LoadSettings();
+	LoadSettings();
 
 	bool wasOnline = false;
 	while (true)
@@ -51,6 +68,9 @@ void ScriptMain()
 		if (online && !wasOnline)
 		{
 			Log::Write("Red Dead Online detected -- switching everything off");
+			// Undoes every command without changing its saved state; stays
+			// suspended for the rest of the session.
+			Rampagio::Commands::Suspend();
 			Ui::DisableAllToggles();
 		}
 		wasOnline = online;
@@ -62,8 +82,10 @@ void ScriptMain()
 				menus.PushMenu(Ui::Root());
 
 			menus.Update();
+			Rampagio::Commands::RunLoopedCommands();
 			Menus::TickSettings();
 		}
+		Rampagio::Settings::Tick();
 
 		WAIT(0);
 	}

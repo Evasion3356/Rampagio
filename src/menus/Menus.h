@@ -41,10 +41,13 @@ namespace Menus
 	void BuildMiscellaneous(MenuBase* root);
 	void BuildScriptTools(MenuBase* root);
 	void BuildSettings(MenuBase* root);
-	// Settings.cpp: loads Rampagio_Settings.ini (and saved toggles) after
-	// the menu is built; TickSettings runs hotkeys, overlays and toggle
-	// auto-save every frame.
-	void LoadSettings();
+	// Settings.cpp. RegisterSettings creates the "general", "style",
+	// "themes" and "hotkeys" parts of Rampagio.json (before
+	// Settings::Initialize); ApplyLoadedSettings applies the loaded command
+	// states, honouring settings.restoretoggles; TickSettings runs hotkeys
+	// and overlays every frame.
+	void RegisterSettings();
+	void ApplyLoadedSettings();
 	void TickSettings();
 
 	// The player's posse (Posse.cpp), shared with the spawners.

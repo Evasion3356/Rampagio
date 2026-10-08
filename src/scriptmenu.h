@@ -2,8 +2,8 @@
 	Adapted from the ScriptHookRDR2 SDK's NativeTrainer sample menu framework
 	(Alexander Blade, http://dev-c.com), same vendored copy PokerCheat/
 	BlackjackCheat/DominoCheat use. Only change from the original: the
-	toggle key is configurable (Rampagio.ini, default F5, the same as
-	Rampage). The extra item types marked
+	toggle key is configurable (settings.menukey in Rampagio.json, default
+	F5, the same as Rampage). The extra item types marked
 	"ChallengeCheat addition" came over with the copy from ChallengeCheat.
 */
 
@@ -12,7 +12,6 @@
 #include "script.h"
 #include "keyboard.h"
 #include "ColorRgba.h"
-#include "Config.h"
 
 #include <windows.h>
 #include <vector>
@@ -52,6 +51,12 @@ struct MenuStyle
 };
 
 MenuStyle& Style();
+
+// Rampagio: the virtual key that opens the menu (default F5) and
+// MenuItemParagraph's wrap width (units per line, 0 = never wrap). Saved
+// by the settings.menukey and settings.wrapwidth commands (Settings.cpp).
+int& MenuKey();
+int& WrapWidth();
 
 enum eMenuItemClass
 {
@@ -505,11 +510,10 @@ public:
 		wasDown = down;
 		return pressed && !PAD::IS_USING_KEYBOARD_AND_MOUSE(2);
 	}
-	// Toggle key comes from Rampagio.ini's [General] MenuKey (default F5,
-	// see Config.h), or a gamepad combo.
+	// Toggle key is MenuKey() (default F5), or a gamepad combo.
 	static bool MenuSwitchPressed()
 	{
-		return IsKeyJustUp(Config::Get().MenuKey) || GamepadOpenPressed();
+		return IsKeyJustUp(MenuKey()) || GamepadOpenPressed();
 	}
 	static MenuInputButtonState GetButtonState()
 	{
