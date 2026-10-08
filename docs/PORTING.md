@@ -1,9 +1,9 @@
 # Porting status
 
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
-"Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
+"Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.
 
-Submenus: 38 done, 10 partial, 119 pending.
+Submenus: 38 done, 10 partial, 111 pending, 8 tabled.
 
 ## Debug
 
@@ -41,10 +41,10 @@ Submenus: 38 done, 10 partial, 119 pending.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubObjEditor | 21 | Pending |  |
-| SubObjSelectAttachment | 4 | Pending |  |
-| SubObjectFinder | 3 | Pending |  |
-| SubObjectFinderList | 3 | Pending |  |
+| SubObjEditor | 21 | Tabled |  |
+| SubObjSelectAttachment | 4 | Tabled |  |
+| SubObjectFinder | 3 | Tabled |  |
+| SubObjectFinderList | 3 | Tabled |  |
 
 ## Ped Editor
 
@@ -145,10 +145,10 @@ Submenus: 38 done, 10 partial, 119 pending.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubGlobalEditor | 7 | Pending |  |
-| SubScriptEditor | 3 | Pending |  |
-| SubScriptPatcher | 7 | Pending |  |
-| SubScriptTools | 3 | Pending |  |
+| SubGlobalEditor | 7 | Tabled |  |
+| SubScriptEditor | 3 | Tabled |  |
+| SubScriptPatcher | 7 | Tabled |  |
+| SubScriptTools | 3 | Tabled |  |
 
 ## Settings
 

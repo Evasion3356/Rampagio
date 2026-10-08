@@ -10,6 +10,8 @@ cnt=collections.Counter(); area={}
 for r in rows:
     area[r['submenu']]=r['area']
     if r['kind'] in INTER: cnt[r['submenu']]+=1
+# Areas the user has set aside for now; their submenus show as Tabled unless STATUS says otherwise.
+TABLED_AREAS = {'Object Editor','Script Tools'}
 STATUS = {
  'SubSelf':('Done','Player'),
  'SubSelfHorse':('Done','Horse'),
@@ -60,17 +62,17 @@ STATUS = {
  'SubWeaponsAmmunition':('Partial','Weapon > Ammunition: Drop Ammo pending'),
  'SubWeaponModifiers':('Partial','Weapon > Weapon Modifiers: weapon model swap and weapon skill stats pending'),
 }
-out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.','']
+out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.','']
 by=collections.defaultdict(list)
 for s in sorted(set(area)): by[area[s]].append(s)
 tot=collections.Counter()
 for a in sorted(by):
     out+=['## '+a,'','| Rampage submenu | Options | Status | Rampagio |','|---|---|---|---|']
     for s in by[a]:
-        st,where=STATUS.get(s,('Pending',''))
+        st,where=STATUS.get(s,('Tabled' if a in TABLED_AREAS else 'Pending',''))
         tot[st]+=1
         out.append('| %s | %d | %s | %s |'%(s,cnt[s],st,where))
     out.append('')
-out[5:5]=['Submenus: %d done, %d partial, %d pending.'%(tot['Done'],tot['Partial'],tot['Pending']),'']
+out[5:5]=['Submenus: %d done, %d partial, %d pending, %d tabled.'%(tot['Done'],tot['Partial'],tot['Pending'],tot['Tabled']),'']
 open('docs/PORTING.md','w',encoding='utf-8',newline='\r\n').write('\n'.join(out)+'\n')
 print(tot)
