@@ -10,6 +10,7 @@
 { "Enable mouse cursor.", "Activa el cursor del mouse." },
 { "Enable support for Xbox / PlayStation controllers.", "Activa la compatibilidad con controles de Xbox / PlayStation." },
 { "Enables vehicle fly mode.\n[W] - Forward\n[MOUSE] - Rotate\n[CONTROL STICKS] - Gamepad", "Activa el modo vuelo del vehículo.\n[W] - Adelante\n[MOUSE] - Girar\n[CONTROL STICKS] - Control" },
+{ "Enter a base stat name first", "Primero ingresa un nombre de estadística base" },
 { "Enter a custom hash to load that IPL.", "Ingresa un hash para cargar ese IPL." },
 { "Enter a custom hash to unload that IPL.", "Ingresa un hash para descargar ese IPL." },
 { "Enter custom object name or hash.", "Ingresa el nombre o hash de un objeto." },

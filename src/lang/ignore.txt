@@ -2,3 +2,16 @@
 .mp3\n.wav\n.ogg
 {} ~COLOR_GREEN~({})
 primary horse
+Rampagio
+close rampagio_music
+open "{}" type mpegvideo alias rampagio_music
+set rampagio_music time format milliseconds
+play rampagio_music
+setaudio rampagio_music volume to {}
+status rampagio_music length
+status rampagio_music position
+seek rampagio_music to {}
+status rampagio_music mode
+seek rampagio_music to start
+pause rampagio_music
+resume rampagio_music
