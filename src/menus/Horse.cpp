@@ -370,7 +370,7 @@ namespace
 	// --- loader (SubHorseLoader; ours: Rampagio_Horses.json)------------------------
 
 	const wchar_t* kHorsesFile = L"Rampagio_Horses.json";
-	constexpr int kGenderExpression = 0xA28B; // 1.0 male, 0.0 female (Rampage's Gender row)
+	constexpr int kGenderExpression = 0xA28B; // 1.0 female, 0.0 male (mp_intro HORSE_GENDER_* labels)
 
 	std::string SaveHorse()
 	{
@@ -649,7 +649,7 @@ namespace Menus
 		MenuBase* stats = Ui::Submenu(horse, "Horse Stats");
 		Ui::Choice(stats, "horse.gender", "Gender", { "Female", "Male" }, &g_gender, [](int g) {
 			OnMount([g](Ped m) {
-				PED::_SET_CHAR_EXPRESSION(m, kGenderExpression, g == 1 ? 1.0f : 0.0f);
+				PED::_SET_CHAR_EXPRESSION(m, kGenderExpression, g == 1 ? 0.0f : 1.0f);
 				PED::_UPDATE_PED_VARIATION(m, FALSE, TRUE, TRUE, TRUE, FALSE);
 			});
 		});
@@ -670,7 +670,7 @@ namespace Menus
 		stats->SetOnOpen([](MenuBase*) {
 			if (const Ped m = Mount())
 			{
-				g_gender = PED::_GET_CHAR_EXPRESSION(m, kGenderExpression) > 0.5f ? 1 : 0;
+				g_gender = PED::_GET_CHAR_EXPRESSION(m, kGenderExpression) < 0.5f ? 1 : 0;
 				for (HorseStat& s : g_stats)
 					s.value = ATTRIBUTE::GET_ATTRIBUTE_BASE_RANK(m, s.attribute);
 			}
