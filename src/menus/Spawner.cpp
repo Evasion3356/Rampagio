@@ -158,7 +158,7 @@ namespace
 	{
 		const Hash model = GameUtil::ParseHash(name);
 		if (!STREAMING::IS_MODEL_IN_CDIMAGE(model) || !STREAMING::IS_MODEL_VALID(model))
-			return std::format("Model {} is invalid", name);
+			return TrFormat("Model {} is invalid", name);
 		if (!GameUtil::LoadModel(model))
 			return "Failed to Load";
 		const Ped me = Me();
@@ -214,7 +214,7 @@ namespace
 	{
 		const Hash model = GameUtil::ParseHash(name);
 		if (!STREAMING::IS_MODEL_IN_CDIMAGE(model) || !STREAMING::IS_MODEL_VALID(model))
-			return std::format("Model {} is invalid", name);
+			return TrFormat("Model {} is invalid", name);
 		if (!GameUtil::LoadModel(model))
 			return "Failed to Load";
 		const Ped me = Me();
@@ -463,7 +463,7 @@ namespace
 		const nlohmann::json file = DataFile::LoadJson(std::wstring(kVehicleFolder) + L"\\" + std::wstring(name.begin(), name.end()) + L".json");
 		const auto vehicle = file.find("vehicle");
 		if (vehicle == file.end() || !vehicle->is_object())
-			return std::format("{}.json has no vehicle", name);
+			return TrFormat("{}.json has no vehicle", name);
 		const std::string error = SpawnVehicle(vehicle->value("model", std::string()));
 		if (!error.empty())
 			return error;
@@ -504,7 +504,7 @@ namespace
 				}
 				catch (const nlohmann::json::exception& e)
 				{
-					return std::format("{}.json: {}", name, e.what());
+					return TrFormat("{}.json: {}", name, e.what());
 				}
 			});
 		if (m->GetItemCount() == 0)

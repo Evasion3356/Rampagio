@@ -245,16 +245,24 @@ namespace
 	// ---- SubRecoveryCores ----
 
 	// Attribute indices 0..2 are health, stamina, dead eye.
+	// The captions are whole literals so the menu can translate them.
 	struct Core
 	{
-		const char* name;
+		const char* name;      // command ids only
+		const char* addPoints;
+		const char* max;
+		const char* rank;
+		const char* addTank;
 		Hash tonic;   // consumable whose effect fills this core
 		Hash tank;    // upgrade item that adds a core tank
 	};
 	const Core kCores[] = {
-		{ "Health", GameUtil::Joaat("consumable_ginseng_elixier"), GameUtil::Joaat("UPGRADE_HEALTH_TANK_1") },
-		{ "Stamina", GameUtil::Joaat("consumable_aged_pirate_rum"), GameUtil::Joaat("UPGRADE_STAMINA_TANK_1") },
-		{ "Dead Eye", GameUtil::Joaat("consumable_valerian_root"), GameUtil::Joaat("UPGRADE_DEADEYE_TANK_1") },
+		{ "Health", "Add Health Points", "Max Health", "Health Core", "Add Health Tank",
+			GameUtil::Joaat("consumable_ginseng_elixier"), GameUtil::Joaat("UPGRADE_HEALTH_TANK_1") },
+		{ "Stamina", "Add Stamina Points", "Max Stamina", "Stamina Core", "Add Stamina Tank",
+			GameUtil::Joaat("consumable_aged_pirate_rum"), GameUtil::Joaat("UPGRADE_STAMINA_TANK_1") },
+		{ "Dead Eye", "Add Dead Eye Points", "Max Dead Eye", "Dead Eye Core", "Add Dead Eye Tank",
+			GameUtil::Joaat("consumable_valerian_root"), GameUtil::Joaat("UPGRADE_DEADEYE_TANK_1") },
 	};
 	int g_coreRank[3] = {};
 
@@ -366,7 +374,7 @@ namespace
 			return ItemInvalid();
 		if (!INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEM_WITH_ITEMID(GameUtil::kInventorySp, item, amount, GameUtil::kRemoveReasonDefault))
 			return "Nothing removed";
-		return std::format("Removed {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
+		return TrFormat("Removed {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
 	}
 
 	std::string RemoveItemViaScript()
@@ -605,18 +613,18 @@ namespace Menus
 		MenuBase* cores = Ui::Submenu(recovery, "Cores");
 		cores->SetOnOpen(ReadCoreRanks);
 		for (int core = 0; core < 3; core++)
-			Ui::Do(cores, Ui::Id("recovery.addpoints", kCores[core].name), std::format("Add {} Points", kCores[core].name), [core] { UseTonic(core); });
+			Ui::Do(cores, Ui::Id("recovery.addpoints", kCores[core].name), kCores[core].addPoints, [core] { UseTonic(core); });
 		Ui::Section(cores, "Permanently");
 		for (int core = 0; core < 3; core++)
-			Ui::Do(cores, Ui::Id("recovery.maxcore", kCores[core].name), std::format("Max {}", kCores[core].name), [core] { MaxCore(core); });
+			Ui::Do(cores, Ui::Id("recovery.maxcore", kCores[core].name), kCores[core].max, [core] { MaxCore(core); });
 		Ui::Section(cores, "Custom Temporary");
 		// Ours: applied on every step instead of on select.
 		for (int core = 0; core < 3; core++)
-			Ui::Number(cores, Ui::Id("recovery.corerank", kCores[core].name), std::format("{} Core", kCores[core].name), &g_coreRank[core], 0, 8, 1,
+			Ui::Number(cores, Ui::Id("recovery.corerank", kCores[core].name), kCores[core].rank, &g_coreRank[core], 0, 8, 1,
 				[core] { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(Me(), core, g_coreRank[core]); });
 		Ui::Section(cores, "Tanks");
 		for (int core = 0; core < 3; core++)
-			Ui::Action(cores, Ui::Id("recovery.addtank", kCores[core].name), std::format("Add {} Tank", kCores[core].name), [core] { return AddTank(core); });
+			Ui::Action(cores, Ui::Id("recovery.addtank", kCores[core].name), kCores[core].addTank, [core] { return AddTank(core); });
 		Ui::Transient(cores); // the ranks are read from the game on open
 
 		MenuBase* items = Ui::Submenu(recovery, "Add Items");

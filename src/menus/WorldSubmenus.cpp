@@ -161,7 +161,7 @@ namespace
 		const auto peds = OtherPeds();
 		ScannerTick(std::vector<Entity>(peds.begin(), peds.end()), [](Entity e) {
 			const char* kind = PED::IS_PED_HUMAN(e) ? "Human" : PED::_IS_THIS_MODEL_A_HORSE(ENTITY::GET_ENTITY_MODEL(e)) ? "Horse" : "Animal";
-			return std::format("{} {} HP {}", Tr(kind), Hex(ENTITY::GET_ENTITY_MODEL(e)), ENTITY::GET_ENTITY_HEALTH(e));
+			return TrFormat("{} {} HP {}", Tr(kind), Hex(ENTITY::GET_ENTITY_MODEL(e)), ENTITY::GET_ENTITY_HEALTH(e));
 		});
 	}
 

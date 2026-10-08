@@ -414,7 +414,7 @@ namespace
 			AddPed(map, p);
 			count++;
 		}
-		return DataFile::SaveText(SpoonerPath(name), Xml::Write(map)) ? std::format("Saved database with {} entities", count) : "Couldn't save";
+		return DataFile::SaveText(SpoonerPath(name), Xml::Write(map)) ? TrFormat("Saved database with {} entities", count) : "Couldn't save";
 	}
 
 	void LoadPed(const Xml::Node& n)
@@ -470,7 +470,7 @@ namespace
 	{
 		Xml::Node map;
 		if (!Xml::Parse(DataFile::LoadText(SpoonerPath(name)), map) || map.name != "Map")
-			return std::format("{}.xml isn't a spooner database", name);
+			return TrFormat("{}.xml isn't a spooner database", name);
 		CAMERA::DO_SCREEN_FADE_OUT(500);
 		WAIT(500);
 		int count = 0;

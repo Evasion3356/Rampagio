@@ -47,7 +47,7 @@ namespace
 	void ApplyName()
 	{
 		for (Ped p : g_members)
-			PED::_SET_PED_PROMPT_NAME(p, std::format("Member ({})", g_name).c_str());
+			PED::_SET_PED_PROMPT_NAME(p, TrFormat("Member ({})", g_name).c_str());
 	}
 
 	Entity AimedTarget()
