@@ -373,11 +373,11 @@ namespace
 
 		// SubSelfAnimationsCustom.
 		MenuBase* custom = Ui::Submenu(anims, "Custom Animations");
-		Ui::Text(custom, "Dictionary", &g_animDict);
-		Ui::Text(custom, "Animation Name", &g_animName);
+		Ui::Text(custom, "player.customanimations.dictionary", "Dictionary", &g_animDict);
+		Ui::Text(custom, "player.customanimations.animationname", "Animation Name", &g_animName);
 		AddFlagRows(custom);
-		Ui::Action(custom, "Play", [] { return PlayAnim(g_animDict, g_animName); });
-		Ui::Do(custom, "Stop", StopAnim);
+		Ui::Action(custom, "player.play", "Play", [] { return PlayAnim(g_animDict, g_animName); });
+		Ui::Do(custom, "player.stop", "Stop", StopAnim);
 
 		// SubSelfAnimationsDicts. Rampage reads PedAnimList.txt on "Reload
 		// List"; ours has the script list built in and re-reads
@@ -405,12 +405,12 @@ namespace
 		// SubSelfFacialAnimations.
 		MenuBase* facial = Ui::Submenu(anims, "Facial Animations");
 		static std::string facialDict, facialName;
-		Ui::Text(facial, "Dictionary", &facialDict);
-		Ui::Text(facial, "Animation Name", &facialName);
-		Ui::Do(facial, "Set Override", [] { PED::SET_FACIAL_IDLE_ANIM_OVERRIDE(Me(), facialName.c_str(), facialDict.c_str()); });
-		Ui::Do(facial, "Clear", [] { PED::CLEAR_FACIAL_IDLE_ANIM_OVERRIDE(Me()); });
+		Ui::Text(facial, "player.facialanimations.dictionary", "Dictionary", &facialDict);
+		Ui::Text(facial, "player.facialanimations.animationname", "Animation Name", &facialName);
+		Ui::Do(facial, "player.setoverride", "Set Override", [] { PED::SET_FACIAL_IDLE_ANIM_OVERRIDE(Me(), facialName.c_str(), facialDict.c_str()); });
+		Ui::Do(facial, "player.clear", "Clear", [] { PED::CLEAR_FACIAL_IDLE_ANIM_OVERRIDE(Me()); });
 
-		Ui::Do(anims, "Stop Animation", StopAnim);
+		Ui::Do(anims, "player.stopanimation", "Stop Animation", StopAnim);
 	}
 
 	// SubEffects. Rampage's 25 named presets are its own table; ours lists
@@ -418,17 +418,17 @@ namespace
 	void BuildEffects(MenuBase* self)
 	{
 		MenuBase* fx = Menus::Shared().effects = Ui::Submenu(self, "Effects");
-		Ui::Number(fx, "Scale", &g_effectScale, 0.1f, 10.0f, 0.1f);
-		Ui::Looped(fx, "Loop", LoopEffectTick);
+		Ui::Number(fx, "player.scale", "Scale", &g_effectScale, 0.1f, 10.0f, 0.1f);
+		Ui::Looped(fx, "player.loop", "Loop", LoopEffectTick);
 		Ui::Section(fx, "Custom");
-		Ui::Text(fx, "Asset", &g_effectAsset);
-		Ui::Text(fx, "Effect Name", &g_effectName);
-		Ui::Action(fx, "Play Effect", [] { return PlayEffect(g_effectAsset, g_effectName, g_effectScale); });
+		Ui::Text(fx, "player.asset", "Asset", &g_effectAsset);
+		Ui::Text(fx, "player.effectname", "Effect Name", &g_effectName);
+		Ui::Action(fx, "player.playeffect", "Play Effect", [] { return PlayEffect(g_effectAsset, g_effectName, g_effectScale); });
 		Ui::Section(fx, "From the Game Scripts");
 		for (const NamePair& e : kEffects)
 		{
 			const std::string asset = e.first, name = e.second;
-			Ui::Action(fx, name, [asset, name]
+			Ui::Action(fx, Ui::Id("player.effect", name), name, [asset, name]
 			{
 				g_effectAsset = asset;
 				g_effectName = name;
@@ -443,13 +443,13 @@ namespace
 	void BuildEmotes(MenuBase* self)
 	{
 		MenuBase* emotes = Menus::Shared().emotes = Ui::Submenu(self, "Emotes");
-		Ui::Do(emotes, "Smoke", [] { StartScenarioHere("WORLD_HUMAN_SMOKE"); });
-		Ui::Do(emotes, "Smoke a Cigar", [] { StartScenarioHere("WORLD_HUMAN_SMOKE_CIGAR"); });
-		Ui::Do(emotes, "Stop Action", [] { TASK::CLEAR_PED_TASKS(Me(), TRUE, TRUE); });
-		Ui::Do(emotes, "Emote Outro", [] { TASK::_TASK_EMOTE_OUTRO(Me()); });
+		Ui::Do(emotes, "player.smoke", "Smoke", [] { StartScenarioHere("WORLD_HUMAN_SMOKE"); });
+		Ui::Do(emotes, "player.smokeacigar", "Smoke a Cigar", [] { StartScenarioHere("WORLD_HUMAN_SMOKE_CIGAR"); });
+		Ui::Do(emotes, "player.stopaction", "Stop Action", [] { TASK::CLEAR_PED_TASKS(Me(), TRUE, TRUE); });
+		Ui::Do(emotes, "player.emoteoutro", "Emote Outro", [] { TASK::_TASK_EMOTE_OUTRO(Me()); });
 
 		Ui::Section(emotes, "Emote Settings");
-		Ui::Choice(emotes, "Playback", { "Upper Body", "Upper Body Loop", "Full Body" }, &g_emotePlayback);
+		Ui::Choice(emotes, "player.playback", "Playback", { "Upper Body", "Upper Body Loop", "Full Body" }, &g_emotePlayback);
 		auto flag = [emotes](const char* caption, bool* value)
 		{
 			Ui::Toggle(emotes, caption, [value](bool on) { *value = on; })->SetState(*value);
@@ -466,7 +466,7 @@ namespace
 			Ui::Section(emotes, kTypes[type]);
 			for (const EmoteName& emote : kEmotes)
 				if (emote.type == type)
-					Ui::Do(emotes, EmoteLabel(emote.name), [&emote] { PlayEmote(emote); });
+					Ui::Do(emotes, Ui::Id("player.emote", emote.name), EmoteLabel(emote.name), [&emote] { PlayEmote(emote); });
 		}
 	}
 
@@ -477,13 +477,13 @@ namespace
 		// SubVoiceChanger. Ours: "Set Voice" lists the voices the scripts
 		// use, with Custom Input for any other.
 		MenuBase* voice = Menus::Shared().voice = Ui::Submenu(speech, "Voice Changer");
-		Ui::Do(voice, "Set Voice to Arthur", SetVoiceArthur);
-		Ui::Do(voice, "Set Voice to John", [] { SetVoice("JOHN_PLAYER"); });
+		Ui::Do(voice, "player.setvoicetoarthur", "Set Voice to Arthur", SetVoiceArthur);
+		Ui::Do(voice, "player.setvoicetojohn", "Set Voice to John", [] { SetVoice("JOHN_PLAYER"); });
 		Ui::NameList(voice, "Set Voice", Names(kVoices), SetVoice);
 
 		// SubPlaySpeechRegular / Flowgreet / Vignettes / Custom. Rampage has a
 		// Display All toggle in each list; ours is one toggle for all of them.
-		Ui::Toggle(speech, "Display All", [](bool on) { g_speechDisplayAll = on; });
+		Ui::Toggle(speech, "player.displayall", "Display All", [](bool on) { g_speechDisplayAll = on; });
 		Ui::ListMenu(speech, "Regular Speeches", [](MenuBase* m)
 		{
 			AddSpeechRows(m, std::vector<std::string>(std::begin(kSpeeches), std::end(kSpeeches)));
@@ -491,20 +491,20 @@ namespace
 		FileSpeechList(speech, "Flow Greets", L"Rampagio_SpeechFlowGreets.txt", "Rampagio_SpeechFlowGreets.txt");
 		FileSpeechList(speech, "Vignettes", L"Rampagio_SpeechVignettes.txt", "Rampagio_SpeechVignettes.txt");
 		FileSpeechList(speech, "Custom Speeches", L"Rampagio_SpeechList.txt", "Rampagio_SpeechList.txt");
-		Ui::Action(speech, "Custom Input", []
+		Ui::Action(speech, "player.custominput", "Custom Input", []
 		{
 			std::string line;
 			if (!GameUtil::PromptText("Enter Speech Line:", line) || line.empty())
 				return std::string();
 			return PlaySpeech(line) ? std::string() : std::string("The ped can't say that line");
-		});
+		})->SetHotkeyable(false);
 
 		Ui::Section(speech, "Lines");
-		Ui::Do(speech, "Lenny!?", [] { PlayConversation("SAL1_WHERE_LENN"); });
-		Ui::Do(speech, "Lenny?", [] { PlayConversation("SAL1_WHERE_LEN2"); });
-		Ui::Do(speech, "Lenny!!!", [] { PlayConversation("SAL1_WHERE_LEN3"); });
-		Ui::Do(speech, "Found Lenny!?!", [] { PlayConversation("SAL1_ISTHATYOU"); });
-		Ui::Do(speech, "Scream", [] { AUDIO::PLAY_PAIN(Me(), 1, 0.0f, FALSE, FALSE); });
+		Ui::Do(speech, "player.speech.lenny", "Lenny!?", [] { PlayConversation("SAL1_WHERE_LENN"); });
+		Ui::Do(speech, "player.speech.lennyquestion", "Lenny?", [] { PlayConversation("SAL1_WHERE_LEN2"); });
+		Ui::Do(speech, "player.speech.lennyshout", "Lenny!!!", [] { PlayConversation("SAL1_WHERE_LEN3"); });
+		Ui::Do(speech, "player.foundlenny", "Found Lenny!?!", [] { PlayConversation("SAL1_ISTHATYOU"); });
+		Ui::Do(speech, "player.scream", "Scream", [] { AUDIO::PLAY_PAIN(Me(), 1, 0.0f, FALSE, FALSE); });
 	}
 }
 
