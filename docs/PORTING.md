@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 144 done, 11 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 145 done, 10 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -135,7 +135,7 @@ Submenus: 144 done, 11 partial, 0 pending, 10 tabled, 2 dropped.
 | SubRecoveryBounty | 9 | Done | Recovery > Bounty: state rows also show each state bounty (ours) |
 | SubRecoveryCores | 9 | Done | Recovery > Cores: temporary rank applies on every step (ours) |
 | SubRecoveryGiveItemsList | 1 | Done | Recovery > Add Items > Give Items: own item list from the game scripts (tools/extract_items.py); method is a visible choice instead of Shift (ours) |
-| SubRecoveryHonor | 5 | Partial | Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown |
+| SubRecoveryHonor | 5 | Done | Recovery > Honor: all actions; current honor reads honor_current; the honor HUD meter shows while the menu is open |
 | SubRecoveryMoney | 5 | Done | Recovery > Money: drop is a timed toggle (ours) instead of every tick |
 | SubRecoveryUnlocks | 8 | Done | Recovery > Unlocks: own lists from the game scripts (tools/extract_unlocks.py); Unlock Checks lists every unlock the scripts name; Add Entries writes every journal entry the game allows; Discover Fish skips legendary outfit presets (ours) |
 | SubStatEditor | 6 | Done | Miscellaneous > Stat Editor |

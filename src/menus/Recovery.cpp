@@ -572,7 +572,12 @@ namespace Menus
 			[] { g_totalDropped = 0; return std::string("Counter reset"); }));
 
 		MenuBase* honor = Ui::Submenu(recovery, "Honor");
-		honor->AddItem(new MenuItemLabel([] { return std::format("Current Honor: {}", CurrentHonor()); }));
+		// The label is drawn every frame the Honor menu is open, so it also
+		// shows the game's honor meter then, as Rampage does.
+		honor->AddItem(new MenuItemLabel([] {
+			HUD::_ENABLE_HUD_CONTEXT_THIS_FRAME(GameUtil::Joaat("HUD_CTX_HONOR_SHOW"));
+			return std::format("Current Honor: {}", CurrentHonor());
+		}));
 		Ui::Number(honor, "recovery.honor.amount", "Amount", &g_honorAmount, 0, 320, 1);
 		Ui::Action(honor, "recovery.addpositive", "Add Positive", [] { return ChangeHonorByKill(-g_honorAmount); });
 		Ui::Action(honor, "recovery.addnegative", "Add Negative", [] { return ChangeHonorByKill(g_honorAmount); });

@@ -92,7 +92,7 @@ STATUS = {
  'SubWorldStates':('Done','World > World States: by state id (Global_40.f_283 bitset), no names'),
  'SubWorldTime':('Done','World > Time'),
  'SubRecoveryMoney':('Done','Recovery > Money: drop is a timed toggle (ours) instead of every tick'),
- 'SubRecoveryHonor':('Partial','Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown'),
+ 'SubRecoveryHonor':('Done','Recovery > Honor: all actions; current honor reads honor_current; the honor HUD meter shows while the menu is open'),
  'SubRecoveryBounty':('Done','Recovery > Bounty: state rows also show each state bounty (ours)'),
  'SubRecoveryCores':('Done','Recovery > Cores: temporary rank applies on every step (ours)'),
  'SubRecoveryAddItems':('Done','Recovery > Add Items: Unlimited Items also blocks by-GUID removals (ours)'),
