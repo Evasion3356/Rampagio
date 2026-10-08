@@ -72,8 +72,8 @@ Manager lists and removes them).
   (`IntCommand`, `FloatCommand`, `ListCommand`, `StringCommand`,
   `ColorCommand`, optionally writing through the feature's own variable),
   `ActionCommand` and `HotkeySystem` (key chains by command id). Only
-  `src/core/*.cpp`, `DataFile.cpp`, `Settings.cpp` and the four collection
-  menus include the full `<nlohmann/json.hpp>`; headers use
+  `src/core/*.cpp`, `DataFile.cpp`, `Settings.cpp`, the four collection
+  menus and `Spawner.cpp` (vehicle JSON Loader) include the full `<nlohmann/json.hpp>`; headers use
   `json_fwd.hpp`.
 - `src/menus/<Area>.cpp`: one file per top-level menu (Player, Horse,
   Teleport, World, ...), declared in `src/menus/Menus.h`. Each holds both
@@ -133,7 +133,8 @@ Manager lists and removes them).
 - `src/DataFile.{h,cpp}`: `LoadJson`/`SaveJson` for the user's saved
   collections, one file each (`Rampagio_Teleports.json`,
   `Rampagio_Outfits.json`, `Rampagio_Horses.json`,
-  `Rampagio_Spooner.json`), stored where `Rampagio.json` is; `LoadLines` reads a
+  `Rampagio_Spooner.json`), stored where `Rampagio.json` is, plus the
+  `Rampagio_Vehicles` folder of Rampage-format vehicle files (`ListFiles`); `LoadLines` reads a
   plain list file from there (user-supplied lists such as
   `Rampagio_PedAnimList.txt`, `Rampagio_Speech*.txt` and
   `Rampagio_ClothingDb.xml`, the same formats as Rampage's

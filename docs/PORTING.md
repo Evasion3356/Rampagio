@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 145 done, 10 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 146 done, 9 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -209,7 +209,7 @@ Submenus: 145 done, 10 partial, 0 pending, 10 tabled, 2 dropped.
 | SubVehiclePaintOptions | 0 | Done | Vehicle > Paint Options |
 | SubVehiclePropsets | 3 | Done | Vehicle > Propsets: every vehicle propset the game scripts name (tools/extract_vehicles.py) instead of a per-model table |
 | SubVehiclePv | 4 | Done | Vehicle > Blip |
-| SubVehicleSpawner | 2 | Partial | Spawner > Vehicle Spawner: lists by type from the game scripts; settings are ours; JSON Loader not ported |
+| SubVehicleSpawner | 2 | Done | Spawner > Vehicle Spawner: lists by type from the game scripts; settings are ours; JSON Loader reads Rampage vehicle files from Rampagio_Vehicles |
 
 ## Weapons
 

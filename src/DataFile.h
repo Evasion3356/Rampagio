@@ -31,4 +31,9 @@ namespace DataFile
 	// Non-empty lines, trimmed, without '#' or "//" comment lines. Empty
 	// when the file doesn't exist.
 	std::vector<std::string> LoadLines(const std::wstring& fileName);
+
+	// Names (without the extension) of the files with that extension in a
+	// folder next to Rampagio.json or in the fallback directory, sorted.
+	// Load one with LoadJson(folder + L"\\" + name + extension).
+	std::vector<std::string> ListFiles(const std::wstring& folder, const std::wstring& extension);
 }

@@ -4,7 +4,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
 #include <fstream>
+#include <set>
 #include <sstream>
 
 namespace DataFile
@@ -67,5 +69,20 @@ namespace DataFile
 			lines.push_back(line.substr(first, last - first + 1));
 		}
 		return lines;
+	}
+
+	std::vector<std::string> ListFiles(const std::wstring& folder, const std::wstring& extension)
+	{
+		std::set<std::string> names;
+		for (const std::wstring& dir : { LogFallback::ModuleDirectory(), LogFallback::FallbackDirectory() })
+		{
+			std::error_code ec;
+			if (dir.empty())
+				continue;
+			for (const auto& entry : std::filesystem::directory_iterator(dir + folder, ec))
+				if (entry.is_regular_file(ec) && _wcsicmp(entry.path().extension().c_str(), extension.c_str()) == 0)
+					names.insert(LogFallback::ToUtf8(entry.path().stem().wstring()));
+		}
+		return { names.begin(), names.end() };
 	}
 }

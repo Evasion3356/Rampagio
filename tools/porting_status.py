@@ -70,7 +70,7 @@ STATUS = {
  'SubPedSpawnerFish':('Done','Spawner > Ped Spawner > Fishes'),
  'SubPedSpawnerAddon':('Done','Spawner > Ped Spawner > Addon Peds: Rampagio_AddonPeds.txt, re-read on open'),
  'SubPedSpawnerDispatch':('Done','Spawner > Law Dispatch Spawner: LAW_ responses from the game scripts plus the table of Rampage, which also sets the law region of each response (data/LawDispatchRegions.inc)'),
- 'SubVehicleSpawner':('Partial','Spawner > Vehicle Spawner: lists by type from the game scripts; settings are ours; JSON Loader not ported'),
+ 'SubVehicleSpawner':('Done','Spawner > Vehicle Spawner: lists by type from the game scripts; settings are ours; JSON Loader reads Rampage vehicle files from Rampagio_Vehicles'),
  'SubObjectSpawner':('Done','Spawner > Object Spawner: objects from the game scripts; creator cam is our own free cam'),
  'SubObjSpawnerDatabase':('Done','Spawner > Object Spawner > Object Database: per-object actions (ours) until the Object Editor is back'),
  'SubObjSpawnerAllObjs':('Done','Spawner > Object Spawner > All Objects: game script objects plus Rampagio_ObjectList.txt'),

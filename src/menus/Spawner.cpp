@@ -13,12 +13,15 @@
 	The legendary animals and fish are Rampage's table (model plus outfit
 	preset, data/LegendaryAnimals.inc).
 
-	Not ported: the vehicle JSON loader.
+	The vehicle JSON Loader reads Rampage's vehicle files (RampageFiles\Vehicle)
+	from a Rampagio_Vehicles folder next to Rampagio.json.
 */
 
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <format>
@@ -445,6 +448,67 @@ namespace
 		return {};
 	}
 
+	// --- vehicle JSON loader ----------------------------------------------------------
+	// Rampage's format: { "vehicle": { "model", "livery", "liveryIdx", "tint",
+	// "tintId", ... }, "item<N>": { "model", "attachmentOffsetX/Y/Z",
+	// "rotationX/Y/Z", "boneIdx", "lockRotation" }, ... }; the items are
+	// objects attached to the vehicle.
+
+	constexpr wchar_t kVehicleFolder[] = L"Rampagio_Vehicles";
+
+	std::string LoadVehicleJson(const std::string& name)
+	{
+		const nlohmann::json file = DataFile::LoadJson(std::wstring(kVehicleFolder) + L"\\" + std::wstring(name.begin(), name.end()) + L".json");
+		const auto vehicle = file.find("vehicle");
+		if (vehicle == file.end() || !vehicle->is_object())
+			return std::format("{}.json has no vehicle", name);
+		const std::string error = SpawnVehicle(vehicle->value("model", std::string()));
+		if (!error.empty())
+			return error;
+		const Vehicle v = g_lastSpawned;
+		DECORATOR::DECOR_SET_BOOL(v, "wagon_block_honor", TRUE);
+		VEHICLE::SET_VEHICLE_INFLUENCES_WANTED_LEVEL(v, FALSE);
+		if (vehicle->value("livery", false))
+			VEHICLE::_SET_VEHICLE_LIVERY(v, vehicle->value("liveryIdx", 0));
+		if (vehicle->value("tint", false))
+			VEHICLE::_SET_VEHICLE_TINT(v, vehicle->value("tintId", 0));
+		const Vector3 at = ENTITY::GET_ENTITY_COORDS(v, TRUE, FALSE);
+		int attached = 0;
+		for (const auto& [key, item] : file.items())
+		{
+			if (key.find("item") == std::string::npos || !item.is_object())
+				continue;
+			const Hash model = GameUtil::ParseHash(item.value("model", std::string()));
+			if (!GameUtil::LoadModel(model))
+				continue;
+			const Object o = OBJECT::CREATE_OBJECT_NO_OFFSET(model, at.x, at.y, at.z - 500.0f, TRUE, TRUE, FALSE, FALSE);
+			ENTITY::ATTACH_ENTITY_TO_ENTITY(o, v, item.value("boneIdx", 0),
+				item.value("attachmentOffsetX", 0.0f), item.value("attachmentOffsetY", 0.0f), item.value("attachmentOffsetZ", 0.0f),
+				item.value("rotationX", 0.0f), item.value("rotationY", 0.0f), item.value("rotationZ", 0.0f),
+				FALSE, FALSE, TRUE, FALSE, 2, item.value("lockRotation", false), FALSE, FALSE);
+			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+			attached++;
+		}
+		return std::format("Loaded {} with {} entities", name, attached);
+	}
+
+	void BuildVehicleJson(MenuBase* m)
+	{
+		for (const std::string& name : DataFile::ListFiles(kVehicleFolder, L".json"))
+			Ui::Action(m, name, [name] {
+				try
+				{
+					return LoadVehicleJson(name);
+				}
+				catch (const nlohmann::json::exception& e)
+				{
+					return std::format("{}.json: {}", name, e.what());
+				}
+			});
+		if (m->GetItemCount() == 0)
+			m->AddItem(new MenuItemLabel([] { return std::string("No files in Rampagio_Vehicles"); }));
+	}
+
 	std::string HijackVehicle()
 	{
 		std::string name;
@@ -634,6 +698,7 @@ namespace Menus
 		VehicleList(vehicles, "Boat Spawner", VehicleKind::Boat);
 		VehicleList(vehicles, "Cannon Spawner", VehicleKind::Cannon);
 		VehicleList(vehicles, "Other Vehicles", VehicleKind::Other);
+		Ui::ListMenu(vehicles, "JSON Loader", BuildVehicleJson);
 
 		BuildObjectSpawner(spawner);
 	}
