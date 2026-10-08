@@ -48,7 +48,15 @@ struct MenuStyle
 	bool sounds = true;
 	bool gamepad = true;                        // navigate with the d-pad, A and B
 	int gamepadOpen = 1;                        // index into MenuInput::kGamepadOpenNames
+	int titleFont = 1;                          // index into kTitleFonts (title rows)
+	int bodyFont = 2;                           // index into kBodyFonts (everything else)
+	std::string title = "Rampagio";             // the root menu's title
 };
+
+// Rampage's Main Font and Body Font choices: Scaleform font faces.
+inline constexpr const char* kTitleFonts[] = { "$title1", "$Font5", "$chalk", "$catalog1", "$catalog5", "$ledger", "$gamername" };
+inline constexpr const char* kBodyFonts[] = { "$body", "$title1", "$Font5", "$chalk", "$catalog1", "$catalog5", "$Debug_REG",
+	"$body1", "$wantedPostersGeneric", "$ledger", "$gamername", "$Font2" };
 
 MenuStyle& Style();
 
@@ -330,7 +338,8 @@ void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active
 
 // Screen text in the menu's font (x, y in 0..1); also used for the
 // scanners' world labels.
-void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color);
+// face: a Scaleform font face; nullptr uses Style()'s body font.
+void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color, const char* face = nullptr);
 
 // Rampagio addition: a number edited with NUMPAD 4/6, drawn as "< value >"
 // on the right. The value lives with the feature (`value` points at it);

@@ -67,9 +67,14 @@ MenuStyle& Style()
 // helper. Always left-aligned (RIGHTMARGIN/ALIGN fixed) -- every menu
 // item in this file is; the one exception (the centered status-text
 // popup) builds its own tag directly in MenuController::DrawStatusText().
-void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color)
+void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color, const char* face)
 {
-	std::string formatText = "<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Left'><FONT FACE='$Font5' LETTERSPACING='0' SIZE='"
+	if (!face)
+	{
+		const int body = Style().bodyFont;
+		face = body >= 0 && body < static_cast<int>(std::size(kBodyFonts)) ? kBodyFonts[body] : "$Font5";
+	}
+	std::string formatText = std::string("<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Left'><FONT FACE='") + face + "' LETTERSPACING='0' SIZE='"
 		+ std::to_string(fontSize) + "'>~s~" + str + "</FONT></P><TEXTFORMAT>";
 	UIDEBUG::_BG_SET_TEXT_COLOR(color.r, color.g, color.b, color.a);
 	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), x, y);
@@ -131,7 +136,13 @@ void MenuItemBase::OnDraw(float lineTop, float lineLeft, bool active)
 	// text
 	ColorRgba textColor = active ? GetColorTextActive() : GetColorText();
 	int fontSize = static_cast<int>(m_lineHeight * kMenuFontSizeScale);
-	DrawTextAt(lineLeft + m_textLeft, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor);
+	// Title rows use the title font.
+	const char* face = nullptr;
+	const int titleFont = Style().titleFont;
+	if ((GetClass() == eMenuItemClass::Title || GetClass() == eMenuItemClass::ListTitle)
+		&& titleFont >= 0 && titleFont < static_cast<int>(std::size(kTitleFonts)))
+		face = kTitleFonts[titleFont];
+	DrawTextAt(lineLeft + m_textLeft, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor, face);
 }
 
 namespace

@@ -133,6 +133,14 @@ namespace
 				SetStatusText(result, 4000);
 		}
 	};
+
+	// The root menu's title: Style().title (Settings > Theme > Menu Title).
+	class RootTitle : public MenuItemTitle
+	{
+	public:
+		RootTitle() : MenuItemTitle("Rampagio") {}
+		std::string GetCaption() override { return Style().title.empty() ? "Rampagio" : Style().title; }
+	};
 }
 
 namespace Ui
@@ -146,7 +154,7 @@ namespace Ui
 	{
 		if (!g_root)
 		{
-			g_root = new MenuBase(new MenuItemTitle("Rampagio"));
+			g_root = new MenuBase(new RootTitle());
 			g_controller.RegisterMenu(g_root);
 		}
 		return g_root;

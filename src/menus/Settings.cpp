@@ -39,6 +39,7 @@
 #include <ctime>
 #include <format>
 #include <map>
+#include <span>
 
 using Rampagio::Commands;
 using Rampagio::HotkeySystem;
@@ -119,6 +120,9 @@ namespace
 			j["sounds"] = style.sounds;
 			j["gamepad"] = style.gamepad;
 			j["gamepadOpen"] = style.gamepadOpen;
+			j["titleFont"] = style.titleFont;
+			j["bodyFont"] = style.bodyFont;
+			j["title"] = style.title;
 		}
 		void LoadStateImpl(nlohmann::json& j) override
 		{
@@ -130,6 +134,12 @@ namespace
 			ReadValue(j, "sounds", style.sounds);
 			ReadValue(j, "gamepad", style.gamepad);
 			ReadValue(j, "gamepadOpen", style.gamepadOpen);
+			ReadValue(j, "titleFont", style.titleFont);
+			ReadValue(j, "bodyFont", style.bodyFont);
+			if (auto it = j.find("title"); it != j.end() && it->is_string())
+				style.title = it->get<std::string>();
+			style.titleFont = std::clamp(style.titleFont, 0, static_cast<int>(std::size(kTitleFonts)) - 1);
+			style.bodyFont = std::clamp(style.bodyFont, 0, static_cast<int>(std::size(kBodyFonts)) - 1);
 			style.left = std::clamp(style.left, 0.0f, 0.78f);
 			style.top = std::clamp(style.top, 0.0f, 0.5f);
 			style.linesPerScreen = std::clamp(style.linesPerScreen, 3, 25);
@@ -245,6 +255,17 @@ namespace
 		});
 
 		Ui::Section(theme, "Customize");
+		// Font faces as Rampage lists them, without the '$'.
+		const auto faces = [](std::span<const char* const> fonts)
+		{
+			std::vector<std::string> names;
+			for (const char* f : fonts)
+				names.push_back(f + 1);
+			return names;
+		};
+		Ui::Choice(theme, "Main Font", faces(kTitleFonts), &Style().titleFont, [](int) { StyleChanged(); });
+		Ui::Choice(theme, "Body Font", faces(kBodyFonts), &Style().bodyFont, [](int) { StyleChanged(); });
+		Ui::Text(theme, "Menu Title", &Style().title, StyleChanged);
 		static MenuBase* colorMenu = nullptr;
 		static ColorRgba MenuStyle::* editing = nullptr;
 		static int rgba[4];

@@ -123,7 +123,7 @@ STATUS = {
  'SubSettings':('Partial','Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Plugins and Language have no Rampagio counterpart'),
  'SubSettingsCore':('Partial','Settings > Core: Gamepad Controls, Menu Sounds, Show Controller Screen; Mouse Controls still to come (CLAUDE.md UI direction); welcome/ToS/update/landing rows dropped'),
  'SubSettingsLoadSave':('Done','Settings > Load / Save: Rampagio.json'),
- 'SubSettingsColor':('Partial','Settings > Theme: eight colors, menu position and Max Display Options; no font choice or menu title text'),
+ 'SubSettingsColor':('Done','Settings > Theme: eight colors, Main Font and Body Font (the faces of Rampage), Menu Title, menu position and Max Display Options'),
  'SubSettingsPremadeThemes':('Done','Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own)'),
  'SubSettingsCustomThemes':('Done','Settings > Theme > Custom Themes: the themes component of Rampagio.json'),
  'SubSettingsXUI':('Partial','Settings > Theme > Max Display Options; teleport map, spawner previews, ink rendering, inverted colors and centered title not ported'),
