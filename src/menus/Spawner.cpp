@@ -10,9 +10,10 @@
 	Each dispatch response first sets the law region Rampage's table ties
 	it to (data/LawDispatchRegions.inc).
 
-	Not ported: Rampage's legendary animal table (model plus outfit
-	preset; ours lists the legendary models the scripts name) and the
-	vehicle JSON loader.
+	The legendary animals and fish are Rampage's table (model plus outfit
+	preset, data/LegendaryAnimals.inc).
+
+	Not ported: the vehicle JSON loader.
 */
 
 #include "Menus.h"
@@ -49,6 +50,12 @@ namespace
 	};
 	// Rampage's response table: the law region (and state) each response
 	// belongs to, set before dispatching it. 0 means none.
+	// Rampage's legendary animals and fish: a model plus the outfit preset
+	// that makes it the legendary.
+	struct Legendary { const char* kind; const char* label; const char* model; int preset; };
+	const Legendary kLegendaries[] = {
+#include "..\data\LegendaryAnimals.inc"
+	};
 	struct LawDispatchRegion { const char* response; Hash region; Hash state; };
 	const LawDispatchRegion kLawDispatchRegions[] = {
 #include "..\data\LawDispatchRegions.inc"
@@ -143,7 +150,8 @@ namespace
 		MISC::REGISTER_INTERACTION_LOCKON_PROMPT(ped, "INTERACT_LOCKON", 7.0f, 0.0f, 0, 0.0f, 0.0f, 0, FALSE, -1);
 	}
 
-	std::string SpawnPed(const std::string& name, int outfitPreset = 0)
+	// outfitPreset < 0 keeps the random outfit.
+	std::string SpawnPed(const std::string& name, int outfitPreset = -1)
 	{
 		const Hash model = GameUtil::ParseHash(name);
 		if (!STREAMING::IS_MODEL_IN_CDIMAGE(model) || !STREAMING::IS_MODEL_VALID(model))
@@ -154,7 +162,7 @@ namespace
 		const Vector3 p = ENTITY::GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(me, 0.0f, 5.0f, 0.0f);
 		Ped ped = PED::CREATE_PED(model, p.x, p.y, p.z, ENTITY::GET_ENTITY_HEADING(me), FALSE, FALSE, FALSE, FALSE);
 		PED::_SET_RANDOM_OUTFIT_VARIATION(ped, TRUE);
-		if (outfitPreset)
+		if (outfitPreset >= 0)
 			PED::_EQUIP_META_PED_OUTFIT_PRESET(ped, outfitPreset, FALSE);
 		if (g_blockHonor)
 		{
@@ -242,6 +250,18 @@ namespace
 				Ui::Action(m, n, [n] { return SpawnHorse(n); });
 			else
 				Ui::Action(m, n, [n] { return SpawnPed(n); });
+		}
+	}
+
+	void AddLegendaryRows(MenuBase* m, std::string_view kind)
+	{
+		for (const Legendary& l : kLegendaries)
+		{
+			if (kind != l.kind || !PedAvailable(l.model))
+				continue;
+			const std::string model = l.model;
+			const int preset = l.preset;
+			Ui::Action(m, l.label, [model, preset] { return SpawnPed(model, preset); });
 		}
 	}
 
@@ -527,7 +547,7 @@ namespace Menus
 		Ui::ListMenu(peds, "Animals", [](MenuBase* m) {
 			Ui::Action(m, "Random Animal", [] { return Random(kAnimalModels, false); });
 			Ui::Section(m, "Legendary Animals");
-			AddPedRows(m, Animals([](std::string_view n) { return n.find("legendary") != n.npos; }));
+			AddLegendaryRows(m, "Animal");
 			Ui::Section(m, "Dogs");
 			AddPedRows(m, Animals([](std::string_view n) { return n.starts_with("a_c_dog"); }));
 			Ui::Section(m, "All Animals");
@@ -536,6 +556,9 @@ namespace Menus
 		Ui::ListMenu(peds, "Fishes", [](MenuBase* m) {
 			const auto fish = Animals([](std::string_view n) { return n.starts_with("a_c_fish"); });
 			Ui::Action(m, "Random Fish", [fish] { return Random(fish, false); });
+			Ui::Section(m, "Legendary Fish");
+			AddLegendaryRows(m, "Fish");
+			Ui::Section(m, "All Fish");
 			AddPedRows(m, fish);
 		});
 		Ui::ListMenu(peds, "Addon Peds", [](MenuBase* m) {

@@ -66,7 +66,7 @@ STATUS = {
  'SubPedSpawnerPeds':('Done','Spawner > Ped Spawner > Humans: grouped by model prefix'),
  'SubPedSpawnerPedsList':('Done','Spawner > Ped Spawner > Humans > <group>'),
  'SubPedSpawnerHorses':('Done','Spawner > Ped Spawner > Horses: one list from the game scripts'),
- 'SubPedSpawnerAnimal':('Partial','Spawner > Ped Spawner > Animals: Legendary Animals lists the legendary models the scripts name; the outfit-preset legendaries of Rampage are its own table'),
+ 'SubPedSpawnerAnimal':('Done','Spawner > Ped Spawner > Animals: Legendary Animals are the table of Rampage (model plus outfit preset, data/LegendaryAnimals.inc); Fishes gets its legendary fish too'),
  'SubPedSpawnerFish':('Done','Spawner > Ped Spawner > Fishes'),
  'SubPedSpawnerAddon':('Done','Spawner > Ped Spawner > Addon Peds: Rampagio_AddonPeds.txt, re-read on open'),
  'SubPedSpawnerDispatch':('Done','Spawner > Law Dispatch Spawner: LAW_ responses from the game scripts plus the table of Rampage, which also sets the law region of each response (data/LawDispatchRegions.inc)'),

@@ -13,6 +13,12 @@ Needs pefile.
   { name pointer, law region hash, state hash } (the two hashes go to
   _SET_LAW_REGION before the response is dispatched; 0 means none).
   { "<name>", 0x<region>, 0x<state> }
+- LegendaryAnimals.inc: the legendary rows of Spawner > Ped Spawner >
+  Animals and Fishes. Rampage's animal and fish tables are entries of
+  { label, model, image, outfit preset, hash }; the legendaries are the
+  run starting at Bull Gator (animals) and at the first "Legendary " label
+  (fish). Spawning one equips its outfit preset.
+  { "<Animal|Fish>", "<label>", "<model>", <preset> }
 
 The names and hashes are carried over on purpose (see CLAUDE.md);
 nothing reads Rampage at runtime.
@@ -36,11 +42,28 @@ class Image:
         self.data = self.pe.__data__
 
     def string(self, va, prefix):
+        if not self.base <= va < self.base + self.pe.OPTIONAL_HEADER.SizeOfImage:
+            return None
         try:
             raw = self.pe.get_data(va - self.base, 128).split(b"\0")[0]
         except Exception:
             return None
-        return raw.decode("ascii") if raw.startswith(prefix) and raw.isascii() else None
+        ok = raw and raw.startswith(prefix) and all(32 <= c < 127 for c in raw)
+        return raw.decode("ascii") if ok else None
+
+    def entry(self, off, count):
+        """The strings at `count` pointers from file offset `off`, or None."""
+        ptrs = struct.unpack_from("<%dQ" % count, self.data, off)
+        out = [self.string(p, b"") for p in ptrs]
+        return out if all(out) else None
+
+    def find_entry(self, label, model):
+        """File offset of a { label, model, ... } entry."""
+        for off in range(0, len(self.data) - 16, 8):
+            e = self.entry(off, 2) if self.data[off + 7] == 0 and self.data[off + 5] == 0 else None
+            if e == [label, model]:
+                return off
+        raise SystemExit("entry %s not found" % label)
 
     def table(self, first, prefix, stride):
         """Offsets of the entries of the table whose first entry names `first`."""
@@ -75,6 +98,20 @@ def main(asi, dst):
     for off, name in img.table(b"LAW_CUSTOM_MUD3B", b"LAW_", 16):
         region, state = struct.unpack_from("<II", img.data, off + 8)
         rows.append('{ "%s", 0x%08X, 0x%08X },' % (name, region, state))
+    legendary = []
+    for kind, label, model, is_legendary in (
+            ("Animal", "Bull Gator", "a_c_alligator_02", lambda e: "legendary" in e[2]),
+            ("Fish", "Legendary Bluegill", "A_C_FishBluegil_01_ms", lambda e: e[0].startswith("Legendary "))):
+        off = img.find_entry(label, model)
+        while True:
+            e = img.entry(off, 3)
+            if not e or not is_legendary(e):
+                break
+            preset = struct.unpack_from("<i", img.data, off + 24)[0]
+            legendary.append('{ "%s", "%s", "%s", %d },' % (kind, e[0], e[1], preset))
+            off += 32
+    write(os.path.join(dst, "LegendaryAnimals.inc"),
+          "legendary animal and fish tables. { kind, label, model, outfit preset }", legendary)
     write(os.path.join(dst, "LawDispatchRegions.inc"),
           "Law Dispatch Spawner table. { response, law region, state }", rows)
 
