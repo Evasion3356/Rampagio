@@ -386,22 +386,18 @@ header) belongs here too, later.
 
 ## Next steps
 
-Resume point (2026-10-07). Done so far: inventory tooling; menu framework
-(`src/Menu.h` builder API, number/choice/section rows, left/right input,
-rebuilt-on-open lists); ported Player (SubSelf), Horse (SubSelfHorse),
-World Time/Weather, most of Teleport/World/Weapons, Recovery Money,
-Honor, Bounty, Cores (with the script-function caller), Add Items (with
-NativeHooks), Give Items and Unlocks (cheat codes, map discoverables,
-compendium, journal, unlock checks), Collectibles (cigarette cards,
-dino bones, dreamcatchers, rock carvings) and most Player submenus
-(`src/menus/PlayerSubmenus.cpp`: Scenarios, Walk Styles, Damage Packs,
-Vision, Moods, Abilities, Proofs, Config Flags; `PlayerActions.cpp`:
-Animations, Facial Animations, Effects, Emotes, Play Speech, Voice
-Changer; `Wardrobe.cpp` and `ModelChanger.cpp`: the rest of Wardrobe).
-49 submenus done, 12 partial, 97 pending, 9 tabled; see
-`docs/PORTING.md`. Everything builds clean
-(Debug); nothing is live-tested (the user deferred testing until the
-port is further along). Menu key is F5.
+Resume point (2026-10-07, end of the porting loop). Every non-tabled
+Rampage submenu is ported: 133 done, 22 partial, 10 tabled, 2 dropped,
+0 pending (`docs/PORTING.md`). The last batch added Miscellaneous,
+Settings (theme via `MenuStyle`, toggle save/load, F11 hotkeys, search,
+overlays, gamepad input), the Ped Editor with `Menus::Target`, the rest
+of Horse, Weapon Visuals/Aimbot/Bullets and the leftover Weapon rows, IPL
+Sets and Teleport > Shops. The Partial rows are mostly deliberate: data
+Rampage keeps in its own tables (effect presets, location lists,
+outfit-preset legendaries, overlay textures) that we don't copy, plus a
+few items needing live testing first (Force Player Type) or engine
+patches (Disable Hitmarker). Everything builds clean (Debug); nothing is
+live-tested. Menu key is F5.
 
 1. **Native header: done except GoldHorse.** Steps 1-3 of
    `docs/NATIVE_HEADER_PLAN.md` are done and pushed (fork `086e1ed`;
@@ -416,10 +412,8 @@ port is further along). Menu key is F5.
    own DllMain). Plan: port its UI layer (sprite look, per-option
    descriptions, controller input) behind `src/Menu.h`, against alloc8or
    names, with attribution.
-3. Keep porting, in this order: Player Posse,
-   Vehicle, Spawner, the remaining World submenus, Miscellaneous,
-   Settings (incl. toggle save/load). Tabled, so skip them until the user
-   brings them back: the Debug, Object Editor and Script Tools areas
+3. Porting is done apart from the Partial rows. Tabled, so skip them
+   until the user brings them back: the Debug, Object Editor and Script Tools areas
    (tabled 2026-10-07; `TABLED_AREAS` in `tools/porting_status.py`). For
    Debug > Scripts the user wants to rework the tools rather than port
    them as-is. Leftovers listed in

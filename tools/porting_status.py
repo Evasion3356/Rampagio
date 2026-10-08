@@ -50,7 +50,7 @@ STATUS = {
  'SubVoiceChanger':('Done','Player > Play Speech > Voice Changer: Set Voice lists the script voices plus Custom Input (ours)'),
  'SubPlayerProofs':('Done','Player > Player Proofs: re-applied every frame (ours)'),
  'SubPlayerConfigFlags':('Done','Player > Config Flags: flag by number (no names), shows current state (ours)'),
- 'SubPlayerPosse':('Partial','Player > Posse: commands are menu rows (Posse Commands hotkeys wait for Rampagio hotkeys); Add Aimed/Nearest Ped, Teleport, Dismiss and Delete rows (ours)'),
+ 'SubPlayerPosse':('Done','Player > Posse: commands are menu rows, bindable to keys with F11 (Settings > Hotkey Manager); Add Aimed/Nearest Ped, Teleport, Dismiss and Delete rows (ours)'),
  'SubVehicle':('Done','Vehicle: Invincible Vehicle re-applies to the current vehicle every frame (ours); Fly Speed and Ground Force are separate rows'),
  'SubVehiclePv':('Done','Vehicle > Blip'),
  'SubVehicleAI':('Done','Vehicle > Vehicle AI'),

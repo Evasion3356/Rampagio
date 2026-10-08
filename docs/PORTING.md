@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 132 done, 23 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 133 done, 22 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -101,7 +101,7 @@ Submenus: 132 done, 23 partial, 0 pending, 10 tabled, 2 dropped.
 | SubPlaySpeechRegular | 2 | Done | Player > Play Speech > Regular Speeches: 208 lines from the game scripts (Rampage's table has 502); one Display All for every list |
 | SubPlaySpeechVignettes | 3 | Done | Player > Play Speech > Vignettes: Rampagio_SpeechVignettes.txt, re-read on open |
 | SubPlayerConfigFlags | 2 | Done | Player > Config Flags: flag by number (no names), shows current state (ours) |
-| SubPlayerPosse | 11 | Partial | Player > Posse: commands are menu rows (Posse Commands hotkeys wait for Rampagio hotkeys); Add Aimed/Nearest Ped, Teleport, Dismiss and Delete rows (ours) |
+| SubPlayerPosse | 11 | Done | Player > Posse: commands are menu rows, bindable to keys with F11 (Settings > Hotkey Manager); Add Aimed/Nearest Ped, Teleport, Dismiss and Delete rows (ours) |
 | SubPlayerProofs | 9 | Done | Player > Player Proofs: re-applied every frame (ours) |
 | SubSelf | 38 | Done | Player |
 | SubSelfAnimationsCustom | 7 | Done | Player > Animations > Custom Animations: the Custom Flag submenu is a typed Custom Flags row (decimal or 0x hex) |
