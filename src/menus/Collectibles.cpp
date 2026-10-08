@@ -216,19 +216,27 @@ namespace
 	};
 
 	// Category hashes from the 1491.50 scripts (docs/COLLECTIBLES_AND_ITEMS_PLAN.md).
+	// The Joaat calls get their own lines: tools/lang_sync.py skips lines
+	// with one, which would hide the captions.
 	// Only dino bones and rock carvings are known to have placement
 	// locations; the others are untested (rows without one say so).
 	Category g_categories[] = {
-		{ "Dino Bones", "dino_bones", "Dino Bone", { GameUtil::Joaat("dino_bones") } },
-		{ "Rock Carvings", "rock_carvings", "Rock Carving", { GameUtil::Joaat("rock_carvings") } },
+		{ "Dino Bones", "dino_bones", "Dino Bone",
+			{ GameUtil::Joaat("dino_bones") } },
+		{ "Rock Carvings", "rock_carvings", "Rock Carving",
+			{ GameUtil::Joaat("rock_carvings") } },
 		// rare_fish.ysc, rcm_collect_rare_fish1.ysc; the category's name is unknown.
 		{ "Legendary Fish", "legendary_fish", "Legendary Fish", { 0xC7EEA672 }, Naming::Item },
 		// gator_eggs.ysc: joaat("gator_eggs"), or 689918374 (joaat("gator_egg_nest")).
-		{ "Gator Eggs", "gator_eggs", "Gator Egg", { GameUtil::Joaat("gator_eggs"), 0x291F51A6 } },
-		{ "Carolina Parakeets", "carolina_parakeets", "Carolina Parakeet", { GameUtil::Joaat("carolina_parakeets") } },
+		{ "Gator Eggs", "gator_eggs", "Gator Egg",
+			{ GameUtil::Joaat("gator_eggs"), 0x291F51A6 } },
+		{ "Carolina Parakeets", "carolina_parakeets", "Carolina Parakeet",
+			{ GameUtil::Joaat("carolina_parakeets") } },
 		// wilderness_chest.ysc's -1129417850.
-		{ "Wilderness Chests", "wilderness_chests", "Wilderness Chest", { GameUtil::Joaat("wilderness_chests") } },
-		{ "Treasure", "treasure_hunter", "Treasure", { GameUtil::Joaat("treasure_hunter") }, Naming::Item },
+		{ "Wilderness Chests", "wilderness_chests", "Wilderness Chest",
+			{ GameUtil::Joaat("wilderness_chests") } },
+		{ "Treasure", "treasure_hunter", "Treasure",
+			{ GameUtil::Joaat("treasure_hunter") }, Naming::Item },
 		// herb_*.ysc's 1777389635, one subcategory per herb. Herbs grow
 		// back, so found doesn't hide them.
 		{ "Herb Pickups", "herbs", "Herb", { 0x69F0D043 }, Naming::Subcategory, false },
