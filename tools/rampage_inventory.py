@@ -122,6 +122,64 @@ def label_from_pseudocode(pc):
     return None
 
 
+def row_label(r):
+    """The row's label: from the pseudocode that fills the API call's first
+    argument, else the last string the instruction walk saw."""
+    desc = set(row_description(r))
+    strs = [s for s in r["strs"] if s.strip() and not TEXTURE_RX.fullmatch(s) and s not in desc]
+    label = label_from_pseudocode(r.get("pc"))
+    if label is None:
+        label = strs[-1] if strs else ""
+    if TEXTURE_RX.fullmatch(label):
+        label = ""
+    # Packed immediates can cover only the start of a label; Hex-Rays
+    # fills the rest from the literal, which the instruction walk saw.
+    label = next((s for s in strs if label and s.startswith(label) and len(s) > len(label)), label)
+    # A label copied in pieces (qmemcpy of its start, then a word read of
+    # its tail) leaves only the tail as the last literal.
+    return next((s for s in strs if label and s.endswith(label) and len(s) > len(label)), label)
+
+
+LITERAL = r'"((?:[^"\\]|\\.)*)"'
+# Builds a description vector: from a range of std::strings, or (other
+# builders) from an array of n strings filled just before.
+VECTOR_FILL = re.compile(r"sub_180218810\(|sub_18024E950\(")
+
+
+def unescape(s):
+    return s.encode("latin-1", "backslashreplace").decode("unicode_escape").encode("latin-1").decode("utf-8", "replace")
+
+
+def row_description(r):
+    """The row's description lines (Rampage passes a vector<string> to every
+    menu API call; the selected row's is drawn under the menu). They're the
+    strings the pseudocode builds between the previous vector fill and the
+    last one before the call: std::string constructions, strcpy/qmemcpy
+    copies and dword reads of a literal. A copy of only a literal's start
+    is completed from the strings the instruction walk saw."""
+    strs = r["strs"]
+    events = []
+    for line in r.get("pc") or []:
+        if VECTOR_FILL.search(line):
+            events.append(None)
+            continue
+        for m in re.finditer(r"(?:sub_18002FED0|strcpy|qmemcpy)\([^\"]*" + LITERAL, line):
+            s = unescape(m.group(1))
+            if "qmemcpy" in m.group(0):
+                s = next((x for x in strs if x.startswith(s) and len(x) > len(s)), s)
+            events.append(s)
+        for m in re.finditer(r"\*\([\w ]+ \*\)" + LITERAL, line):
+            s = unescape(m.group(1))
+            if events and events[-1] and events[-1].endswith(s) and events[-1] != s:
+                continue  # the tail of the string copied just before
+            events.append(next((x for x in strs if x.startswith(s)), s))
+    fills = [i for i, e in enumerate(events) if e is None]
+    if not fills:
+        return []
+    start = fills[-2] + 1 if len(fills) > 1 else 0
+    return [e for e in events[start:fills[-1]] if e and not TEXTURE_RX.fullmatch(e)]
+
+
 def main(inv_path, natives_csv, prefix):
     inv = json.load(open(inv_path))
     cg = {int(k): v for k, v in inv["callgraph"].items()}
@@ -161,18 +219,8 @@ def main(inv_path, natives_csv, prefix):
     for r in inv["rows"]:
         if r["api"] in ("title",):
             continue
-        strs = [s for s in r["strs"] if s.strip()]
-        strs = [s for s in strs if not TEXTURE_RX.fullmatch(s)]
-        label = label_from_pseudocode(r.get("pc"))
-        if label is None:
-            label = strs[-1] if strs else ""
-        if TEXTURE_RX.fullmatch(label):
-            label = ""
-        # Packed immediates can cover only the start of a label; Hex-Rays
-        # fills the rest from the literal, which the instruction walk saw.
-        label = next((s for s in strs if label and s.startswith(label) and len(s) > len(label)), label)
-        rest = [s for s in strs if s != label]
-        desc = next((s for s in reversed(rest) if " " in s and "{" not in s), "")
+        label = row_label(r)
+        desc = " / ".join(row_description(r))
         roots = []
         for kind, ea in r["handlers"]:
             if kind == "lambda" and ea in vft:

@@ -60,6 +60,7 @@ MENU_API = {
     0x1801ED430: "value_pick",
     0x1801EE3A0: "toggle_cb",
 }
+TITLE_API = 0x1801ECEE0
 
 LAMBDA_RX = re.compile(
     r"\?\?_7\?\$_Func_impl_no_alloc@V(_lambda_\w+?_)@\?\w+\?\?(Sub\w+)@Submenus@@YAXXZ@(.*)@std@@6B@")
@@ -125,6 +126,13 @@ def main(out_path):
         if own:
             # The biggest one is the builder; any others are its pieces.
             builders[max(own, key=lambda f: ida_funcs.get_func(f).size())] = sub
+
+    # Builders with no lambdas (Home, for one) have no RTTI name: any other
+    # function that sets a menu title is one too, named by its address.
+    for x in idautils.CodeRefsTo(TITLE_API, 0):
+        f = func_start(x)
+        if f is not None and f not in builders and f not in MENU_API:
+            builders[f] = "Sub_%X" % f
 
     rows = []
     for b, sub in builders.items():

@@ -77,6 +77,10 @@ namespace Ui
 	void Number(MenuBase* menu, const std::string& caption, float* value, float min, float max, float step, std::function<void()> onChange = nullptr, bool applyOnSelect = false);
 	void Choice(MenuBase* menu, const std::string& caption, std::vector<std::string> options, int* index, std::function<void(int)> onChange = nullptr);
 	void Section(MenuBase* menu, const std::string& caption);
+	// Sets the text shown under the menu while the row last added to `menu`
+	// is selected (lines split by '\n'), for rows the description tables
+	// (src/Descriptions.h) don't cover.
+	void Describe(MenuBase* menu, std::string text);
 	// Shows "caption: *value" ("Not set" while empty); selecting it opens the
 	// on-screen keyboard on the current value. onChange runs after an edit.
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange = nullptr);

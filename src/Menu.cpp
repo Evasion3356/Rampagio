@@ -268,6 +268,12 @@ namespace Ui
 		menu->AddItem(new MenuItemSection(caption));
 	}
 
+	void Describe(MenuBase* menu, std::string text)
+	{
+		if (const auto& items = menu->GetItems(); !items.empty())
+			items.back()->SetDescription(std::move(text));
+	}
+
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange)
 	{
 		menu->AddItem(new MenuItemActionStatus(

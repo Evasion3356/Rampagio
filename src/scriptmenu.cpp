@@ -34,7 +34,9 @@
 */
 
 #include "scriptmenu.h"
+#include "Descriptions.h"
 #include "PatternScan.h"
+#include "core\commands\Command.h"
 #include "Log.h"
 #include <algorithm>
 #include <climits>
@@ -209,6 +211,16 @@ void DrawMenuSprite(const char* dict, const char* name, float x, float y, float 
 	GRAPHICS::DRAW_SPRITE(dict, name, x, y, width, height, heading, color.r, color.g, color.b, color.a, FALSE);
 }
 
+std::string_view MenuItemBase::GetDescription()
+{
+	if (!m_description.empty())
+		return m_description;
+	if (Rampagio::Command* command = GetCommand(); command && !command->GetDescription().empty())
+		return command->GetDescription();
+	MenuItemTitle* title = m_menu ? m_menu->GetTitle() : nullptr;
+	return title ? Descriptions::Find(title->GetCaption(), GetCaption()) : std::string_view();
+}
+
 void MenuItemBase::WaitAndDraw(int ms)
 {
 	DWORD time = GetTickCount() + ms;
@@ -245,6 +257,7 @@ namespace
 	constexpr float kParagraphScale = 0.28f;
 	constexpr float kParagraphLineStep = 0.024f;
 	constexpr float kParagraphPadding = 0.009f;
+	constexpr float kDescriptionScale = 0.25f; // the text under the menu (MenuBase::OnDraw)
 
 	// Decodes the UTF-8 code point at s[i]; returns its byte length (>= 1,
 	// so malformed input still makes progress).
@@ -554,6 +567,34 @@ void MenuBase::OnDraw()
 	{
 		DrawMenuSprite("menu_textures", "selection_arrow_right", centerX, footerY - 0.0065f, arrowW, arrowH, 270.0f, kWhite);
 		DrawMenuSprite("menu_textures", "selection_arrow_left", centerX, footerY + 0.0065f, arrowW, arrowH, 270.0f, kWhite);
+	}
+
+	// The selected row's description in a box under the footer, with a
+	// main-color line along its top: 0.022 per line, text at 0.25 spaced
+	// 0.02 (Rampage's sub_1801F6A60, after it sets draw order 4).
+	if (count && m_items[m_activeIndex]->IsSelectable())
+	{
+		const std::string_view description = m_items[m_activeIndex]->GetDescription();
+		if (!description.empty())
+		{
+			static std::string s_text;
+			static std::vector<std::string> s_lines;
+			static int s_units = 0;
+			const int units = WrapWidth() > 0 ? WrapWidth() * 6 / 5 : 0; // the text is smaller than a paragraph's
+			if (description != s_text || units != s_units)
+			{
+				s_text.assign(description);
+				s_units = units;
+				s_lines = WrapText(s_text, units);
+			}
+			const float lines = static_cast<float>(s_lines.size());
+			const float boxTop = footerY + kRowHeight / 2.0f + 0.005f;
+			GRAPHICS::SET_SCRIPT_GFX_DRAW_ORDER(4);
+			DrawBox(centerX, boxTop + lines * 0.011f, kWidth, lines * 0.022f, style.base);
+			DrawBox(centerX, boxTop, kWidth, 0.0025f, style.main);
+			for (size_t i = 0; i < s_lines.size(); i++)
+				DrawMenuText(s_lines[i], x + 0.004f, boxTop + 0.001f + static_cast<float>(i) * 0.02f, kDescriptionScale, style.text);
+		}
 	}
 }
 

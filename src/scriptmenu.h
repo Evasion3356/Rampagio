@@ -96,6 +96,7 @@ class MenuItemBase
 	ColorRgba	m_colorTextActive;
 
 	MenuBase *	m_menu;
+	string		m_description; // Rampagio: SetDescription's text, else looked up
 protected:
 	MenuItemBase(
 		float lineWidth, float lineHeight, float textLeft,
@@ -120,6 +121,11 @@ public:
 	// Rampagio: the command a row shows (Menu.h id overloads), for F11
 	// binding; nullptr for plain rows.
 	virtual Rampagio::Command* GetCommand() { return nullptr; }
+	// Rampagio: the text drawn under the menu while this row is selected
+	// (lines split by '\n'): the row's own, else the command's, else
+	// Descriptions::Find for this menu's title and the caption.
+	void SetDescription(string text) { m_description = std::move(text); }
+	std::string_view GetDescription();
 
 	float GetLineWidth()  { return m_lineWidth;  }
 	virtual float GetLineHeight() { return m_lineHeight; }
