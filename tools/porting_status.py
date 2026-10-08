@@ -23,7 +23,7 @@ STATUS = {
  'SubSelfFacialHair':('Done','Player > Wardrobe > Hair and Weight'),
  'SubSelfPedMetaTags':('Done','Player > Wardrobe > Meta Ped Tags'),
  'SubSelfPedMetaExpressions':('Done','Player > Wardrobe > Meta Ped Expressions: names from the MetaPedExpression list alloc8or links'),
- 'SubSelfCustomizations':('Partial','Player > Wardrobe > Overlay Textures: texture hashes typed in; the per-overlay texture tables of Rampage (TX Id) not ported'),
+ 'SubSelfCustomizations':('Done','Player > Wardrobe > Overlay Textures: TX Id and Palette Id pick from the tables of Rampage (data/OverlayTextures.inc); the hashes can also be typed in'),
  'SubSelfModelChanger':('Partial','Player > Wardrobe > Model Changer: Force Player Type not ported'),
  'SubModelChangerPeds':('Done','Player > Wardrobe > Model Changer > Humans: models from the game scripts, grouped by prefix'),
  'SubModelChangerPedsList':('Done','Player > Wardrobe > Model Changer > Humans > <group>'),

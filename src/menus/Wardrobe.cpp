@@ -715,8 +715,13 @@ namespace
 	// --- overlay textures ----------------------------------------------------
 
 	// One layer per overlay type, composed over the HEADS albedo the way
-	// Rampage's Apply does. Rampage picks each layer's texture from its own
-	// tables (TX Id); ours takes the texture hashes typed in.
+	// Rampage's Apply does. TX Id and Palette Id pick from Rampage's tables
+	// (data/OverlayTextures.inc) and fill in the hashes, which can also be
+	// typed in.
+	struct OverlayTexture { const char* overlay; Hash albedo, normal, material; };
+	const OverlayTexture kOverlayTextures[] = {
+#include "..\data\OverlayTextures.inc"
+	};
 	const char* const kOverlays[] = { "eyebrows", "scars", "eyeliners", "lipsticks", "acne", "shadows",
 		"beardstabble", "paintedmasks", "ageing", "blush", "complex", "disc", "foundation", "freckles", "grime",
 		"hair", "moles", "spots" };
@@ -728,6 +733,7 @@ namespace
 		float opacity = 1.0f;
 		std::string palette;
 		int tints[3] = {};
+		int texture = 0, paletteId = 0;
 	};
 	Overlay g_overlays[std::size(kOverlays)];
 	int g_overlay = 0;
@@ -780,11 +786,32 @@ namespace
 		Ui::Choice(m, "Overlay", names, &g_overlay, [](int) { Ui::Controller().ReopenActiveLater(); });
 		Overlay& o = g_overlays[g_overlay];
 		Ui::Toggle(m, "Visibility", [&o](bool on) { o.visible = on; })->SetState(o.visible);
+		std::vector<const OverlayTexture*> textures, palettes;
+		for (const OverlayTexture& t : kOverlayTextures)
+		{
+			if (t.overlay == std::string_view(kOverlays[g_overlay]))
+				textures.push_back(&t);
+			else if (t.overlay == std::string_view("palette"))
+				palettes.push_back(&t);
+		}
+		const auto hex = [](Hash h) { return h ? std::format("0x{:08X}", h) : std::string(); };
+		if (!textures.empty())
+			Ui::Number(m, "TX Id", &o.texture, 0, static_cast<int>(textures.size()) - 1, 1, [&o, textures, hex] {
+				const OverlayTexture* t = textures[o.texture];
+				o.albedo = hex(t->albedo);
+				o.normal = hex(t->normal);
+				o.material = hex(t->material);
+				Ui::Controller().ReopenActiveLater();
+			});
 		Ui::Text(m, "Albedo", &o.albedo);
 		Ui::Text(m, "Normal", &o.normal);
 		Ui::Text(m, "Material", &o.material);
 		Ui::Number(m, "Variation", &o.variation, 0, 64, 1);
 		Ui::Number(m, "Opacity", &o.opacity, 0.0f, 1.0f, 0.1f);
+		Ui::Number(m, "Palette Id", &o.paletteId, 0, static_cast<int>(palettes.size()) - 1, 1, [&o, palettes, hex] {
+			o.palette = hex(palettes[o.paletteId]->albedo);
+			Ui::Controller().ReopenActiveLater();
+		});
 		Ui::Text(m, "Palette", &o.palette);
 		const char* const kTints[] = { "Primary Color", "Secondary Color", "Tertiary Color" };
 		for (int i = 0; i < 3; i++)

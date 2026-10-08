@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 140 done, 15 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 141 done, 14 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -106,7 +106,7 @@ Submenus: 140 done, 15 partial, 0 pending, 10 tabled, 2 dropped.
 | SubSelf | 38 | Done | Player |
 | SubSelfAnimationsCustom | 7 | Done | Player > Animations > Custom Animations: the Custom Flag submenu is a typed Custom Flags row (decimal or 0x hex) |
 | SubSelfAnimationsDicts | 1 | Done | Player > Animations > Dictionaries: script list plus Rampagio_PedAnimList.txt, re-read on open instead of Reload List |
-| SubSelfCustomizations | 4 | Partial | Player > Wardrobe > Overlay Textures: texture hashes typed in; the per-overlay texture tables of Rampage (TX Id) not ported |
+| SubSelfCustomizations | 4 | Done | Player > Wardrobe > Overlay Textures: TX Id and Palette Id pick from the tables of Rampage (data/OverlayTextures.inc); the hashes can also be typed in |
 | SubSelfFacialAnimations | 4 | Done | Player > Animations > Facial Animations |
 | SubSelfFacialHair | 4 | Done | Player > Wardrobe > Hair and Weight |
 | SubSelfModelChanger | 8 | Partial | Player > Wardrobe > Model Changer: Force Player Type not ported |
