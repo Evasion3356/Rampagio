@@ -6,7 +6,8 @@
 	Above ~60 FPS the script thread reads the fishing task's state faster
 	than the task's worker thread updates it, so a cast never commits; Dead
 	Eye has the same race. Each fix busy-waits 4 ms on the script thread
-	only while its race window is open, so both are on by default.
+	only while its race window is open, so both are on by default, and
+	their saved state comes back on start like an option's.
 */
 
 #include "Menus.h"
@@ -37,10 +38,10 @@ namespace Menus
 		Ui::Looped(self, "player.fishingcastfix", "Fishing Cast Fix", [] {
 			InitFishingFix();
 			FishingFix::Tick();
-		})->SetDefault(true);
+		})->SetDefault(true)->SetAlwaysRestore();
 		Ui::Looped(self, "player.deadeyefix", "Dead Eye Fix", [] {
 			InitFishingFix();
 			FishingFix::DeadEyeFix::OnTick();
-		})->SetDefault(true);
+		})->SetDefault(true)->SetAlwaysRestore();
 	}
 }

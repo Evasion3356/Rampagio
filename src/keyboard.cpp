@@ -1,6 +1,6 @@
 /*
 	Copied from the ScriptHookRDR2 SDK's NativeTrainer sample (Alexander Blade,
-	http://dev-c.com) with no changes.
+	http://dev-c.com). One addition: IsKeyWithAlt() at the end.
 */
 
 #include "keyboard.h"
@@ -49,4 +49,9 @@ void ResetKeyState(DWORD key)
 {
 	if (key < KEYS_SIZE)
 		memset(&keyStates[key], 0, sizeof(keyStates[0]));
+}
+
+bool IsKeyWithAlt(DWORD key)
+{
+	return (key < KEYS_SIZE) ? keyStates[key].isWithAlt != FALSE : false;
 }

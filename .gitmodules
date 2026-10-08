@@ -25,3 +25,12 @@
 [submodule "external/ChallengeCheat"]
 	path = external/ChallengeCheat
 	url = https://github.com/Evasion3356/ChallengeCheat.git
+[submodule "external/PokerCheat"]
+	path = external/PokerCheat
+	url = https://github.com/Evasion3356/PokerCheat.git
+[submodule "external/BlackjackCheat"]
+	path = external/BlackjackCheat
+	url = https://github.com/Evasion3356/BlackjackCheat.git
+[submodule "external/DominoCheat"]
+	path = external/DominoCheat
+	url = https://github.com/Evasion3356/DominoesCheat.git

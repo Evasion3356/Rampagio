@@ -642,7 +642,7 @@ namespace Menus
 		BuildWeaponExtras(weapons, manage, ammo, mods);
 		Ui::Toggle(weapons, "weapon.disabledualwield", "Disable Dual Wield", [](bool on) { WEAPON::_SET_ALLOW_DUAL_WIELD(Me(), !on); });
 		// On by default, as the standalone YEEAHSM is.
-		Ui::Looped(weapons, "weapon.keepweaponsondismount", "Keep Weapons on Dismount", KeepWeaponsTick, KeepWeaponsOff)->SetDefault(true);
+		Ui::Looped(weapons, "weapon.keepweaponsondismount", "Keep Weapons on Dismount", KeepWeaponsTick, KeepWeaponsOff)->SetDefault(true)->SetAlwaysRestore();
 		Ui::Section(weapons, "Weapon Mods");
 		Ui::Looped(weapons, "weapon.slowmotiononaiming", "Slow Motion on Aiming", SlowMoAimTick, [] { MISC::SET_TIME_SCALE(1.0f); });
 		Ui::Looped(weapons, "weapon.firstpersononaim", "First Person on Aim", FirstPersonAimTick);

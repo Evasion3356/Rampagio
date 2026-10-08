@@ -46,10 +46,11 @@ namespace Menus
 	void TickChallenges();
 	void ShutdownChallenges();
 	void BuildMiscellaneous(MenuBase* root);
-	// Minigames.cpp: the sibling minigame mods under Misc > Minigames;
-	// ShutdownMinigames (DllMain) takes their patches out on eject.
+	// Minigames.cpp: the sibling minigame mods under Misc > Minigames.
+	// ShutdownMinigames runs first thing on DLL_PROCESS_DETACH: it stops the
+	// dominoes search worker and, on an eject, takes fillet_sp's patches out.
 	void BuildMinigames(MenuBase* minigames);
-	void ShutdownMinigames();
+	void ShutdownMinigames(bool processExit);
 	void BuildScriptTools(MenuBase* root);
 	void BuildSettings(MenuBase* root);
 	// Settings.cpp. RegisterSettings creates the "general", "style",

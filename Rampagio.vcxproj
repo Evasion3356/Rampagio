@@ -101,6 +101,15 @@
     <ProjectReference Include="external\ChallengeCheat\ChallengeCheatLib.vcxproj">
       <Project>{6C4A2E91-8B3F-4D57-A1E6-0F9B7C3D5E28}</Project>
     </ProjectReference>
+    <ProjectReference Include="external\PokerCheat\PokerCheatLib.vcxproj">
+      <Project>{9A1D4C7E-2B58-4F03-8E6A-B3C9D1F05A72}</Project>
+    </ProjectReference>
+    <ProjectReference Include="external\BlackjackCheat\BlackjackCheatLib.vcxproj">
+      <Project>{4F8B2D16-9C3A-4E71-B5D0-7A2E6C9F1B83}</Project>
+    </ProjectReference>
+    <ProjectReference Include="external\DominoCheat\DominoCheatLib.vcxproj">
+      <Project>{B7E3C5A9-6D12-4B8F-9A47-1C5E8F2D6B94}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{825A6BD4-A1A2-4AF7-A181-49E34539782C}</ProjectGuid>

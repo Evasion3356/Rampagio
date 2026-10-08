@@ -23,6 +23,9 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
+		// First: the dominoes advisor's worker must learn about the detach
+		// before anything else here (see DominoCheat::OnProcessDetach).
+		Menus::ShutdownMinigames(lpReserved != nullptr);
 		// lpReserved is non-null at process exit, null on FreeLibrary
 		// (ScriptHookRDR2's Ctrl+R reload).
 		ScriptUnload(lpReserved != nullptr);
@@ -35,7 +38,6 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		MH_Uninitialize();
 		// Put the game's code back the way we found it.
 		BytePatch::RestoreAll();
-		Menus::ShutdownMinigames();
 		scriptUnregister(hInstance);
 		keyboardHandlerUnregister(OnKeyboardMessage);
 		break;

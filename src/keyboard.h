@@ -1,6 +1,7 @@
 /*
 	Copied from the ScriptHookRDR2 SDK's NativeTrainer sample (Alexander Blade,
-	http://dev-c.com) with no changes. Same file PokerCheat/BlackjackCheat vendor.
+	http://dev-c.com). One addition: IsKeyWithAlt(), which the PokerCheat and
+	BlackjackCheat libraries' bet hotkeys call (their keyboard.cpp has it too).
 */
 
 #pragma once
@@ -13,3 +14,5 @@ bool IsKeyDown(DWORD key);
 bool IsKeyDownLong(DWORD key);
 bool IsKeyJustUp(DWORD key, bool exclusive = true);
 void ResetKeyState(DWORD key);
+
+bool IsKeyWithAlt(DWORD key);

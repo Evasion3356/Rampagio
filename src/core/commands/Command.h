@@ -31,6 +31,7 @@ namespace Rampagio
 		bool m_Registered = false;
 		bool m_Transient = false;
 		bool m_KeepSaved = false;
+		bool m_AlwaysRestore = false;
 
 	protected:
 		virtual void OnCall() = 0;
@@ -96,9 +97,16 @@ namespace Rampagio
 		// Whether saving leaves the file's value alone (see KeepSavedValue).
 		bool KeepsSavedValue() const { return m_KeepSaved; }
 
-		// "settings." commands restore their state even when
-		// settings.restoretoggles is off.
-		bool AlwaysRestore() const { return m_Name.rfind("settings.", 0) == 0; }
+		// Restores the saved state on start even when
+		// settings.restoretoggles is off, as "settings." commands do: for
+		// toggles that are options rather than features (the sibling mods'
+		// rows, which their standalone ASIs keep in an INI).
+		Command* SetAlwaysRestore()
+		{
+			m_AlwaysRestore = true;
+			return this;
+		}
+		bool AlwaysRestore() const { return m_AlwaysRestore || m_Name.rfind("settings.", 0) == 0; }
 
 		// False when another command already had this name; this one still
 		// works for its row but isn't saved or bindable.
