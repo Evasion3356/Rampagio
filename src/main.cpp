@@ -30,6 +30,7 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		// module goes away.
 		NativeHooks::Shutdown();
 		YEEAHSM::StowWeaponsHook::Remove();
+		Menus::ShutdownChallenges();
 		// Last, after every MinHook user has removed its hooks.
 		MH_Uninitialize();
 		// Put the game's code back the way we found it.

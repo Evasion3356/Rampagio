@@ -152,6 +152,7 @@ void ScriptMain()
 			menus.Update();
 			Rampagio::Commands::RunLoopedCommands();
 			Menus::TickSettings();
+			Menus::TickChallenges();
 		}
 		Rampagio::Settings::Tick();
 

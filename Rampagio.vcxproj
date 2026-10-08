@@ -98,6 +98,9 @@
     <ProjectReference Include="external\FFFCheat\FFFCheatLib.vcxproj">
       <Project>{3E7B9C52-1A4D-4F8E-B6C3-D92A5F0E7C61}</Project>
     </ProjectReference>
+    <ProjectReference Include="external\ChallengeCheat\ChallengeCheatLib.vcxproj">
+      <Project>{6C4A2E91-8B3F-4D57-A1E6-0F9B7C3D5E28}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{825A6BD4-A1A2-4AF7-A181-49E34539782C}</ProjectGuid>

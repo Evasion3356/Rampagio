@@ -40,6 +40,11 @@ namespace Menus
 	void BuildRecovery(MenuBase* root);
 	void BuildRecoveryUnlocks(MenuBase* recovery); // Unlocks.cpp
 	void BuildRecoveryCollectibles(MenuBase* recovery); // Collectibles.cpp
+	// Challenges.cpp: Recovery > Challenges; TickChallenges runs every frame
+	// (main loop), ShutdownChallenges removes its hook on eject (DllMain).
+	void BuildRecoveryChallenges(MenuBase* recovery);
+	void TickChallenges();
+	void ShutdownChallenges();
 	void BuildMiscellaneous(MenuBase* root);
 	// Minigames.cpp: the sibling minigame mods under Misc > Minigames;
 	// ShutdownMinigames (DllMain) takes their patches out on eject.

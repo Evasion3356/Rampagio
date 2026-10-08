@@ -22,3 +22,6 @@
 [submodule "external/FFFCheat"]
 	path = external/FFFCheat
 	url = https://github.com/Evasion3356/FFFCheat.git
+[submodule "external/ChallengeCheat"]
+	path = external/ChallengeCheat
+	url = https://github.com/Evasion3356/ChallengeCheat.git

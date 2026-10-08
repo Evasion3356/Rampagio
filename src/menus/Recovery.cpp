@@ -653,5 +653,6 @@ namespace Menus
 
 		BuildRecoveryUnlocks(recovery);
 		BuildRecoveryCollectibles(recovery);
+		BuildRecoveryChallenges(recovery);
 	}
 }
