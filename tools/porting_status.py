@@ -69,7 +69,7 @@ STATUS = {
  'SubPedSpawnerAnimal':('Partial','Spawner > Ped Spawner > Animals: Legendary Animals lists the legendary models the scripts name; the outfit-preset legendaries of Rampage are its own table'),
  'SubPedSpawnerFish':('Done','Spawner > Ped Spawner > Fishes'),
  'SubPedSpawnerAddon':('Done','Spawner > Ped Spawner > Addon Peds: Rampagio_AddonPeds.txt, re-read on open'),
- 'SubPedSpawnerDispatch':('Partial','Spawner > Law Dispatch Spawner: 49 LAW_ responses from the game scripts; the law region per response (Rampage table) is not set'),
+ 'SubPedSpawnerDispatch':('Done','Spawner > Law Dispatch Spawner: LAW_ responses from the game scripts plus the table of Rampage, which also sets the law region of each response (data/LawDispatchRegions.inc)'),
  'SubVehicleSpawner':('Partial','Spawner > Vehicle Spawner: lists by type from the game scripts; settings are ours; JSON Loader not ported'),
  'SubObjectSpawner':('Done','Spawner > Object Spawner: objects from the game scripts; creator cam is our own free cam'),
  'SubObjSpawnerDatabase':('Done','Spawner > Object Spawner > Object Database: per-object actions (ours) until the Object Editor is back'),

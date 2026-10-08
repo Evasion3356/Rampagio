@@ -7,9 +7,12 @@
 	addon peds from a user-supplied Rampagio_AddonPeds.txt (same format as
 	Rampage's Lists\AddonPeds.txt).
 
+	Each dispatch response first sets the law region Rampage's table ties
+	it to (data/LawDispatchRegions.inc).
+
 	Not ported: Rampage's legendary animal table (model plus outfit
-	preset; ours lists the legendary models the scripts name), the law
-	region each dispatch response is tied to, and the vehicle JSON loader.
+	preset; ours lists the legendary models the scripts name) and the
+	vehicle JSON loader.
 */
 
 #include "Menus.h"
@@ -43,6 +46,12 @@ namespace
 	};
 	const char* const kLawResponses[] = {
 #include "..\data\LawResponses.inc"
+	};
+	// Rampage's response table: the law region (and state) each response
+	// belongs to, set before dispatching it. 0 means none.
+	struct LawDispatchRegion { const char* response; Hash region; Hash state; };
+	const LawDispatchRegion kLawDispatchRegions[] = {
+#include "..\data\LawDispatchRegions.inc"
 	};
 
 	constexpr Hash REL_COMPANION_GROUP = 0xB5A1D680;
@@ -373,9 +382,11 @@ namespace
 
 	float g_dispatchMultiplier = 1.0f;
 
-	void Dispatch(Hash response)
+	void Dispatch(Hash response, Hash region, Hash state)
 	{
 		const Player me = PLAYER::PLAYER_ID();
+		if (region != 0)
+			LAW::_SET_LAW_REGION(me, region, state);
 		LAW::_REPORT_PLAYER_LAW_DISPATCH_RESPONSE_OVERRIDE(me, response);
 		const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
 		LAW::_CREATE_LAW_DISPATCH_RESPONSE_FOR_COORDS(p.x, p.y, p.z, response);
@@ -565,10 +576,20 @@ namespace Menus
 		Ui::Number(dispatch, "spawner.dispatchmultiplier", "Dispatch Multiplier", &g_dispatchMultiplier, 0.1f, 10.0f, 0.1f,
 			[] { LAW::_SET_DISPATCH_MULTIPLIER_OVERRIDE(g_dispatchMultiplier); });
 		Ui::Section(dispatch, "Responses");
-		for (const char* response : kLawResponses)
+		// The scripts' responses, then the ones only Rampage's table has.
+		std::vector<std::string_view> responses(std::begin(kLawResponses), std::end(kLawResponses));
+		for (const LawDispatchRegion& entry : kLawDispatchRegions)
+			if (std::find(responses.begin(), responses.end(), entry.response) == responses.end())
+				responses.push_back(entry.response);
+		for (std::string_view response : responses)
 		{
-			const Hash h = GameUtil::Joaat(response);
-			Ui::Do(dispatch, Ui::Id("spawner.dispatch", response), response, [h] { Dispatch(h); });
+			Hash region = 0, state = 0;
+			for (const LawDispatchRegion& entry : kLawDispatchRegions)
+				if (response == entry.response)
+					region = entry.region, state = entry.state;
+			const std::string name(response);
+			const Hash h = GameUtil::Joaat(name);
+			Ui::Do(dispatch, Ui::Id("spawner.dispatch", name), name, [h, region, state] { Dispatch(h, region, state); });
 		}
 
 		// SubVehicleSpawner. The settings are ours (Rampage's are not in its

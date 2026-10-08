@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 138 done, 17 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 139 done, 16 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -180,7 +180,7 @@ Submenus: 138 done, 17 partial, 0 pending, 10 tabled, 2 dropped.
 | SubPedSpawnerAddon | 3 | Done | Spawner > Ped Spawner > Addon Peds: Rampagio_AddonPeds.txt, re-read on open |
 | SubPedSpawnerAnimal | 1 | Partial | Spawner > Ped Spawner > Animals: Legendary Animals lists the legendary models the scripts name; the outfit-preset legendaries of Rampage are its own table |
 | SubPedSpawnerDatabase | 2 | Done | Spawner > Ped Spawner > Ped Database: per-ped actions, and Ped Editor opens the full editor |
-| SubPedSpawnerDispatch | 1 | Partial | Spawner > Law Dispatch Spawner: 49 LAW_ responses from the game scripts; the law region per response (Rampage table) is not set |
+| SubPedSpawnerDispatch | 1 | Done | Spawner > Law Dispatch Spawner: LAW_ responses from the game scripts plus the table of Rampage, which also sets the law region of each response (data/LawDispatchRegions.inc) |
 | SubPedSpawnerFish | 1 | Done | Spawner > Ped Spawner > Fishes |
 | SubPedSpawnerHorses | 2 | Done | Spawner > Ped Spawner > Horses: one list from the game scripts |
 | SubPedSpawnerPeds | 0 | Done | Spawner > Ped Spawner > Humans: grouped by model prefix |
