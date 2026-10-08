@@ -524,8 +524,8 @@ namespace
 	void BuildGiveItems(MenuBase* items)
 	{
 		MenuBase* give = Ui::Submenu(items, "Give Items");
-		Ui::Number(give, "Amount", &g_giveAmount, 1, kMaxItemAmount, 1);
-		Ui::Choice(give, "Method", kGiveMethods, &g_giveMethod);
+		Ui::Number(give, "recovery.giveitems.amount", "Amount", &g_giveAmount, 1, kMaxItemAmount, 1);
+		Ui::Choice(give, "recovery.method", "Method", kGiveMethods, &g_giveMethod);
 		const char* category = nullptr;
 		for (const ItemEntry& entry : kItemNames)
 		{
@@ -560,31 +560,31 @@ namespace Menus
 		MenuBase* recovery = Ui::Submenu(root, "Recovery");
 
 		MenuBase* money = Ui::Submenu(recovery, "Money");
-		Ui::Action(money, "Add Money", AddMoney);
-		Ui::Action(money, "Remove Money", RemoveMoney);
-		Ui::Action(money, "Add Money via Game Script", AddMoneyViaScript);
+		Ui::Action(money, "recovery.addmoney", "Add Money", AddMoney);
+		Ui::Action(money, "recovery.removemoney", "Remove Money", RemoveMoney);
+		Ui::Action(money, "recovery.addmoneyviagamescript", "Add Money via Game Script", AddMoneyViaScript);
 		Ui::Section(money, "Drop");
-		Ui::Choice(money, "Model", kDropModelNames, &g_dropModel);
-		Ui::Number(money, "Amount (cents)", &g_dropAmount, 0, 50000, 1000);
-		Ui::Looped(money, "Drop Money", DropMoneyTick);
+		Ui::Choice(money, "recovery.model", "Model", kDropModelNames, &g_dropModel);
+		Ui::Number(money, "recovery.amountcents", "Amount (cents)", &g_dropAmount, 0, 50000, 1000);
+		Ui::Looped(money, "recovery.dropmoney", "Drop Money", DropMoneyTick);
 		money->AddItem(new MenuItemActionStatus(
 			[] { return std::format("Total Money Dropped: ${}.{:02}", g_totalDropped / 100, g_totalDropped % 100); },
 			[] { g_totalDropped = 0; return std::string("Counter reset"); }));
 
 		MenuBase* honor = Ui::Submenu(recovery, "Honor");
 		honor->AddItem(new MenuItemLabel([] { return std::format("Current Honor: {}", CurrentHonor()); }));
-		Ui::Number(honor, "Amount", &g_honorAmount, 0, 320, 1);
-		Ui::Action(honor, "Add Positive", [] { return ChangeHonorByKill(-g_honorAmount); });
-		Ui::Action(honor, "Add Negative", [] { return ChangeHonorByKill(g_honorAmount); });
-		Ui::Action(honor, "Custom Honor", CustomHonor);
-		Ui::Action(honor, "Edit via Game Script", EditHonorViaScript);
+		Ui::Number(honor, "recovery.honor.amount", "Amount", &g_honorAmount, 0, 320, 1);
+		Ui::Action(honor, "recovery.addpositive", "Add Positive", [] { return ChangeHonorByKill(-g_honorAmount); });
+		Ui::Action(honor, "recovery.addnegative", "Add Negative", [] { return ChangeHonorByKill(g_honorAmount); });
+		Ui::Action(honor, "recovery.customhonor", "Custom Honor", CustomHonor);
+		Ui::Action(honor, "recovery.editviagamescript", "Edit via Game Script", EditHonorViaScript);
 
 		MenuBase* bounty = Ui::Submenu(recovery, "Bounty");
 		bounty->AddItem(new MenuItemLabel([] { return "Current Bounty: " + Dollars(LAW::GET_BOUNTY(PLAYER::PLAYER_ID())); }));
-		Ui::Number(bounty, "Bounty Value (cents)", &g_bountyAmount, 0, 10000, 100);
-		Ui::Do(bounty, "Increase Bounty", [] { ChangeBounty(g_bountyAmount); });
-		Ui::Do(bounty, "Decrease Bounty", [] { ChangeBounty(-g_bountyAmount); });
-		Ui::Do(bounty, "Clear Bounty", ClearBounty);
+		Ui::Number(bounty, "recovery.bountyvaluecents", "Bounty Value (cents)", &g_bountyAmount, 0, 10000, 100);
+		Ui::Do(bounty, "recovery.increasebounty", "Increase Bounty", [] { ChangeBounty(g_bountyAmount); });
+		Ui::Do(bounty, "recovery.decreasebounty", "Decrease Bounty", [] { ChangeBounty(-g_bountyAmount); });
+		Ui::Do(bounty, "recovery.clearbounty", "Clear Bounty", ClearBounty);
 		Ui::Section(bounty, "States");
 		// Ours: the caption shows the state's bounty; selecting clears it.
 		for (const State& state : kStates)
@@ -600,45 +600,47 @@ namespace Menus
 		MenuBase* cores = Ui::Submenu(recovery, "Cores");
 		cores->SetOnOpen(ReadCoreRanks);
 		for (int core = 0; core < 3; core++)
-			Ui::Do(cores, std::format("Add {} Points", kCores[core].name), [core] { UseTonic(core); });
+			Ui::Do(cores, Ui::Id("recovery.addpoints", kCores[core].name), std::format("Add {} Points", kCores[core].name), [core] { UseTonic(core); });
 		Ui::Section(cores, "Permanently");
 		for (int core = 0; core < 3; core++)
-			Ui::Do(cores, std::format("Max {}", kCores[core].name), [core] { MaxCore(core); });
+			Ui::Do(cores, Ui::Id("recovery.maxcore", kCores[core].name), std::format("Max {}", kCores[core].name), [core] { MaxCore(core); });
 		Ui::Section(cores, "Custom Temporary");
 		// Ours: applied on every step instead of on select.
 		for (int core = 0; core < 3; core++)
-			Ui::Number(cores, std::format("{} Core", kCores[core].name), &g_coreRank[core], 0, 8, 1,
+			Ui::Number(cores, Ui::Id("recovery.corerank", kCores[core].name), std::format("{} Core", kCores[core].name), &g_coreRank[core], 0, 8, 1,
 				[core] { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(Me(), core, g_coreRank[core]); });
 		Ui::Section(cores, "Tanks");
 		for (int core = 0; core < 3; core++)
-			Ui::Action(cores, std::format("Add {} Tank", kCores[core].name), [core] { return AddTank(core); });
+			Ui::Action(cores, Ui::Id("recovery.addtank", kCores[core].name), std::format("Add {} Tank", kCores[core].name), [core] { return AddTank(core); });
+		Ui::Transient(cores); // the ranks are read from the game on open
 
 		MenuBase* items = Ui::Submenu(recovery, "Add Items");
-		Ui::Toggle(items, "Unlimited Items", SetUnlimitedItems);
-		Ui::Toggle(items, "Max Items", SetMaxItems);
-		Ui::Action(items, "Add to Inventory", AddToInventory);
-		Ui::Action(items, "Add Item via Game Script", AddItemViaScript);
-		Ui::Action(items, "Remove from Inventory", RemoveFromInventory);
-		Ui::Action(items, "Remove Item via Game Script", RemoveItemViaScript);
-		Ui::Action(items, "Collectible", SpawnCollectible);
-		Ui::Action(items, "~COLOR_RED~Wipe Inventory", WipeInventory);
+		Ui::Toggle(items, "recovery.unlimiteditems", "Unlimited Items", SetUnlimitedItems);
+		Ui::Toggle(items, "recovery.maxitems", "Max Items", SetMaxItems);
+		Ui::Action(items, "recovery.addtoinventory", "Add to Inventory", AddToInventory);
+		Ui::Action(items, "recovery.additemviagamescript", "Add Item via Game Script", AddItemViaScript);
+		Ui::Action(items, "recovery.removefrominventory", "Remove from Inventory", RemoveFromInventory);
+		Ui::Action(items, "recovery.removeitemviagamescript", "Remove Item via Game Script", RemoveItemViaScript);
+		Ui::Action(items, "recovery.collectible", "Collectible", SpawnCollectible)->SetHotkeyable(false);
+		Ui::Action(items, "recovery.wipeinventory", "~COLOR_RED~Wipe Inventory", WipeInventory)->SetHotkeyable(false);
 		// Shows the game's state, read each time the menu opens.
-		MenuItemToggle* backup = Ui::Toggle(items, "~COLOR_RED~Use Backup Inventory",
+		Rampagio::BoolCommand* backup = Ui::Toggle(items, "recovery.usebackupinventory", "~COLOR_RED~Use Backup Inventory",
 			[](bool on) { INVENTORY::_INVENTORY_USE_BACKUP_INVENTORY(on); });
-		items->SetOnOpen([backup](MenuBase*) { backup->SetState(INVENTORY::_INVENTORY_IS_USING_BACKUP_INVENTORY() != FALSE); });
-		Ui::Action(items, "~COLOR_RED~Copy Main to Backup", [] {
+		backup->SetTransient(); // the game's own state
+		items->SetOnOpen([backup](MenuBase*) { backup->Sync(INVENTORY::_INVENTORY_IS_USING_BACKUP_INVENTORY() != FALSE); });
+		Ui::Action(items, "recovery.copymaintobackup", "~COLOR_RED~Copy Main to Backup", [] {
 			CopyInventory(GameUtil::kInventorySp, GameUtil::kInventorySpBackup);
 			return std::string("Copied main to backup");
 		});
-		Ui::Action(items, "~COLOR_RED~Copy Backup to Main", [] {
+		Ui::Action(items, "recovery.copybackuptomain", "~COLOR_RED~Copy Backup to Main", [] {
 			CopyInventory(GameUtil::kInventorySpBackup, GameUtil::kInventorySp);
 			return std::string("Copied backup to main");
 		});
-		Ui::Action(items, "Snapshot Inventory", [] {
+		Ui::Action(items, "recovery.snapshotinventory", "Snapshot Inventory", [] {
 			CopyInventory(GameUtil::kInventorySp, kInventorySnapshot);
 			return std::string("Snapshot saved");
 		});
-		Ui::Action(items, "Restore Snapshot", RestoreSnapshot);
+		Ui::Action(items, "recovery.restoresnapshot", "Restore Snapshot", RestoreSnapshot);
 		BuildGiveItems(items);
 
 		BuildRecoveryUnlocks(recovery);
