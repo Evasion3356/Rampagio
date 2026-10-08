@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.
 
-Submenus: 58 done, 13 partial, 87 pending, 9 tabled.
+Submenus: 71 done, 17 partial, 70 pending, 9 tabled.
 
 ## Debug
 
@@ -171,22 +171,22 @@ Submenus: 58 done, 13 partial, 87 pending, 9 tabled.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubObjSpawnerAllObjs | 1 | Pending |  |
-| SubObjSpawnerDatabase | 1 | Pending |  |
-| SubObjSpawnerLoadSave | 7 | Pending |  |
-| SubObjSpawnerPropsets | 2 | Pending |  |
-| SubObjectSpawner | 3 | Pending |  |
-| SubPedSpawner | 2 | Pending |  |
-| SubPedSpawnerAddon | 3 | Pending |  |
-| SubPedSpawnerAnimal | 1 | Pending |  |
-| SubPedSpawnerDatabase | 2 | Pending |  |
-| SubPedSpawnerDispatch | 1 | Pending |  |
-| SubPedSpawnerFish | 1 | Pending |  |
-| SubPedSpawnerHorses | 2 | Pending |  |
-| SubPedSpawnerPeds | 0 | Pending |  |
-| SubPedSpawnerPedsList | 1 | Pending |  |
-| SubPedSpawnerSettings | 13 | Pending |  |
-| SubPlantSpawner | 1 | Pending |  |
+| SubObjSpawnerAllObjs | 1 | Done | Spawner > Object Spawner > All Objects: game script objects plus Rampagio_ObjectList.txt |
+| SubObjSpawnerDatabase | 1 | Done | Spawner > Object Spawner > Object Database: per-object actions (ours) until the Object Editor is back |
+| SubObjSpawnerLoadSave | 7 | Partial | Spawner > Object Spawner > Load / Save: objects only, in Rampagio_Spooner.ini (ours); no spooner XML, peds or vehicles |
+| SubObjSpawnerPropsets | 2 | Done | Spawner > Object Spawner > Propsets: pg_ names from the game scripts |
+| SubObjectSpawner | 3 | Done | Spawner > Object Spawner: objects from the game scripts; creator cam is our own free cam |
+| SubPedSpawner | 2 | Done | Spawner > Ped Spawner: models from the game scripts; Hijack Ped adds the first ped of a typed model to the database |
+| SubPedSpawnerAddon | 3 | Done | Spawner > Ped Spawner > Addon Peds: Rampagio_AddonPeds.txt, re-read on open |
+| SubPedSpawnerAnimal | 1 | Partial | Spawner > Ped Spawner > Animals: Legendary Animals lists the legendary models the scripts name; the outfit-preset legendaries of Rampage are its own table |
+| SubPedSpawnerDatabase | 2 | Done | Spawner > Ped Spawner > Ped Database: per-ped actions (teleport, posse, bodyguard, enemy, revive, kill, delete) until the Ped Editor is ported |
+| SubPedSpawnerDispatch | 1 | Partial | Spawner > Law Dispatch Spawner: 49 LAW_ responses from the game scripts; the law region per response (Rampage table) is not set |
+| SubPedSpawnerFish | 1 | Done | Spawner > Ped Spawner > Fishes |
+| SubPedSpawnerHorses | 2 | Done | Spawner > Ped Spawner > Horses: one list from the game scripts |
+| SubPedSpawnerPeds | 0 | Done | Spawner > Ped Spawner > Humans: grouped by model prefix |
+| SubPedSpawnerPedsList | 1 | Done | Spawner > Ped Spawner > Humans > <group> |
+| SubPedSpawnerSettings | 13 | Done | Spawner > Ped Spawner > Spawner Settings: Scale and Health are a toggle plus a value row each |
+| SubPlantSpawner | 1 | Done | Spawner > Plant Spawner: the 84 COMPOSITE_LOOTABLE_ composites the scripts name |
 
 ## Teleport
 
@@ -209,7 +209,7 @@ Submenus: 58 done, 13 partial, 87 pending, 9 tabled.
 | SubVehiclePaintOptions | 0 | Done | Vehicle > Paint Options |
 | SubVehiclePropsets | 3 | Done | Vehicle > Propsets: every vehicle propset the game scripts name (tools/extract_vehicles.py) instead of a per-model table |
 | SubVehiclePv | 4 | Done | Vehicle > Blip |
-| SubVehicleSpawner | 2 | Pending |  |
+| SubVehicleSpawner | 2 | Partial | Spawner > Vehicle Spawner: lists by type from the game scripts; settings are ours; JSON Loader not ported |
 
 ## Weapons
 

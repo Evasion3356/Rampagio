@@ -9,6 +9,9 @@ a ped model prefix, lowercased and sorted:
   from the prefix (Ambient Male, Story, Gang, ...).
 - HorseModels.inc: a_c_horse*, a_c_donkey* and a_c_horsemule* names.
 - AnimalModels.inc: every other a_c_ name.
+- LawResponses.inc: joaat("LAW_...") law dispatch responses (custom,
+  local, wilderness, bounty hunter, ...), leaving out the LAW_REGION_,
+  LAW_BOUNTY_STATE_ and relationship names, for the Law Dispatch spawner.
 
 Some names with those prefixes aren't models (random-event names, MP
 strings); the menus drop them at runtime with IS_MODEL_IN_CDIMAGE and
@@ -17,6 +20,8 @@ IS_MODEL_A_PED. Nothing here comes from Rampage.
 import os, re, sys
 
 JOAAT = re.compile(r'joaat\("([A-Za-z0-9_]+)"\)')
+LAW_RESPONSE = re.compile(r'joaat\("(LAW_[A-Za-z0-9_]+)"\)')
+NOT_RESPONSE = ("LAW_REGION_", "LAW_BOUNTY_STATE_", "LAW_FRIENDLY_", "LAW_HATE_")
 
 # Prefix -> group, first match wins.
 HUMAN_GROUPS = [
@@ -38,12 +43,14 @@ HUMAN_SHAPE = re.compile(r'^[a-z0-9_]+_\d\d$|^cs_[a-z0-9_]+$|^player_(zero|three
 HORSE_PREFIXES = ("a_c_horse", "a_c_donkey")
 
 def main(script_dir, out_dir):
-    names = set()
+    names, laws = set(), set()
     for sub in ("script_rel", "script_mp_rel"):
         folder = os.path.join(script_dir, sub)
         for fn in os.listdir(folder):
             with open(os.path.join(folder, fn), encoding="utf-8", errors="replace") as f:
-                names.update(n.lower() for n in JOAAT.findall(f.read()))
+                text = f.read()
+                names.update(n.lower() for n in JOAAT.findall(text))
+                laws.update(n.upper() for n in LAW_RESPONSE.findall(text))
     humans, horses, animals = [], [], []
     for n in sorted(names):
         if n.startswith("a_c_"):
@@ -60,7 +67,9 @@ def main(script_dir, out_dir):
     write("PedModels.inc", ['{ "%s", "%s" },' % (g, n) for g, n in sorted(humans)])
     write("HorseModels.inc", ['"%s",' % n for n in horses])
     write("AnimalModels.inc", ['"%s",' % n for n in animals])
-    print(len(humans), "humans,", len(horses), "horses,", len(animals), "animals")
+    laws = sorted(n for n in laws if not n.startswith(NOT_RESPONSE))
+    write("LawResponses.inc", ['"%s",' % n for n in laws])
+    print(len(humans), "humans,", len(horses), "horses,", len(animals), "animals,", len(laws), "law responses")
 
 if __name__ == "__main__":
     main(sys.argv[1], sys.argv[2])

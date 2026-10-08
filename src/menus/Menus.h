@@ -30,6 +30,7 @@ namespace Menus
 	void BuildVehicle(MenuBase* root);
 	void BuildTeleport(MenuBase* root);
 	void BuildSpawner(MenuBase* root);
+	void BuildObjectSpawner(MenuBase* spawner); // ObjectSpawner.cpp
 	void BuildWorld(MenuBase* root);
 	void BuildRecovery(MenuBase* root);
 	void BuildRecoveryUnlocks(MenuBase* recovery); // Unlocks.cpp
