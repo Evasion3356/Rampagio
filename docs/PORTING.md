@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 143 done, 12 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 144 done, 11 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -21,7 +21,7 @@ Submenus: 143 done, 12 partial, 0 pending, 10 tabled, 2 dropped.
 | SubHorsePedMetaTags | 6 | Done | Horse > Meta Ped Tags: the shared menu with Index / Load Data from Index |
 | SubHorseStats | 6 | Done | Horse > Horse Stats: ranks 0-10 per attribute |
 | SubMobileStable | 3 | Done | Horse > Mobile Stable: 280 HORSE_EQUIPMENT_ items from the game scripts, grouped by kind |
-| SubMobileStableComponent | 10 | Partial | Horse > Mobile Stable > <kind>: picking applies the item; no per-item tint picks |
+| SubMobileStableComponent | 10 | Done | Horse > Mobile Stable > <kind>: the item tables of Rampage (data/MobileStable.inc), a tint pick per named family plus Disable; All Tack lists every tack item the scripts name (ours) |
 | SubSelfHorse | 33 | Done | Horse |
 
 ## Misc

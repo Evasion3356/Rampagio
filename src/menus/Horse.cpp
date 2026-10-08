@@ -5,9 +5,11 @@
 	saddle horse) for both.
 
 	Also SubHorseBlip, SubHorseLoader (ours: Rampagio_Horses.json), SubHorseStats,
-	SubMobileStable / SubMobileStableComponent (tack from the game scripts,
-	tools/extract_peds.py) and the horse's Meta Ped Tags / Expressions, which
-	open the Player's menus bound to the horse (Menus::Target).
+	SubMobileStable / SubMobileStableComponent (Rampage's item tables, its
+	named families with a tint pick, data\MobileStable.inc, plus every tack
+	item the game scripts name under All Tack, tools/extract_peds.py) and the
+	horse's Meta Ped Tags / Expressions, which open the Player's menus bound
+	to the horse (Menus::Target).
 */
 
 #include "Menus.h"
@@ -19,6 +21,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <deque>
 #include <format>
 
 namespace
@@ -498,6 +501,27 @@ namespace
 	const Tack kTack[] = {
 #include "..\data\HorseTack.inc"
 	};
+	struct StableItem
+	{
+		const char* kind;
+		const char* family;
+		Hash item;
+	};
+	const StableItem kStableItems[] = {
+#include "..\data\MobileStable.inc"
+	};
+	// Rampage's kinds and the tag category each one's Disable removes.
+	struct StableKind
+	{
+		const char* name;
+		const char* category;
+	};
+	const StableKind kStableKinds[] = { { "Saddles", "HORSE_SADDLES" }, { "Saddle Bags", "horse_saddlebags" },
+		{ "Stirrups", "saddle_stirrups" }, { "Horns", "saddle_horns" }, { "Blankets", "horse_blankets" },
+		{ "Bedrolls", "horse_bedrolls" }, { "Manes", "horse_manes" }, { "Tails", "horse_tails" },
+		{ "Body Components", nullptr } };
+	std::deque<int> g_stableTints;
+
 	// Tack categories Remove All clears (13, as Rampage's).
 	const char* const kTackCategories[] = { "HORSE_SADDLES", "horse_blankets", "horse_bedrolls", "horse_saddlebags",
 		"saddle_horns", "saddle_stirrups", "saddle_lanterns", "horse_manes", "horse_tails", "horse_mustache",
@@ -520,16 +544,57 @@ namespace
 		});
 	}
 
+	// SubMobileStableComponent: a family picks one of its tint variants;
+	// a plain list applies the item.
+	void BuildStableKind(MenuBase* stable, const StableKind& kind)
+	{
+		MenuBase* sub = Ui::Submenu(stable, kind.name);
+		const std::string prefix = Ui::Id("horse.stable", kind.name);
+		if (kind.category)
+		{
+			const Hash category = GameUtil::Joaat(kind.category);
+			Ui::Do(sub, prefix + ".disable", "Disable", [category] { RemoveTack(category); });
+		}
+		std::vector<std::string_view> families;
+		for (const StableItem& i : kStableItems)
+			if (kind.name == std::string_view(i.kind) && *i.family
+				&& std::find(families.begin(), families.end(), i.family) == families.end())
+				families.push_back(i.family);
+		for (std::string_view family : families)
+		{
+			std::vector<Hash> tints;
+			for (const StableItem& i : kStableItems)
+				if (kind.name == std::string_view(i.kind) && family == i.family)
+					tints.push_back(i.item);
+			int* tint = &g_stableTints.emplace_back(0);
+			const std::string name(family);
+			Ui::Number(sub, Ui::Id(prefix, name), name, tint, 0, static_cast<int>(tints.size()) - 1, 1,
+				[tint, tints] { ApplyTack(tints[*tint]); }, true)->SetTransient();
+		}
+		int n = 0;
+		for (const StableItem& i : kStableItems)
+			if (kind.name == std::string_view(i.kind) && !*i.family)
+			{
+				const Hash item = i.item;
+				const std::string caption = std::format("{} 0x{:08X}", ++n, item);
+				Ui::Do(sub, Ui::Id(prefix, std::format("0x{:08X}", item)), caption, [item] { ApplyTack(item); });
+			}
+	}
+
 	void BuildMobileStable(MenuBase* horse)
 	{
 		MenuBase* stable = Ui::Submenu(horse, "Mobile Stable");
+		for (const StableKind& kind : kStableKinds)
+			BuildStableKind(stable, kind);
+		// Every tack item the game scripts name, by group (ours).
+		MenuBase* all = Ui::Submenu(stable, "All Tack");
 		std::vector<std::string> groups;
 		for (const Tack& t : kTack)
 			if (std::find(groups.begin(), groups.end(), t.group) == groups.end())
 				groups.push_back(t.group);
 		for (const std::string& group : groups)
 		{
-			MenuBase* sub = Ui::Submenu(stable, group);
+			MenuBase* sub = Ui::Submenu(all, group);
 			int n = 0;
 			for (const Tack& t : kTack)
 				if (group == t.group)

@@ -38,6 +38,12 @@ Needs pefile.
 - RampageCutscenes.inc: the Cutscene Player's two name lists (arrays of
   "cutscene@..." pointers): story mode and Red Dead Online, without the
   prefix, deduplicated. { "<sp|mp>", "<name>" }
+- MobileStable.inc: Horse > Mobile Stable's items. Nine static
+  initializers, consecutive in the CRT initializer table starting with
+  the one that references "Gerden Vaquero", build them in TACK_KINDS
+  order: named families of tint variants (each family's name is stored
+  just before its hash array is copied) or plain hash lists.
+  { "<kind>", "<family or empty>", 0x<item> }
 - BlipLabels.inc: Teleport > Blips. The map location blips the scripts
   keep in Global_36308 have a type in Global_40.f_7862[i].f_0; Rampage
   names each by a { type, label hash } table (the only run of { 1, h },
@@ -133,6 +139,9 @@ class StackEmulator:
 
     def run(self, start):
         stack, ptrs, regs, xmm, out = {}, {}, {}, {}, []
+        # The last string pointer stored to the stack before each memcpy:
+        # the name of the table entry the copied array belongs to.
+        label, self.labels = [None], []
         reg = lambda i, r: self.WIDE.get(i.reg_name(r), i.reg_name(r))
         movs = ("movaps", "movups", "movdqa", "movdqu")
 
@@ -177,6 +186,8 @@ class StackEmulator:
                         ptrs[dst] = v
                     elif v is not None:
                         put(dst, v, ops[0].size)
+                        if ops[0].size == 8 and self.img.string(v, b""):
+                            label[0] = self.img.string(v, b"")
             elif m in movs and dst is not None and ops[1].type == x86.X86_OP_REG:
                 if ops[1].reg in xmm:
                     put(dst, int.from_bytes(xmm[ops[1].reg], "little"), 16)
@@ -203,6 +214,8 @@ class StackEmulator:
                 src = regs.get("rdx")
                 if target == self.memcpy and isinstance(src, tuple) and isinstance(regs.get("r8"), int):
                     out.append(read(src[0], src[1], src[1] + regs["r8"]))
+                    self.labels.append(label[0])
+                    label[0] = None
                 elif target == self.from_range and isinstance(src, tuple):
                     lo, hi = ptrs.get(src), ptrs.get((src[0], src[1] + 8))
                     if not lo or not hi or lo[0] != hi[0]:
@@ -256,6 +269,44 @@ def cutscene_cast(img):
                 if all(h and n for h, n in rows):
                     return rows
     raise SystemExit("cutscene cast table not found")
+
+
+# Rampage's Mobile Stable kinds, in its initializer order; True where the
+# kind is a list of named tint families rather than plain item hashes.
+TACK_KINDS = (("Saddles", True), ("Saddle Bags", True), ("Stirrups", False), ("Horns", False),
+              ("Blankets", True), ("Bedrolls", True), ("Manes", True), ("Tails", True),
+              ("Body Components", False))
+
+
+def mobile_stable(img):
+    """[(kind, family, item hash)]."""
+    first = functions_referencing(img, b"Gerden Vaquero")
+    if len(first) != 1:
+        raise SystemExit("mobile stable initializer: %d candidates" % len(first))
+    slot = img.data.find(struct.pack("<Q", first[0]))
+    rows = []
+    for n, (kind, families) in enumerate(TACK_KINDS):
+        start = struct.unpack_from("<Q", img.data, slot + 8 * n)[0]
+        best = None
+        for target in direct_calls(img, start):
+            emu = StackEmulator(img, target, None)
+            try:
+                blocks = emu.run(start)
+            except SystemExit:
+                continue
+            if blocks and (best is None or len(blocks) > len(best[0])):
+                best = (blocks, emu.labels)
+        if not best:
+            raise SystemExit("mobile stable: nothing copied for %s" % kind)
+        blocks, labels = best
+        if families and not all(labels):
+            raise SystemExit("mobile stable: unnamed family in %s" % kind)
+        if not families and len(blocks) != 1:
+            raise SystemExit("mobile stable: %s is not one list" % kind)
+        for block, label in zip(blocks, labels):
+            for item in struct.unpack("<%dI" % (len(block) // 4), block):
+                rows.append((kind, label if families else "", item))
+    return rows
 
 
 def overlay_tables(img):
@@ -355,6 +406,8 @@ def main(asi, dst):
         names = sorted({n[len("cutscene@"):].lower() for _, n in img.table(first, b"cutscene@", 8)})
         cutscenes += ['{ "%s", "%s" },' % (kind, n) for n in names]
     write(os.path.join(dst, "RampageCutscenes.inc"), "Cutscene Player lists. { sp|mp, name }", cutscenes)
+    write(os.path.join(dst, "MobileStable.inc"), "Mobile Stable tables. { kind, family, item }",
+          ['{ "%s", "%s", 0x%08X },' % row for row in mobile_stable(img)])
     write(os.path.join(dst, "BlipLabels.inc"), "Blips label table. { blip type, label hash }",
           ["{ %d, 0x%08X }," % p for p in blip_labels(img)])
     write(os.path.join(dst, "LawDispatchRegions.inc"),

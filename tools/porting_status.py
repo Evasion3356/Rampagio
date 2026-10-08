@@ -138,7 +138,7 @@ STATUS = {
  'SubHorsePedMetaTags':('Done','Horse > Meta Ped Tags: the shared menu with Index / Load Data from Index'),
  'SubHorseStats':('Done','Horse > Horse Stats: ranks 0-10 per attribute'),
  'SubMobileStable':('Done','Horse > Mobile Stable: 280 HORSE_EQUIPMENT_ items from the game scripts, grouped by kind'),
- 'SubMobileStableComponent':('Partial','Horse > Mobile Stable > <kind>: picking applies the item; no per-item tint picks'),
+ 'SubMobileStableComponent':('Done','Horse > Mobile Stable > <kind>: the item tables of Rampage (data/MobileStable.inc), a tint pick per named family plus Disable; All Tack lists every tack item the scripts name (ours)'),
  'SubPedEditor':('Done','Ped Editor (from Spawner > Ped Database and World > Ped Manager): Attach To Something offers player, horse and nearest entities (ours)'),
  'SubPedEditorGeneral':('Done','Ped Editor > General'),
  'SubPedEditorCombat':('Done','Ped Editor > General > Combat Style: 27 styles and 10 mods from the game scripts'),
