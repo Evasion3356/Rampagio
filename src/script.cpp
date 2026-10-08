@@ -26,6 +26,7 @@ namespace
 		Menus::BuildPlayer(root);
 		Menus::BuildHorse(root);
 		Menus::BuildWeapons(root);
+		Menus::BuildVehicle(root);
 		Menus::BuildTeleport(root);
 		Menus::BuildWorld(root);
 		Menus::BuildRecovery(root);

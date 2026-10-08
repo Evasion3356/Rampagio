@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.
 
-Submenus: 49 done, 13 partial, 96 pending, 9 tabled.
+Submenus: 58 done, 13 partial, 87 pending, 9 tabled.
 
 ## Debug
 
@@ -200,15 +200,15 @@ Submenus: 49 done, 13 partial, 96 pending, 9 tabled.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubTrainCreator | 7 | Pending |  |
-| SubTrainWhistle | 8 | Pending |  |
-| SubVehicle | 19 | Pending |  |
-| SubVehicleAI | 2 | Pending |  |
-| SubVehicleChaffeur | 4 | Pending |  |
-| SubVehicleExtras | 0 | Pending |  |
-| SubVehiclePaintOptions | 0 | Pending |  |
-| SubVehiclePropsets | 3 | Pending |  |
-| SubVehiclePv | 4 | Pending |  |
+| SubTrainCreator | 7 | Done | Vehicle > Train Creator: the 23 train configs the game scripts use, shown by hash and car count (Rampage has 28 named ones in its own table) |
+| SubTrainWhistle | 8 | Done | Vehicle > Train Creator > Whistle |
+| SubVehicle | 19 | Done | Vehicle: Invincible Vehicle re-applies to the current vehicle every frame (ours); Fly Speed and Ground Force are separate rows |
+| SubVehicleAI | 2 | Done | Vehicle > Vehicle AI |
+| SubVehicleChaffeur | 4 | Done | Vehicle > Chauffeur |
+| SubVehicleExtras | 0 | Done | Vehicle > Customization |
+| SubVehiclePaintOptions | 0 | Done | Vehicle > Paint Options |
+| SubVehiclePropsets | 3 | Done | Vehicle > Propsets: every vehicle propset the game scripts name (tools/extract_vehicles.py) instead of a per-model table |
+| SubVehiclePv | 4 | Done | Vehicle > Blip |
 | SubVehicleSpawner | 2 | Pending |  |
 
 ## Weapons
