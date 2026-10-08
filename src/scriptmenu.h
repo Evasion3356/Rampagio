@@ -51,6 +51,8 @@ struct MenuStyle
 	int titleFont = 1;                          // index into kTitleFonts (title rows)
 	int bodyFont = 2;                           // index into kBodyFonts (everything else)
 	std::string title = "Rampagio";             // the root menu's title
+	bool invertColors = false;                  // draw every menu color inverted
+	bool centeredTitle = false;                 // center title rows' text
 };
 
 // Rampage's Main Font and Body Font choices: Scaleform font faces.
@@ -338,8 +340,9 @@ void DrawRowValue(MenuItemBase* item, float lineTop, float lineLeft, bool active
 
 // Screen text in the menu's font (x, y in 0..1); also used for the
 // scanners' world labels.
-// face: a Scaleform font face; nullptr uses Style()'s body font.
-void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color, const char* face = nullptr);
+// face: a Scaleform font face; nullptr uses Style()'s body font. With
+// center, x is the text's center (0..1) instead of its left edge.
+void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color, const char* face = nullptr, bool center = false);
 
 // Rampagio addition: a number edited with NUMPAD 4/6, drawn as "< value >"
 // on the right. The value lives with the feature (`value` points at it);

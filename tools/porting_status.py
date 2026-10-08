@@ -126,7 +126,7 @@ STATUS = {
  'SubSettingsColor':('Done','Settings > Theme: eight colors, Main Font and Body Font (the faces of Rampage), Menu Title, menu position and Max Display Options'),
  'SubSettingsPremadeThemes':('Done','Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own)'),
  'SubSettingsCustomThemes':('Done','Settings > Theme > Custom Themes: the themes component of Rampagio.json'),
- 'SubSettingsXUI':('Partial','Settings > Theme > Max Display Options; teleport map, spawner previews, ink rendering, inverted colors and centered title not ported'),
+ 'SubSettingsXUI':('Partial','Settings > Theme: Max Display Options, Invert Colors and Centered Title; Teleport Map, Spawner Previews and Ink Rendering are overlay windows that wait for the ImGui overlay (with the tabled Window Manager)'),
  'SubWindowManager':('Tabled','ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay'),
  'SubOverlaySettings':('Done','Settings > Overlay Settings'),
  'SubCreatorSettings':('Done','Spawner > Object Spawner > Cam Settings'),

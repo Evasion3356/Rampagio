@@ -3,7 +3,7 @@
 	submenus that have a Rampagio counterpart: SubSettingsCore,
 	SubSettingsLoadSave, SubSettingsColor with SubSettingsPremadeThemes and
 	SubSettingsCustomThemes, SubOverlaySettings, SubSettingsXUI's Max
-	Display Options, plus Search and the Hotkey Manager. The About page is
+	Display Options, Invert Colors and Centered Title, plus Search and the Hotkey Manager. The About page is
 	Rampagio's own (SubAbout).
 
 	Saved data is all in Rampagio.json (src/core/settings): this file owns
@@ -123,6 +123,8 @@ namespace
 			j["titleFont"] = style.titleFont;
 			j["bodyFont"] = style.bodyFont;
 			j["title"] = style.title;
+			j["invertColors"] = style.invertColors;
+			j["centeredTitle"] = style.centeredTitle;
 		}
 		void LoadStateImpl(nlohmann::json& j) override
 		{
@@ -136,6 +138,8 @@ namespace
 			ReadValue(j, "gamepadOpen", style.gamepadOpen);
 			ReadValue(j, "titleFont", style.titleFont);
 			ReadValue(j, "bodyFont", style.bodyFont);
+			ReadValue(j, "invertColors", style.invertColors);
+			ReadValue(j, "centeredTitle", style.centeredTitle);
 			if (auto it = j.find("title"); it != j.end() && it->is_string())
 				style.title = it->get<std::string>();
 			style.titleFont = std::clamp(style.titleFont, 0, static_cast<int>(std::size(kTitleFonts)) - 1);
@@ -292,6 +296,15 @@ namespace
 		Ui::Number(theme, "Menu X", &Style().left, 0.0f, 0.78f, 0.01f, StyleChanged);
 		Ui::Number(theme, "Menu Y", &Style().top, 0.0f, 0.5f, 0.01f, StyleChanged);
 		Ui::Number(theme, "Max Display Options", &Style().linesPerScreen, 3, 25, 1, StyleChanged);
+		// SubSettingsXUI's native-menu rows.
+		MenuItemToggle* invert = Ui::Toggle(theme, "Invert Colors", [](bool on) { Style().invertColors = on; StyleChanged(); });
+		MenuItemToggle* centered = Ui::Toggle(theme, "Centered Title", [](bool on) { Style().centeredTitle = on; StyleChanged(); });
+		// The style loads after the menus are built: show its values on open.
+		theme->SetOnOpen([invert, centered](MenuBase*)
+		{
+			invert->SetState(Style().invertColors);
+			centered->SetState(Style().centeredTitle);
+		});
 	}
 
 	// --- settings commands -------------------------------------------------------------

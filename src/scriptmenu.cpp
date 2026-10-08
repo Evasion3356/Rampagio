@@ -67,21 +67,41 @@ MenuStyle& Style()
 // helper. Always left-aligned (RIGHTMARGIN/ALIGN fixed) -- every menu
 // item in this file is; the one exception (the centered status-text
 // popup) builds its own tag directly in MenuController::DrawStatusText().
-void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color, const char* face)
+namespace
+{
+	// Set while MenuBase::OnDraw draws, so Invert Colors only touches the
+	// menu, not the overlays that share DrawTextAt/DrawRect.
+	bool g_drawingMenu = false;
+
+	// Settings > XUI > Invert Colors: every menu color drawn inverted.
+	ColorRgba Shown(ColorRgba c)
+	{
+		if (!g_drawingMenu || !Style().invertColors)
+			return c;
+		return { static_cast<unsigned char>(255 - c.r), static_cast<unsigned char>(255 - c.g), static_cast<unsigned char>(255 - c.b), c.a };
+	}
+}
+
+void DrawTextAt(float x, float y, const char *str, int fontSize, ColorRgba color, const char* face, bool center)
 {
 	if (!face)
 	{
 		const int body = Style().bodyFont;
 		face = body >= 0 && body < static_cast<int>(std::size(kBodyFonts)) ? kBodyFonts[body] : "$Font5";
 	}
-	std::string formatText = std::string("<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Left'><FONT FACE='") + face + "' LETTERSPACING='0' SIZE='"
-		+ std::to_string(fontSize) + "'>~s~" + str + "</FONT></P><TEXTFORMAT>";
+	// A Center-aligned field's x is a -1..1 offset from the screen center
+	// (see MenuController::DrawStatusText).
+	std::string formatText = std::string("<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='") + (center ? "Center" : "Left") + "'><FONT FACE='"
+		+ face + "' LETTERSPACING='0' SIZE='" + std::to_string(fontSize) + "'>~s~" + str + "</FONT></P><TEXTFORMAT>";
+	color = Shown(color);
 	UIDEBUG::_BG_SET_TEXT_COLOR(color.r, color.g, color.b, color.a);
-	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), x, y);
+	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), center ? -1.0f + x * 2.0f : x, y);
 }
 
 void DrawRect(float lineLeft, float lineTop, float lineWidth, float lineHeight, int r, int g, int b, int a)
 {
+	if (g_drawingMenu && Style().invertColors)
+		r = 255 - r, g = 255 - g, b = 255 - b;
 	GRAPHICS::DRAW_RECT((lineLeft + (lineWidth * 0.5f)), (lineTop + (lineHeight * 0.5f)), lineWidth, lineHeight, r, g, b, a, 0, 0);
 }
 
@@ -139,10 +159,13 @@ void MenuItemBase::OnDraw(float lineTop, float lineLeft, bool active)
 	// Title rows use the title font.
 	const char* face = nullptr;
 	const int titleFont = Style().titleFont;
-	if ((GetClass() == eMenuItemClass::Title || GetClass() == eMenuItemClass::ListTitle)
-		&& titleFont >= 0 && titleFont < static_cast<int>(std::size(kTitleFonts)))
+	const bool title = GetClass() == eMenuItemClass::Title || GetClass() == eMenuItemClass::ListTitle;
+	if (title && titleFont >= 0 && titleFont < static_cast<int>(std::size(kTitleFonts)))
 		face = kTitleFonts[titleFont];
-	DrawTextAt(lineLeft + m_textLeft, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor, face);
+	if (title && Style().centeredTitle)
+		DrawTextAt(lineLeft + m_lineWidth / 2.0f, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor, face, true);
+	else
+		DrawTextAt(lineLeft + m_textLeft, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor, face);
 }
 
 namespace
@@ -368,6 +391,8 @@ void MenuItemMenu::OnSelect()
 
 void MenuBase::OnDraw()
 {
+	g_drawingMenu = true;
+	struct Done { ~Done() { g_drawingMenu = false; } } done;
 	float lineTop = Style().top;
 	float lineLeft = Style().left;
 	const int lines = Style().linesPerScreen > 0 ? Style().linesPerScreen : 1;

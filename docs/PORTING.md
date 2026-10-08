@@ -164,7 +164,7 @@ Submenus: 148 done, 7 partial, 0 pending, 10 tabled, 2 dropped.
 | SubSettingsCustomThemes | 2 | Done | Settings > Theme > Custom Themes: the themes component of Rampagio.json |
 | SubSettingsLoadSave | 7 | Done | Settings > Load / Save: Rampagio.json |
 | SubSettingsPremadeThemes | 26 | Done | Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own) |
-| SubSettingsXUI | 6 | Partial | Settings > Theme > Max Display Options; teleport map, spawner previews, ink rendering, inverted colors and centered title not ported |
+| SubSettingsXUI | 6 | Partial | Settings > Theme: Max Display Options, Invert Colors and Centered Title; Teleport Map, Spawner Previews and Ink Rendering are overlay windows that wait for the ImGui overlay (with the tabled Window Manager) |
 | SubWindowManager | 7 | Tabled | ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay |
 
 ## Spawners
