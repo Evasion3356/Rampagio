@@ -1,9 +1,9 @@
 # Porting status
 
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
-"Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.
+"Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only). Nothing is live-tested yet.
 
-Submenus: 80 done, 17 partial, 61 pending, 9 tabled.
+Submenus: 86 done, 19 partial, 52 pending, 9 tabled, 1 dropped.
 
 ## Debug
 
@@ -28,14 +28,14 @@ Submenus: 80 done, 17 partial, 61 pending, 9 tabled.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubCutscenePlayer | 7 | Pending |  |
-| SubEditVolume | 2 | Pending |  |
-| SubFriendlist | 1 | Pending |  |
-| SubGameMusic | 8 | Pending |  |
-| SubMinigames | 1 | Pending |  |
-| SubMiscellaneous | 18 | Pending |  |
-| SubMobileTheater | 11 | Pending |  |
-| SubMusicPlayer | 8 | Pending |  |
+| SubCutscenePlayer | 7 | Partial | Miscellaneous > Cutscene Player: 428 mission cutscenes from the game scripts; Try to Populate (Rampage model table) and the Red Dead Online list not ported |
+| SubEditVolume | 2 | Done | Miscellaneous > Volume Editor: edits volumes created there (ours); relationship groups from the game scripts |
+| SubFriendlist | 1 | Dropped | Online only (Social Club friends) |
+| SubGameMusic | 8 | Done | Miscellaneous > Game Music: 314 music events from the game scripts |
+| SubMinigames | 1 | Done | Miscellaneous > Minigames > Undead Nightmare II: own wave logic (kill count spawns bosses) on the models and bosses Rampage uses |
+| SubMiscellaneous | 18 | Partial | Miscellaneous: Air Walk holds a fixed height (ours); Take a Photo saves without the district/state photo stats; About lives in Settings; Global Editor and Script Tools rows wait for the tabled Script Tools area |
+| SubMobileTheater | 11 | Done | Miscellaneous > Mobile Theater: screen position and size rows (ours) |
+| SubMusicPlayer | 8 | Done | Miscellaneous > Music Player: Windows MCI on files in a RampagioMusic folder (ours; Rampage bundles FMOD) |
 
 ## Object Editor
 
@@ -138,7 +138,7 @@ Submenus: 80 done, 17 partial, 61 pending, 9 tabled.
 | SubRecoveryHonor | 5 | Partial | Recovery > Honor: all actions; current honor reads honor_current; honor HUD meter not shown |
 | SubRecoveryMoney | 5 | Done | Recovery > Money: drop is a timed toggle (ours) instead of every tick |
 | SubRecoveryUnlocks | 8 | Done | Recovery > Unlocks: own lists from the game scripts (tools/extract_unlocks.py); Unlock Checks lists every unlock the scripts name; Add Entries writes every journal entry the game allows; Discover Fish skips legendary outfit presets (ours) |
-| SubStatEditor | 6 | Pending |  |
+| SubStatEditor | 6 | Done | Miscellaneous > Stat Editor |
 | SubUnlockCheats | 1 | Done | Recovery > Unlocks > Cheat Codes: activates each cheat through the game cheat state instead of showing its phrase (ours) |
 
 ## Script Tools

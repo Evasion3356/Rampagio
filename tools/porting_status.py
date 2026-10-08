@@ -111,8 +111,17 @@ STATUS = {
  'SubWeaponsGive':('Done','Weapon > Manage Weapons > Give Weapon'),
  'SubWeaponsAmmunition':('Partial','Weapon > Ammunition: Drop Ammo pending'),
  'SubWeaponModifiers':('Partial','Weapon > Weapon Modifiers: weapon model swap and weapon skill stats pending'),
+ 'SubMiscellaneous':('Partial','Miscellaneous: Air Walk holds a fixed height (ours); Take a Photo saves without the district/state photo stats; About lives in Settings; Global Editor and Script Tools rows wait for the tabled Script Tools area'),
+ 'SubMusicPlayer':('Done','Miscellaneous > Music Player: Windows MCI on files in a RampagioMusic folder (ours; Rampage bundles FMOD)'),
+ 'SubGameMusic':('Done','Miscellaneous > Game Music: 314 music events from the game scripts'),
+ 'SubMobileTheater':('Done','Miscellaneous > Mobile Theater: screen position and size rows (ours)'),
+ 'SubCutscenePlayer':('Partial','Miscellaneous > Cutscene Player: 428 mission cutscenes from the game scripts; Try to Populate (Rampage model table) and the Red Dead Online list not ported'),
+ 'SubMinigames':('Done','Miscellaneous > Minigames > Undead Nightmare II: own wave logic (kill count spawns bosses) on the models and bosses Rampage uses'),
+ 'SubEditVolume':('Done','Miscellaneous > Volume Editor: edits volumes created there (ours); relationship groups from the game scripts'),
+ 'SubFriendlist':('Dropped','Online only (Social Club friends)'),
+ 'SubStatEditor':('Done','Miscellaneous > Stat Editor'),
 }
-out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.','']
+out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only). Nothing is live-tested yet.','']
 by=collections.defaultdict(list)
 for s in sorted(set(area)): by[area[s]].append(s)
 tot=collections.Counter()
@@ -123,6 +132,6 @@ for a in sorted(by):
         tot[st]+=1
         out.append('| %s | %d | %s | %s |'%(s,cnt[s],st,where))
     out.append('')
-out[5:5]=['Submenus: %d done, %d partial, %d pending, %d tabled.'%(tot['Done'],tot['Partial'],tot['Pending'],tot['Tabled']),'']
+out[5:5]=['Submenus: %d done, %d partial, %d pending, %d tabled, %d dropped.'%(tot['Done'],tot['Partial'],tot['Pending'],tot['Tabled'],tot['Dropped']),'']
 open('docs/PORTING.md','w',encoding='utf-8',newline='\r\n').write('\n'.join(out)+'\n')
 print(tot)

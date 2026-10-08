@@ -31,6 +31,7 @@ namespace
 		Menus::BuildSpawner(root);
 		Menus::BuildWorld(root);
 		Menus::BuildRecovery(root);
+		Menus::BuildMiscellaneous(root);
 	}
 }
 
