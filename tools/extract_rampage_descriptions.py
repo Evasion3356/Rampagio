@@ -31,6 +31,21 @@ REWRITES = [
     (r"RampageFiles\\\\?Lists\\\\?", ""),
     (r"RampageFiles\\\\?", ""),
     (r"\b[Rr]ampage\b", "Rampagio"),
+    # Rampage's typos, fixed so the English (and the translation keys) read right.
+    (r"\btrough\b", "through"),
+    (r"\bpasue\b", "pause"),
+    (r"\bWeclome\b", "Welcome"),
+    (r"\bSet's you\b", "Sets you"),
+    (r"\bLet's you\b", "Lets you"),
+    (r"\bSync's\b", "Syncs"),
+    (r"\bClean's\b", "Cleans"),
+    (r"\bit's name\b", "its name"),
+    (r"\bloosing\b", "losing"),
+    (r"\bPoint's of Interest\b", "Points of Interest"),
+    (r"\bOut of Bounce\b", "Out of Bounds"),
+    (r"\bswim infinitive\b", "swim endlessly"),
+    (r"\bInfinitive ammo\b", "Infinite ammo"),
+    (r"\bfall through world\b", "fall through the world"),
 ]
 
 # Menus Rampagio doesn't have: Rampage's own credits and windows, and the

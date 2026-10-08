@@ -88,7 +88,9 @@ def english_strings():
     found = {}
     for pattern in SOURCES:
         for f in sorted(glob.glob(os.path.join(SRC, pattern))):
-            for n, line in enumerate(open(f, encoding="utf-8"), 1):
+            # Block comments blanked (newlines kept, so line numbers hold).
+            text = re.sub(r"/\*.*?\*/", lambda m: re.sub(r"[^\n]", " ", m.group(0)), open(f, encoding="utf-8").read(), flags=re.S)
+            for n, line in enumerate(text.split("\n"), 1):
                 if SKIP_LINE.search(line):
                     continue
                 for m in LITERAL.finditer(line):
@@ -98,7 +100,7 @@ def english_strings():
     inc = os.path.join(SRC, "data", "Descriptions.inc")
     for n, line in enumerate(open(inc, encoding="utf-8"), 1):
         m = re.match(r'\{\s*"(?:[^"\\]|\\.)*",\s*"(?:[^"\\]|\\.)*",\s*"((?:[^"\\]|\\.)*)"\s*\}', line)
-        if m:
+        if m and unescape(m.group(1)) not in ignore:
             found.setdefault(unescape(m.group(1)), "data/Descriptions.inc:%d" % n)
     return found
 

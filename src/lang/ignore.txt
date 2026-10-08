@@ -1,2 +1,4 @@
-# Literals tools/lang_sync.py takes for text but that are never shown (one per line, 
- for a newline).
+# Literals tools/lang_sync.py takes for text but that are never shown or need no translation (one per line; \n for a newline).
+.mp3\n.wav\n.ogg
+{} ~COLOR_GREEN~({})
+primary horse
