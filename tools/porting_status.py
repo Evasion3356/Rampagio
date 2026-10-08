@@ -77,7 +77,7 @@ STATUS = {
  'SubObjSpawnerPropsets':('Done','Spawner > Object Spawner > Propsets: pg_ names from the game scripts'),
  'SubObjSpawnerLoadSave':('Partial','Spawner > Object Spawner > Load / Save: objects only, in Rampagio_Spooner.json (ours); no spooner XML, peds or vehicles'),
  'SubPlantSpawner':('Done','Spawner > Plant Spawner: the 84 COMPOSITE_LOOTABLE_ composites the scripts name'),
- 'SubTeleport':('Partial','Teleport: Common Locations, Camps and Safe Houses and the region submenus from the Rampage lists (data/Teleports.inc); Blips not ported'),
+ 'SubTeleport':('Done','Teleport: Common Locations, Camps and Safe Houses and the region submenus from the Rampage lists (data/Teleports.inc); Blips reads the location and mission blip globals Rampage reads (1491.50 indices) and names them from its table (data/BlipLabels.inc)'),
  'SubTeleportCustom':('Done','Teleport > Load Custom / Delete Custom'),
  'SubWorld':('Done','World: also the Cloud Editor and Ambient Light submenus (unnamed builders in Rampage)'),
  'SubWorldOcean':('Done','World > Water'),

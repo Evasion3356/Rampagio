@@ -3,7 +3,9 @@
 	lists (Common Locations, the region submenus and Shops and Services) are
 	Rampage's names and coordinates, carried over into data\Teleports.inc by
 	tools\extract_rampage_teleports_ida.py. Custom locations are saved to
-	Rampagio_Teleports.json.
+	Rampagio_Teleports.json. Blips lists the map location and mission
+	blips the scripts keep in globals (1491.50 indices, the ones Rampage
+	reads), named through Rampage's blip type table (data\BlipLabels.inc).
 */
 
 #include "Menus.h"
@@ -44,6 +46,60 @@ namespace
 			return "No waypoint set";
 		const Vector3 target = MAP::_GET_WAYPOINT_COORDS();
 		return ToGround(target.x, target.y);
+	}
+
+	// --- blips -------------------------------------------------------------------
+
+	struct BlipLabel { int type; Hash label; };
+	const BlipLabel kBlipLabels[] = {
+#include "..\data\BlipLabels.inc"
+	};
+
+	// Global_36308[i]: map location blips; Global_40.f_7862[i /*4*/].f_0
+	// is each one's type. Global_1835011[i /*74*/].f_27 / .f_26: mission
+	// blips and their label hashes, Global_1879534.f_7300 of them.
+	constexpr int kLocationBlips = 36308;
+	constexpr int kLocationTypes = 40, kLocationTypesField = 7862;
+	constexpr int kMissionBlips = 1835011, kMissionStride = 74;
+	constexpr int kMissionCount = 1879534, kMissionCountField = 7300;
+
+	void AddBlipRow(MenuBase* m, Blip blip, Hash label, int index)
+	{
+		if (!MAP::DOES_BLIP_EXIST(blip))
+			return;
+		const std::string name = std::format("Blip ({}) {}", index, label ? GameUtil::ItemName(label, "") : std::string());
+		Ui::Action(m, name, [blip] {
+			if (!MAP::DOES_BLIP_EXIST(blip))
+				return std::string("Blip is gone");
+			const Vector3 p = MAP::GET_BLIP_COORDS(blip);
+			return ToGround(p.x, p.y);
+		});
+	}
+
+	void BuildBlips(MenuBase* m)
+	{
+		const UINT64* blips = GameUtil::Global(kLocationBlips);
+		const UINT64* types = GameUtil::Global(kLocationTypes) + kLocationTypesField;
+		const int count = static_cast<int>(blips[0]);
+		for (int i = 0; i < count && i < static_cast<int>(types[0]); i++)
+		{
+			const int type = static_cast<int>(types[1 + 4 * i]);
+			Hash label = 0;
+			for (const BlipLabel& l : kBlipLabels)
+				if (l.type == type)
+					label = l.label;
+			AddBlipRow(m, static_cast<Blip>(blips[1 + i]), label, i);
+		}
+		Ui::Section(m, "Missions");
+		const UINT64* missions = GameUtil::Global(kMissionBlips);
+		const int missionCount = static_cast<int>(GameUtil::Global(kMissionCount)[kMissionCountField]);
+		for (int i = 0; i < missionCount && i < static_cast<int>(missions[0]); i++)
+		{
+			const UINT64* entry = missions + 1 + kMissionStride * i;
+			AddBlipRow(m, static_cast<Blip>(entry[27]), static_cast<Hash>(entry[26]), i);
+		}
+		if (m->GetItemCount() <= 1)
+			m->AddItem(new MenuItemLabel([] { return std::string("No active blips"); }));
 	}
 
 	void AutoWaypointTick()
@@ -279,6 +335,7 @@ namespace Menus
 		Ui::Action(tp, "teleport.nearesttraintrack", "Nearest Train Track", NearestTrainTrack);
 
 		Ui::Section(tp, "Locations");
+		Ui::ListMenu(tp, "Blips", BuildBlips);
 		BuildPlaces(tp);
 	}
 }
