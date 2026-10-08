@@ -1,4 +1,5 @@
 // es-MX: { English, translation }, sorted by English. Written by hand; tools/lang_sync.py checks it.
+{ "Add 1 Hour", "Agregar 1 hora" },
 { "Add Aimed Ped", "Agregar NPC apuntado" },
 { "Add Entities to Database", "Agregar entidades a la base de datos" },
 { "Add Entries", "Agregar entradas" },
