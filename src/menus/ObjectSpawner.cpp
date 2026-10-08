@@ -351,11 +351,11 @@ namespace Menus
 	{
 		MenuBase* objects = Ui::Submenu(spawner, "Object Spawner");
 		MenuBase* cam = Ui::Submenu(objects, "Cam Settings");
-		Ui::Number(cam, "FOV", &g_camFov, 10.0f, 120.0f, 5.0f);
-		Ui::Number(cam, "Speed", &g_camSpeed, 0.05f, 5.0f, 0.05f);
-		Ui::Toggle(cam, "Take Player With Cam", [](bool on) { g_camTakePlayer = on; })->SetState(true);
-		Ui::Toggle(cam, "Clear Space for Player", [](bool on) { g_camClearSpace = on; });
-		Ui::Toggle(objects, "Creator Cam", [](bool on) { if (!on) CreatorCamOff(); }, CreatorCamTick);
+		Ui::Number(cam, "objectspawner.fov", "FOV", &g_camFov, 10.0f, 120.0f, 5.0f);
+		Ui::Number(cam, "objectspawner.speed", "Speed", &g_camSpeed, 0.05f, 5.0f, 0.05f);
+		Ui::Toggle(cam, "objectspawner.takeplayerwithcam", "Take Player With Cam", [](bool on) { g_camTakePlayer = on; })->SetDefault(true);
+		Ui::Toggle(cam, "objectspawner.clearspaceforplayer", "Clear Space for Player", [](bool on) { g_camClearSpace = on; });
+		Ui::Toggle(objects, "objectspawner.creatorcam", "Creator Cam", [](bool on) { if (!on) CreatorCamOff(); }, CreatorCamTick);
 
 		g_objectMenu = Ui::DetachedListMenu("Object", BuildSelectedObject);
 		Ui::ListMenu(objects, "Object Database", BuildDatabase);
@@ -409,16 +409,16 @@ namespace Menus
 			for (const std::string& n : names)
 				Ui::Action(m, n, [n] { return SpawnObject(n); });
 		});
-		Ui::Action(objects, "Custom Input", [] {
+		Ui::Action(objects, "objectspawner.custominput", "Custom Input", [] {
 			std::string name;
 			if (!GameUtil::PromptText("Enter Name or Hash:", name) || name.empty())
 				return std::string();
 			return SpawnObject(name);
-		});
-		Ui::Action(objects, "Hijack Object", HijackObject);
+		})->SetHotkeyable(false);
+		Ui::Action(objects, "objectspawner.hijackobject", "Hijack Object", HijackObject)->SetHotkeyable(false);
 
 		MenuBase* plants = Ui::Submenu(spawner, "Plant Spawner");
 		for (const char* name : kComposites)
-			Ui::Action(plants, name, [name] { return SpawnComposite(name); });
+			Ui::Action(plants, Ui::Id("objectspawner.plant", name), name, [name] { return SpawnComposite(name); });
 	}
 }
