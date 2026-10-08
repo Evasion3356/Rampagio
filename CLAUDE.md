@@ -115,8 +115,8 @@ Manager lists and removes them).
   gamepad input, and `MenuStyle` (`Style()`: colors, position, rows per
   page, sounds), which items read at draw time, plus `MenuKey()` and
   `WrapWidth()`. The look is Rampage's, re-implemented from its draw code with its
-  measurements and default theme (branch `rampage-style`, untested
-  live): `MenuBase::OnDraw` draws the header, the subheader (menu name,
+  measurements and default theme (merged 2026-10-08; the user saw it
+  in-game and approved the look): `MenuBase::OnDraw` draws the header, the subheader (menu name,
   counter), base, gliding scroller and footer; rows draw only their text
   and sprites (checkbox, submenu arrow, "<- value ->"). `DrawMenuText`
   sizes text with `_BG_SET_TEXT_SCALE` and centers/right-aligns it
