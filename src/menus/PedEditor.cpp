@@ -423,7 +423,7 @@ namespace
 		ENTITY::SET_ENTITY_ALPHA(real, 0, FALSE);
 	}
 
-	void BuildWeapons(MenuBase* editor)
+	void BuildEditorWeapons(MenuBase* editor)
 	{
 		MenuBase* weapons = Ui::Submenu(editor, "Weapons");
 		Ui::Number(weapons, "pededitor.weaponaccuracy", "Weapon Accuracy", &g_accuracy, 0, 100, 5, [] { WithPed([](Ped p) { PED::SET_PED_ACCURACY(p, g_accuracy); }); });
@@ -485,7 +485,7 @@ namespace
 		return "";
 	}
 
-	void BuildWardrobe(MenuBase* editor)
+	void BuildEditorWardrobe(MenuBase* editor)
 	{
 		const Menus::SharedMenus& s = g_shared;
 		MenuBase* wardrobe = Ui::Submenu(editor, "Wardrobe");
@@ -693,8 +693,8 @@ namespace Menus
 
 			e->AddItem(new MenuItemLabel([] { return Valid() ? "Editing: " + Label(g_ped) : std::string("The ped is gone"); }));
 			BuildGeneral(e);
-			BuildWardrobe(e);
-			BuildWeapons(e);
+			BuildEditorWardrobe(e);
+			BuildEditorWeapons(e);
 			Ui::Link(e, "Effects", s.effects);
 			Ui::Link(e, "Emotes", s.emotes);
 			Ui::Link(e, "Scenarios", s.scenarios);
