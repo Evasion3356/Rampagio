@@ -104,7 +104,7 @@ namespace
 	{
 		MenuBase* menu = Ui::Submenu(parent, title);
 		const Hash hash = GameUtil::Joaat(category);
-		Ui::Toggle(menu, "Show on Map", [hash, singular, &blips](bool on) {
+		Ui::Toggle(menu, std::string("collectibles.") + category + ".showonmap", "Show on Map", [hash, singular, &blips](bool on) {
 			if (!on)
 				return blips.Clear();
 			std::vector<Vector3> locations;
@@ -143,7 +143,7 @@ namespace
 	void BuildDreamcatchers(MenuBase* parent)
 	{
 		MenuBase* menu = Ui::Submenu(parent, "Dreamcatchers");
-		Ui::Toggle(menu, "Show on Map", [](bool on) {
+		Ui::Toggle(menu, "collectibles.showonmap", "Show on Map", [](bool on) {
 			if (!on)
 				return g_dreamcatcherBlips.Clear();
 			g_dreamcatcherBlips.Show({ std::begin(kDreamcatchers), std::end(kDreamcatchers) }, "Dreamcatcher");
@@ -295,7 +295,7 @@ namespace
 		int wakeAt = 0;
 		Object card = 0;
 		Vector3 origin{};
-		MenuItemToggle* toggle = nullptr;
+		Rampagio::BoolCommand* toggle = nullptr;
 
 		void Start()
 		{
@@ -321,7 +321,7 @@ namespace
 				if (next >= models.size())
 				{
 					Log::Write("Auto Collect All: done, {} card models", models.size());
-					toggle->SetOff();
+					toggle->SetState(false);
 					return;
 				}
 				const Hash model = models[next];
@@ -362,11 +362,12 @@ namespace
 		for (const CardSet& set : kCardSets)
 			Ui::ListMenu(menu, set.label, [&set](MenuBase* list) { BuildCardSet(list, set); });
 		Ui::Section(menu, "Spawn Card Sets");
-		g_autoCollect.toggle = Ui::Toggle(menu, "Auto Collect All",
+		g_autoCollect.toggle = Ui::Toggle(menu, "collectibles.autocollectall", "Auto Collect All",
 			[](bool on) { if (on) g_autoCollect.Start(); },
 			[] { g_autoCollect.Tick(); });
+		g_autoCollect.toggle->SetTransient(); // a run, not a setting
 		for (const CardSet& set : kCardSets)
-			Ui::Action(menu, set.label, [&set] { return SpawnCardSet(set); });
+			Ui::Action(menu, Ui::Id("collectibles.spawncards", set.label), set.label, [&set] { return SpawnCardSet(set); });
 	}
 }
 
