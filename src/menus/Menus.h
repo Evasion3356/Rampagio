@@ -28,6 +28,18 @@ namespace Menus
 	void BuildPlayerPosse(MenuBase* self); // Posse.cpp
 	void BuildPlayerFixes(MenuBase* self); // PlayerFixes.cpp
 	void BuildHorse(MenuBase* root);
+	// HorseLock.cpp: Horse Stats' Keep Cores Golden and Lock Stats rows,
+	// holding the main horse's base ranks at the targets' values.
+	namespace HorseLock
+	{
+		struct Target
+		{
+			int attribute;
+			const int* value;
+		};
+		void Build(MenuBase* stats, std::vector<Target> targets);
+		bool Locked();
+	}
 	void BuildWeapons(MenuBase* root);
 	void BuildWeaponSubmenus(MenuBase* weapons); // WeaponSubmenus.cpp
 	void BuildWeaponExtras(MenuBase* weapons, MenuBase* manage, MenuBase* ammo, MenuBase* mods); // WeaponSubmenus.cpp

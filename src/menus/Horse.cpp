@@ -660,6 +660,12 @@ namespace Menus
 			});
 		});
 		Ui::Action(stats, "horse.maxhorsebonding", "Max Horse Bonding", MaxBonding);
+		// Ours (HorseLock.cpp): the lock holds the main horse at the Custom values.
+		std::vector<HorseLock::Target> lockTargets;
+		for (const HorseStat& s : g_stats)
+			if (s.attribute != 7) // bonding is Max Horse Bonding's
+				lockTargets.push_back({ s.attribute, &s.value });
+		HorseLock::Build(stats, std::move(lockTargets));
 		Ui::Section(stats, "Custom");
 		for (HorseStat& s : g_stats)
 		{
@@ -668,6 +674,9 @@ namespace Menus
 				[stat] { OnMount([stat](Ped m) { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, stat->attribute, stat->value); }); }, true);
 		}
 		stats->SetOnOpen([](MenuBase*) {
+			// While locked the values are the lock's targets, not a readout.
+			if (HorseLock::Locked())
+				return;
 			if (const Ped m = Mount())
 			{
 				g_gender = PED::_GET_CHAR_EXPRESSION(m, kGenderExpression) < 0.5f ? 1 : 0;
