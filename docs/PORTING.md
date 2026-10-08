@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending. Nothing is live-tested yet.
 
-Submenus: 27 done, 9 partial, 131 pending.
+Submenus: 38 done, 10 partial, 119 pending.
 
 ## Debug
 
@@ -85,29 +85,29 @@ Submenus: 27 done, 9 partial, 131 pending.
 |---|---|---|---|
 | SubAbilities | 8 | Done | Player > Abilities: recharge toggles restore 1.0 when off (ours) |
 | SubAnimPostFx | 3 | Done | Player > Vision > Screen Effects: list from the game scripts |
-| SubAnimationDictsList | 5 | Pending |  |
+| SubAnimationDictsList | 5 | Done | Player > Animations > Dictionaries > (dictionary): picking one also fills in Custom Animations (ours) |
 | SubDamagePacks | 3 | Done | Player > Wardrobe > Apply Damage Packs: list from the game scripts |
-| SubEffects | 29 | Pending |  |
-| SubEmotes | 11 | Pending |  |
+| SubEffects | 29 | Partial | Player > Effects: Scale, Loop, Custom asset/effect, 6 effects from the game scripts; Rampage's 25 named presets are its own table and not ported |
+| SubEmotes | 11 | Done | Player > Emotes: every emote type listed under its own heading instead of an Emote Type choice; adds gun twirls (alloc8or eEmote list) |
 | SubModelChangerAnimal | 2 | Pending |  |
 | SubModelChangerHorses | 0 | Pending |  |
 | SubModelChangerHorsesList | 1 | Pending |  |
 | SubModelChangerPeds | 0 | Pending |  |
 | SubModelChangerPedsList | 1 | Pending |  |
 | SubMoods | 2 | Done | Player > Moods: mood_ anims from the game scripts |
-| SubPlaySpeech | 6 | Pending |  |
-| SubPlaySpeechCustom | 3 | Pending |  |
-| SubPlaySpeechFlowgreet | 3 | Pending |  |
-| SubPlaySpeechRegular | 2 | Pending |  |
-| SubPlaySpeechVignettes | 3 | Pending |  |
+| SubPlaySpeech | 6 | Done | Player > Play Speech |
+| SubPlaySpeechCustom | 3 | Done | Player > Play Speech > Custom Speeches: Rampagio_SpeechList.txt, re-read on open |
+| SubPlaySpeechFlowgreet | 3 | Done | Player > Play Speech > Flow Greets: Rampagio_SpeechFlowGreets.txt, re-read on open |
+| SubPlaySpeechRegular | 2 | Done | Player > Play Speech > Regular Speeches: 208 lines from the game scripts (Rampage's table has 502); one Display All for every list |
+| SubPlaySpeechVignettes | 3 | Done | Player > Play Speech > Vignettes: Rampagio_SpeechVignettes.txt, re-read on open |
 | SubPlayerConfigFlags | 2 | Done | Player > Config Flags: flag by number (no names), shows current state (ours) |
 | SubPlayerPosse | 11 | Pending |  |
 | SubPlayerProofs | 9 | Done | Player > Player Proofs: re-applied every frame (ours) |
 | SubSelf | 38 | Done | Player |
-| SubSelfAnimationsCustom | 7 | Pending |  |
-| SubSelfAnimationsDicts | 1 | Pending |  |
+| SubSelfAnimationsCustom | 7 | Done | Player > Animations > Custom Animations: the Custom Flag submenu is a typed Custom Flags row (decimal or 0x hex) |
+| SubSelfAnimationsDicts | 1 | Done | Player > Animations > Dictionaries: script list plus Rampagio_PedAnimList.txt, re-read on open instead of Reload List |
 | SubSelfCustomizations | 4 | Pending |  |
-| SubSelfFacialAnimations | 4 | Pending |  |
+| SubSelfFacialAnimations | 4 | Done | Player > Animations > Facial Animations |
 | SubSelfFacialHair | 4 | Pending |  |
 | SubSelfModelChanger | 8 | Pending |  |
 | SubSelfOutfitSaver | 3 | Pending |  |
@@ -119,7 +119,7 @@ Submenus: 27 done, 9 partial, 131 pending.
 | SubSelfWardrobeComponent | 3 | Pending |  |
 | SubSelfWardrobeWearableState | 3 | Pending |  |
 | SubTimecycleMod | 3 | Done | Player > Vision > Timecycle Modifiers: list from the game scripts |
-| SubVoiceChanger | 3 | Pending |  |
+| SubVoiceChanger | 3 | Done | Player > Play Speech > Voice Changer: Set Voice lists the script voices plus Custom Input (ours) |
 
 ## Recovery
 

@@ -15,6 +15,11 @@ namespace Menus
 {
 	void BuildPlayer(MenuBase* root);
 	void BuildPlayerSubmenus(MenuBase* self); // PlayerSubmenus.cpp
+	// PlayerActions.cpp, called from BuildPlayerSubmenus in Rampage's order.
+	void BuildPlayerAnimations(MenuBase* self);
+	void BuildPlayerEffects(MenuBase* self);
+	void BuildPlayerEmotes(MenuBase* self);
+	void BuildPlayerSpeech(MenuBase* self);
 	void BuildHorse(MenuBase* root);
 	void BuildWeapons(MenuBase* root);
 	void BuildVehicle(MenuBase* root);

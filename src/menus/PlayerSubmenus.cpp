@@ -157,6 +157,8 @@ namespace Menus
 			Ui::Do(m, "Use Nearest", UseNearestScenario);
 		});
 
+		BuildPlayerAnimations(self); // PlayerActions.cpp
+
 		// SubSelfWardrobe (partial).
 		MenuBase* wardrobe = Ui::Submenu(self, "Wardrobe");
 		Ui::NameList(wardrobe, "Walk Styles", Names(kWalkStyles), SetWalkStyle, [](MenuBase* m) {
@@ -178,6 +180,10 @@ namespace Menus
 		Ui::NameList(vision, "Screen Effects", Names(kPostFx),
 			[](const std::string& name) { GRAPHICS::ANIMPOSTFX_PLAY(name.c_str()); },
 			[](MenuBase* m) { Ui::Do(m, "Clear all", [] { GRAPHICS::ANIMPOSTFX_STOP_ALL(); }); });
+
+		BuildPlayerEffects(self);
+		BuildPlayerEmotes(self);
+		BuildPlayerSpeech(self);
 
 		// SubMoods: facial idle overrides from the ped's own facial dictionary.
 		Ui::NameList(self, "Moods", Names(kMoods),

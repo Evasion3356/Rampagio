@@ -14,8 +14,19 @@ namespace
 	{
 		MenuBase* menu = new MenuBase(new MenuItemListTitle(title));
 		g_controller.RegisterMenu(menu); // MenuItemMenu::OnSelect's PushMenu only accepts registered menus
-		parent->AddItem(new MenuItemMenu(title, menu));
+		if (parent)
+			parent->AddItem(new MenuItemMenu(title, menu));
 		return menu;
+	}
+
+	void SetBuild(MenuBase* menu, std::function<void(MenuBase*)> build)
+	{
+		menu->SetOnOpen([build](MenuBase* m)
+		{
+			std::erase_if(g_toggles, [m](MenuItemToggle* t) { return t->GetMenu() == m; });
+			m->ClearItems();
+			build(m);
+		});
 	}
 }
 
@@ -44,13 +55,21 @@ namespace Ui
 	MenuBase* ListMenu(MenuBase* parent, const std::string& title, std::function<void(MenuBase*)> build)
 	{
 		MenuBase* menu = NewMenu(parent, title);
-		menu->SetOnOpen([build](MenuBase* m)
-		{
-			std::erase_if(g_toggles, [m](MenuItemToggle* t) { return t->GetMenu() == m; });
-			m->ClearItems();
-			build(m);
-		});
+		SetBuild(menu, std::move(build));
 		return menu;
+	}
+
+	MenuBase* DetachedListMenu(const std::string& title, std::function<void(MenuBase*)> build)
+	{
+		MenuBase* menu = NewMenu(nullptr, title);
+		SetBuild(menu, std::move(build));
+		return menu;
+	}
+
+	void Push(MenuBase* menu)
+	{
+		menu->Open();
+		g_controller.PushMenu(menu);
 	}
 
 	MenuBase* NameList(MenuBase* parent, const std::string& title, std::span<const char* const> names,
@@ -129,6 +148,23 @@ namespace Ui
 	void Section(MenuBase* menu, const std::string& caption)
 	{
 		menu->AddItem(new MenuItemSection(caption));
+	}
+
+	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange)
+	{
+		menu->AddItem(new MenuItemActionStatus(
+			[caption, value] { return caption + ": " + (value->empty() ? "Not set" : *value); },
+			[caption, value, onChange]
+			{
+				std::string text = *value;
+				if (GameUtil::PromptText(caption.c_str(), text, 100))
+				{
+					*value = text;
+					if (onChange)
+						onChange();
+				}
+				return std::string();
+			}));
 	}
 
 	void DisableAllToggles()
