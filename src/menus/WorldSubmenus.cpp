@@ -605,41 +605,41 @@ namespace Menus
 	{
 		// SubWorldOcean.
 		MenuBase* water = Ui::Submenu(world, "Water");
-		Ui::Toggle(water, "Guarma Water", [](bool on) { WATER::_SET_WORLD_WATER_TYPE(on ? 1 : 0); });
-		Ui::Toggle(water, "Guarma Hurricane Water", SetGuarmaHurricane);
-		Ui::Looped(water, "Walk Underwater", [] { WATER::DISABLE_WATER_LOOKUP(); }, [] { WATER::ENABLE_WATER_LOOKUP(); });
+		Ui::Toggle(water, "world.guarmawater", "Guarma Water", [](bool on) { WATER::_SET_WORLD_WATER_TYPE(on ? 1 : 0); });
+		Ui::Toggle(water, "world.guarmahurricanewater", "Guarma Hurricane Water", SetGuarmaHurricane);
+		Ui::Looped(water, "world.walkunderwater", "Walk Underwater", [] { WATER::DISABLE_WATER_LOOKUP(); }, [] { WATER::ENABLE_WATER_LOOKUP(); });
 		Ui::Section(water, "All Water");
-		Ui::Toggle(water, "Disable Water", [](bool on) { SetNoWaterModifier(on); }, [] { WATER::DISABLE_WATER_LOOKUP(); });
-		Ui::Toggle(water, "Clear Water", SetNoWaterModifier);
+		Ui::Toggle(water, "world.disablewater", "Disable Water", [](bool on) { SetNoWaterModifier(on); }, [] { WATER::DISABLE_WATER_LOOKUP(); });
+		Ui::Toggle(water, "world.clearwater", "Clear Water", SetNoWaterModifier);
 
 		// Cloud Editor.
 		MenuBase* clouds = Ui::Submenu(world, "Cloud Editor");
-		Ui::Looped(clouds, "Remove Clouds", [] { GRAPHICS::_SET_CLOUD_HEIGHT(-42069.0f); });
+		Ui::Looped(clouds, "world.removeclouds", "Remove Clouds", [] { GRAPHICS::_SET_CLOUD_HEIGHT(-42069.0f); });
 		Ui::Section(clouds, "Layer");
-		Ui::Toggle(clouds, "Override Layer", [](bool on) { g_cloudLayer = on; }, CloudTick);
-		Ui::Number(clouds, "X", &g_layerX, -1.0f, 1.0f, 0.005f);
-		Ui::Number(clouds, "Y", &g_layerY, -1.0f, 1.0f, 0.005f);
+		Ui::Toggle(clouds, "world.overridelayer", "Override Layer", [](bool on) { g_cloudLayer = on; }, CloudTick);
+		Ui::Number(clouds, "world.x", "X", &g_layerX, -1.0f, 1.0f, 0.005f);
+		Ui::Number(clouds, "world.y", "Y", &g_layerY, -1.0f, 1.0f, 0.005f);
 		Ui::Section(clouds, "Noise");
-		Ui::Toggle(clouds, "Override Noise", [](bool on) { g_cloudNoise = on; }, CloudTick);
+		Ui::Toggle(clouds, "world.overridenoise", "Override Noise", [](bool on) { g_cloudNoise = on; }, CloudTick);
 		const char* const kXyz[] = { "X", "Y", "Z" };
 		for (int i = 0; i < 3; i++)
-			Ui::Number(clouds, std::string("Noise ") + kXyz[i], &g_noise[i], -5000.0f, 10000.0f, 2.0f);
+			Ui::Number(clouds, Ui::Id("world.cloudnoise", kXyz[i]), std::string("Noise ") + kXyz[i], &g_noise[i], -5000.0f, 10000.0f, 2.0f);
 		Ui::Section(clouds, "Position");
-		Ui::Toggle(clouds, "Override Position", [](bool on) { g_cloudPosition = on; }, CloudTick);
+		Ui::Toggle(clouds, "world.overrideposition", "Override Position", [](bool on) { g_cloudPosition = on; }, CloudTick);
 		for (int i = 0; i < 3; i++)
-			Ui::Number(clouds, std::string("Position ") + kXyz[i], &g_cloudPos[i], -1000.0f, 10000.0f, 2.0f);
+			Ui::Number(clouds, Ui::Id("world.cloudposition", kXyz[i]), std::string("Position ") + kXyz[i], &g_cloudPos[i], -1000.0f, 10000.0f, 2.0f);
 		Ui::Section(clouds, "Height");
-		Ui::Toggle(clouds, "Override Height", [](bool on) { g_cloudHeight = on; }, CloudTick);
-		Ui::Number(clouds, "Height", &g_height, -1000.0f, 10000.0f, 2.0f);
+		Ui::Toggle(clouds, "world.overrideheight", "Override Height", [](bool on) { g_cloudHeight = on; }, CloudTick);
+		Ui::Number(clouds, "world.height", "Height", &g_height, -1000.0f, 10000.0f, 2.0f);
 		Ui::Section(clouds, "Cloudlapse");
-		Ui::Choice(clouds, "Axis", { "X", "Y" }, &g_lapseAxis);
-		Ui::Number(clouds, "Speed", &g_lapseSpeed, 0.001f, 0.1f, 0.001f);
-		Ui::Looped(clouds, "Toggle", CloudlapseTick);
+		Ui::Choice(clouds, "world.axis", "Axis", { "X", "Y" }, &g_lapseAxis);
+		Ui::Number(clouds, "world.speed", "Speed", &g_lapseSpeed, 0.001f, 0.1f, 0.001f);
+		Ui::Looped(clouds, "world.cloudeditor.toggle", "Toggle", CloudlapseTick);
 
 		// SubWorldLocalPeds ("Ped Manager").
 		MenuBase* peds = Ui::Submenu(world, "Ped Manager");
 		// Ours: open the Ped Editor on the aimed-at or a nearby ped.
-		Ui::Action(peds, "Edit Aimed Ped", []() -> std::string {
+		Ui::Action(peds, "world.editaimedped", "Edit Aimed Ped", []() -> std::string {
 			Entity e = 0;
 			if (!PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(PLAYER::PLAYER_ID(), &e) || !ENTITY::IS_ENTITY_A_PED(e))
 				return "Aim at a ped first";
@@ -660,84 +660,84 @@ namespace Menus
 			if (nearby.empty())
 				Ui::Section(m, "No peds nearby");
 		});
-		Ui::Do(peds, "Teleport to Me", [] {
+		Ui::Do(peds, "world.pedmanager.teleporttome", "Teleport to Me", [] {
 			const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
 			for (Ped ped : OtherPeds())
 				ENTITY::SET_ENTITY_COORDS_NO_OFFSET(ped, p.x, p.y, p.z, FALSE, FALSE, FALSE);
 		});
-		Ui::Do(peds, "Jump", [] {
+		Ui::Do(peds, "world.jump", "Jump", [] {
 			for (Ped p : OtherPeds())
 				ENTITY::APPLY_FORCE_TO_ENTITY(p, 1, 0.0f, 0.0f, 35.0f, 0.0f, 0.0f, 0.0f, 1, FALSE, TRUE, TRUE, TRUE, TRUE);
 		});
-		Ui::Do(peds, "Run to Me", [] {
+		Ui::Do(peds, "world.runtome", "Run to Me", [] {
 			for (Ped p : OtherPeds())
 				TASK::TASK_GO_TO_ENTITY(p, Me(), -1, 5.0f, 100.0f, 1.0f, 0);
 		});
-		Ui::Do(peds, "Hands Up", [] {
+		Ui::Do(peds, "world.handsup", "Hands Up", [] {
 			for (Ped p : OtherPeds())
 				TASK::TASK_HANDS_UP(p, 5000, Me(), 0, 0);
 		});
-		Ui::Do(peds, "Hogtie", [] {
+		Ui::Do(peds, "world.hogtie", "Hogtie", [] {
 			for (Ped p : OtherPeds())
 				if (PED::IS_PED_HUMAN(p))
 					TASK::TASK_CARRIABLE(p, ENTITY::_GET_OPTIMAL_CARRY_CONFIG(p, 1), 0, 0, 0);
 		});
-		Ui::Do(peds, "Cower", [] {
+		Ui::Do(peds, "world.cower", "Cower", [] {
 			for (Ped p : OtherPeds())
 				TASK::TASK_COWER(p, 5000, Me(), 0);
 		});
-		Ui::Do(peds, "Explode", [] {
+		Ui::Do(peds, "world.pedmanager.explode", "Explode", [] {
 			ExplodeAt(Me(), 0.0f);
 			ExplodePeds(false);
 		});
-		Ui::Do(peds, "Kill", [] {
+		Ui::Do(peds, "world.kill", "Kill", [] {
 			for (Ped p : OtherPeds())
 				PED::APPLY_DAMAGE_TO_PED(p, 1000, TRUE, 0, 0);
 		});
-		Ui::Do(peds, "Auto-Kill Enemies", [] {
+		Ui::Do(peds, "world.autokillenemies", "Auto-Kill Enemies", [] {
 			const Ped me = Me();
 			for (Ped p : OtherPeds())
 				if (PED::IS_PED_IN_COMBAT(p, me) && !ENTITY::IS_ENTITY_DEAD(p))
 					PED::EXPLODE_PED_HEAD(p, WEAPON_EXPLOSIVE);
 		});
-		Ui::Do(peds, "Explode Enemies", [] { ExplodePeds(true); });
-		Ui::Do(peds, "Disarm Enemies", [] {
+		Ui::Do(peds, "world.explodeenemies", "Explode Enemies", [] { ExplodePeds(true); });
+		Ui::Do(peds, "world.disarmenemies", "Disarm Enemies", [] {
 			const Ped me = Me();
 			for (Ped p : OtherPeds())
 				if (PED::IS_PED_IN_COMBAT(p, me))
 					WEAPON::MAKE_PED_DROP_WEAPON(p, TRUE, 0, TRUE, FALSE);
 		});
-		Ui::Do(peds, "Nearby become Bodyguards", [] {
+		Ui::Do(peds, "world.nearbybecomebodyguards", "Nearby become Bodyguards", [] {
 			const auto others = OtherPeds();
 			for (Entity p : GameUtil::Nearby(std::vector<Entity>(others.begin(), others.end()),
 				ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE), 30.0f))
 				RecruitBodyguard(p);
 		});
-		Ui::Do(peds, "All become Bodyguards", [] {
+		Ui::Do(peds, "world.allbecomebodyguards", "All become Bodyguards", [] {
 			for (Ped p : OtherPeds())
 				RecruitBodyguard(p);
 		});
-		Ui::Do(peds, "Hostile Peds", HostilePeds);
-		Ui::Do(peds, "Restore Loot", [] {
+		Ui::Do(peds, "world.hostilepeds", "Hostile Peds", HostilePeds);
+		Ui::Do(peds, "world.restoreloot", "Restore Loot", [] {
 			for (Ped p : OtherPeds())
 				ENTITY::_SET_ENTITY_FULLY_LOOTED(p, FALSE);
 		});
-		Ui::Looped(peds, "Ped Scanner", PedScannerTick);
-		Ui::Looped(peds, "Decrease Ambient Peds", DecreasePedsTick);
-		Ui::Do(peds, "Delete All", [] { ClearAreaAround(0x4000); });
+		Ui::Looped(peds, "world.pedscanner", "Ped Scanner", PedScannerTick);
+		Ui::Looped(peds, "world.decreaseambientpeds", "Decrease Ambient Peds", DecreasePedsTick);
+		Ui::Do(peds, "world.pedmanager.deleteall", "Delete All", [] { ClearAreaAround(0x4000); });
 
 		// SubWorldLocalVehicles ("Vehicle Manager").
 		MenuBase* vehicles = Ui::Submenu(world, "Vehicle Manager");
-		Ui::Do(vehicles, "Teleport to Me", [] {
+		Ui::Do(vehicles, "world.vehiclemanager.teleporttome", "Teleport to Me", [] {
 			const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
 			for (Vehicle v : OtherVehicles())
 				ENTITY::SET_ENTITY_COORDS_NO_OFFSET(v, p.x, p.y, p.z, FALSE, FALSE, FALSE);
 		});
-		Ui::Do(vehicles, "Ascend", [] {
+		Ui::Do(vehicles, "world.ascend", "Ascend", [] {
 			for (Vehicle v : OtherVehicles())
 				ENTITY::APPLY_FORCE_TO_ENTITY(v, 1, 0.0f, 0.0f, 90.0f, 0.0f, 0.0f, 0.0f, 1, FALSE, FALSE, TRUE, FALSE, FALSE);
 		});
-		Ui::Do(vehicles, "Explode", [] {
+		Ui::Do(vehicles, "world.vehiclemanager.explode", "Explode", [] {
 			ExplodeAt(Me(), 0.0f);
 			for (Vehicle v : OtherVehicles())
 			{
@@ -745,48 +745,48 @@ namespace Menus
 				VEHICLE::EXPLODE_VEHICLE(v, FALSE, FALSE, 0, 0);
 			}
 		});
-		Ui::Do(vehicles, "Delete", [] {
+		Ui::Do(vehicles, "world.delete", "Delete", [] {
 			for (Vehicle v : OtherVehicles())
 			{
 				TakeControl(v);
 				ENTITY::DELETE_ENTITY(&v);
 			}
 		});
-		Ui::Looped(vehicles, "Boost Forward", [] {
+		Ui::Looped(vehicles, "world.boostforward", "Boost Forward", [] {
 			for (Vehicle v : OtherVehicles())
 				VEHICLE::SET_VEHICLE_FORWARD_SPEED(v, 100.0f);
 		});
-		Ui::Looped(vehicles, "Vehicle Scanner", VehicleScannerTick);
-		Ui::Looped(vehicles, "Decrease Population", DecreaseVehiclesTick);
-		Ui::Toggle(vehicles, "Random Trains", [](bool on) { VEHICLE::SET_RANDOM_TRAINS(on); });
-		Ui::Toggle(vehicles, "Random Boats", [](bool on) { VEHICLE::SET_RANDOM_BOATS(on); });
-		Ui::Do(vehicles, "Delete All", [] { ClearAreaAround(0x28); });
+		Ui::Looped(vehicles, "world.vehiclescanner", "Vehicle Scanner", VehicleScannerTick);
+		Ui::Looped(vehicles, "world.decreasepopulation", "Decrease Population", DecreaseVehiclesTick);
+		Ui::Toggle(vehicles, "world.randomtrains", "Random Trains", [](bool on) { VEHICLE::SET_RANDOM_TRAINS(on); });
+		Ui::Toggle(vehicles, "world.randomboats", "Random Boats", [](bool on) { VEHICLE::SET_RANDOM_BOATS(on); });
+		Ui::Do(vehicles, "world.vehiclemanager.deleteall", "Delete All", [] { ClearAreaAround(0x28); });
 
 		// SubWorldLocalObjects ("Object Manager"). The Object Finder submenu
 		// is part of the tabled Object Editor area.
 		MenuBase* objects = Ui::Submenu(world, "Object Manager");
-		Ui::Looped(objects, "Object Scanner", ObjectScannerTick);
-		Ui::Do(objects, "Delete All", [] { ClearAreaAround(0x2200); });
+		Ui::Looped(objects, "world.objectscanner", "Object Scanner", ObjectScannerTick);
+		Ui::Do(objects, "world.objectmanager.deleteall", "Delete All", [] { ClearAreaAround(0x2200); });
 
 		// SubWorldDoorManager.
 		Ui::ListMenu(world, "Door Manager", BuildDoors);
 
 		// SubWorldTornado ("Tornado & Black Hole").
 		MenuBase* tornado = Ui::Submenu(world, "Tornado & Black Hole");
-		Ui::Looped(tornado, "Meteor Shower", MeteorTick, MeteorOff);
+		Ui::Looped(tornado, "world.meteorshower", "Meteor Shower", MeteorTick, MeteorOff);
 		Ui::Section(tornado, "Tornado");
-		Ui::Looped(tornado, "Enable Tornado", TornadoTick, [] { Remove(g_tornado); });
+		Ui::Looped(tornado, "world.enabletornado", "Enable Tornado", TornadoTick, [] { Remove(g_tornado); });
 		Ui::Section(tornado, "Black Hole");
-		Ui::Choice(tornado, "Force", { "1", "2", "3", "4", "5" }, &g_holeForce);
-		Ui::Choice(tornado, "Force Type", { "Low Force", "Max Force" }, &g_holeForceType);
-		Ui::Looped(tornado, "Enable Black Hole", BlackHoleTick, [] { Remove(g_blackHole); });
+		Ui::Choice(tornado, "world.force", "Force", { "1", "2", "3", "4", "5" }, &g_holeForce);
+		Ui::Choice(tornado, "world.forcetype", "Force Type", { "Low Force", "Max Force" }, &g_holeForceType);
+		Ui::Looped(tornado, "world.enableblackhole", "Enable Black Hole", BlackHoleTick, [] { Remove(g_blackHole); });
 		Ui::Section(tornado, "Options");
-		Ui::Toggle(tornado, "Delete Entities", [](bool on) { g_deleteEntities = on; });
+		Ui::Toggle(tornado, "world.deleteentities", "Delete Entities", [](bool on) { g_deleteEntities = on; });
 		Ui::Section(tornado, "Attraction Settings");
-		Ui::Toggle(tornado, "Vehicles", [](bool on) { g_attractVehicles = on; })->SetState(true);
-		Ui::Toggle(tornado, "Peds", [](bool on) { g_attractPeds = on; })->SetState(true);
-		Ui::Toggle(tornado, "Player", [](bool on) { g_attractPlayer = on; });
-		Ui::Toggle(tornado, "Objects", [](bool on) { g_attractObjects = on; })->SetState(true);
+		Ui::Toggle(tornado, "world.vehicles", "Vehicles", [](bool on) { g_attractVehicles = on; })->SetDefault(true);
+		Ui::Toggle(tornado, "world.peds", "Peds", [](bool on) { g_attractPeds = on; })->SetDefault(true);
+		Ui::Toggle(tornado, "world.player", "Player", [](bool on) { g_attractPlayer = on; });
+		Ui::Toggle(tornado, "world.objects", "Objects", [](bool on) { g_attractObjects = on; })->SetDefault(true);
 
 		// SubWorldIMAPLoader, SubIMAPCustom.
 		MenuBase* ipl = Ui::Submenu(world, "IPL Loader");
@@ -807,29 +807,30 @@ namespace Menus
 				AddIplRows(m, g_userIpls[i].hash, g_userIplNames[i].empty() ? Hex(g_userIpls[i].hash) : g_userIplNames[i]);
 		});
 		Ui::ListMenu(ipl, "IPL Sets", BuildIplSets);
-		Ui::Text(ipl, "IPL", &g_customIpl);
-		Ui::Action(ipl, "Load Custom", [] { return LoadIpl(GameUtil::ParseHash(g_customIpl), true); });
-		Ui::Action(ipl, "Unload Custom", [] { return LoadIpl(GameUtil::ParseHash(g_customIpl), false); });
-		Ui::Action(ipl, "Teleport to Custom", [] { return TeleportToIpl(GameUtil::ParseHash(g_customIpl)); });
+		Ui::Text(ipl, "world.ipl", "IPL", &g_customIpl);
+		Ui::Action(ipl, "world.loadcustom", "Load Custom", [] { return LoadIpl(GameUtil::ParseHash(g_customIpl), true); });
+		Ui::Action(ipl, "world.unloadcustom", "Unload Custom", [] { return LoadIpl(GameUtil::ParseHash(g_customIpl), false); });
+		Ui::Action(ipl, "world.teleporttocustom", "Teleport to Custom", [] { return TeleportToIpl(GameUtil::ParseHash(g_customIpl)); });
 		Ui::Section(ipl, "Interior");
 		ipl->AddItem(new MenuItemLabel([] { return "Current Interior: " + std::to_string(INTERIOR::GET_INTERIOR_FROM_ENTITY(Me())); }));
-		Ui::Text(ipl, "Entity Set", &g_entitySet);
-		Ui::Action(ipl, "Load Entity Set", [] { return EntitySet(true); });
-		Ui::Action(ipl, "Unload Entity Set", [] { return EntitySet(false); });
+		Ui::Text(ipl, "world.entityset", "Entity Set", &g_entitySet);
+		Ui::Action(ipl, "world.loadentityset", "Load Entity Set", [] { return EntitySet(true); });
+		Ui::Action(ipl, "world.unloadentityset", "Unload Entity Set", [] { return EntitySet(false); });
 
 		// SubWorldStates.
 		MenuBase* states = Ui::Submenu(world, "World States");
-		Ui::Number(states, "State", &g_stateId, 0, 31 * 64 - 1, 1, ReadState);
-		Ui::Choice(states, "Status", { "Off", "On" }, &g_stateOn, WriteState);
+		Ui::Number(states, "world.state", "State", &g_stateId, 0, 31 * 64 - 1, 1, ReadState);
+		Ui::Choice(states, "world.status", "Status", { "Off", "On" }, &g_stateOn, WriteState);
 		states->SetOnOpen([](MenuBase*) { ReadState(); });
+		Ui::Transient(states);
 
 		// Ambient Light.
 		MenuBase* light = Ui::Submenu(world, "Ambient Light");
-		Ui::Looped(light, "Toggle", AmbientLightTick);
+		Ui::Looped(light, "world.ambientlight.toggle", "Toggle", AmbientLightTick);
 		const char* const kRgb[] = { "Red", "Green", "Blue" };
 		for (int i = 0; i < 3; i++)
-			Ui::Number(light, kRgb[i], &g_lightColor[i], 0, 255, 5);
-		Ui::Number(light, "Range", &g_lightRange, 0.0f, 5000.0f, 1.0f);
-		Ui::Number(light, "Brightness", &g_lightBrightness, 0.0f, 5000.0f, 1.0f);
+			Ui::Number(light, Ui::Id("world.ambientlight", kRgb[i]), kRgb[i], &g_lightColor[i], 0, 255, 5);
+		Ui::Number(light, "world.range", "Range", &g_lightRange, 0.0f, 5000.0f, 1.0f);
+		Ui::Number(light, "world.brightness", "Brightness", &g_lightBrightness, 0.0f, 5000.0f, 1.0f);
 	}
 }
