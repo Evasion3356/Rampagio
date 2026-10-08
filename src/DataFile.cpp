@@ -71,6 +71,37 @@ namespace DataFile
 		return lines;
 	}
 
+	std::string LoadText(const std::wstring& fileName)
+	{
+		std::ifstream is(Paths(fileName).read, std::ios::binary);
+		std::stringstream text;
+		text << is.rdbuf();
+		return text.str();
+	}
+
+	bool SaveText(const std::wstring& fileName, const std::string& text)
+	{
+		const std::filesystem::path parent = std::filesystem::path(fileName).parent_path();
+		if (!parent.empty())
+		{
+			std::error_code ec;
+			for (const std::wstring& dir : { LogFallback::ModuleDirectory(), LogFallback::FallbackDirectory() })
+				if (!dir.empty())
+					std::filesystem::create_directories(dir + parent.wstring(), ec);
+		}
+		const std::wstring path = Paths(fileName).write;
+		if (path.empty())
+			return false;
+		std::ofstream os(path, std::ios::binary | std::ios::trunc);
+		if (!os)
+		{
+			Log::Write("DataFile::SaveText -- couldn't open {} for writing", LogFallback::ToUtf8(path));
+			return false;
+		}
+		os << text;
+		return static_cast<bool>(os);
+	}
+
 	std::vector<std::string> ListFiles(const std::wstring& folder, const std::wstring& extension)
 	{
 		std::set<std::string> names;

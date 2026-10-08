@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 146 done, 9 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 147 done, 8 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -173,7 +173,7 @@ Submenus: 146 done, 9 partial, 0 pending, 10 tabled, 2 dropped.
 |---|---|---|---|
 | SubObjSpawnerAllObjs | 1 | Done | Spawner > Object Spawner > All Objects: game script objects plus Rampagio_ObjectList.txt |
 | SubObjSpawnerDatabase | 1 | Done | Spawner > Object Spawner > Object Database: per-object actions (ours) until the Object Editor is back |
-| SubObjSpawnerLoadSave | 7 | Partial | Spawner > Object Spawner > Load / Save: objects only, in Rampagio_Spooner.json (ours); no spooner XML, peds or vehicles |
+| SubObjSpawnerLoadSave | 7 | Done | Spawner > Object Spawner > Load / Save: the spooner database XML of Rampage (objects, spawned vehicles, the Ped Spawner database) in Rampagio_Spooner; reads Rampage files too; older Rampagio_Spooner.json sets still load |
 | SubObjSpawnerPropsets | 2 | Done | Spawner > Object Spawner > Propsets: pg_ names from the game scripts |
 | SubObjectSpawner | 3 | Done | Spawner > Object Spawner: objects from the game scripts; creator cam is our own free cam |
 | SubPedSpawner | 2 | Done | Spawner > Ped Spawner: models from the game scripts; Hijack Ped adds the first ped of a typed model to the database |

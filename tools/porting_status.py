@@ -75,7 +75,7 @@ STATUS = {
  'SubObjSpawnerDatabase':('Done','Spawner > Object Spawner > Object Database: per-object actions (ours) until the Object Editor is back'),
  'SubObjSpawnerAllObjs':('Done','Spawner > Object Spawner > All Objects: game script objects plus Rampagio_ObjectList.txt'),
  'SubObjSpawnerPropsets':('Done','Spawner > Object Spawner > Propsets: pg_ names from the game scripts'),
- 'SubObjSpawnerLoadSave':('Partial','Spawner > Object Spawner > Load / Save: objects only, in Rampagio_Spooner.json (ours); no spooner XML, peds or vehicles'),
+ 'SubObjSpawnerLoadSave':('Done','Spawner > Object Spawner > Load / Save: the spooner database XML of Rampage (objects, spawned vehicles, the Ped Spawner database) in Rampagio_Spooner; reads Rampage files too; older Rampagio_Spooner.json sets still load'),
  'SubPlantSpawner':('Done','Spawner > Plant Spawner: the 84 COMPOSITE_LOOTABLE_ composites the scripts name'),
  'SubTeleport':('Done','Teleport: Common Locations, Camps and Safe Houses and the region submenus from the Rampage lists (data/Teleports.inc); Blips reads the location and mission blip globals Rampage reads (1491.50 indices) and names them from its table (data/BlipLabels.inc)'),
  'SubTeleportCustom':('Done','Teleport > Load Custom / Delete Custom'),

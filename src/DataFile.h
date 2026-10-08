@@ -36,4 +36,9 @@ namespace DataFile
 	// folder next to Rampagio.json or in the fallback directory, sorted.
 	// Load one with LoadJson(folder + L"\\" + name + extension).
 	std::vector<std::string> ListFiles(const std::wstring& folder, const std::wstring& extension);
+
+	// A whole text file (fileName may include a folder); empty when missing.
+	std::string LoadText(const std::wstring& fileName);
+	// Writes a text file, creating its folder; false on failure.
+	bool SaveText(const std::wstring& fileName, const std::string& text);
 }

@@ -60,6 +60,22 @@ namespace Menus
 		const std::vector<Ped>& Members();
 	}
 
+	// The Ped Spawner's database and the vehicles the Vehicle Spawner made
+	// (Spawner.cpp), saved and loaded with the Object Spawner's database.
+	namespace SpawnerDb
+	{
+		struct Entry
+		{
+			Entity entity;
+			std::string model;
+		};
+		// Entries whose entity still exists.
+		std::vector<Entry> Peds();
+		std::vector<Entry> Vehicles();
+		void AddPed(Ped ped, const std::string& model);
+		void AddVehicle(Vehicle vehicle, const std::string& model);
+	}
+
 	// The Give Weapon list's weapon names (Weapons.cpp).
 	std::span<const char* const> WeaponNames();
 

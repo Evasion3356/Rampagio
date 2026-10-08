@@ -6,14 +6,18 @@
 	All Objects also reads a user-supplied Rampagio_ObjectList.txt (same
 	format as Rampage's Lists\ObjectList.txt).
 
-	Saved sets go in Rampagio_Spooner.json (ours); Rampage reads and writes
-	its own spooner XML files. The Object Editor (moving and rotating a
+	Load / Save writes Rampage's spooner database XML (Map > Placement,
+	Vehicle, Ped) into a Rampagio_Spooner folder, with the Ped Spawner's
+	database and the spawned vehicles (Menus::SpawnerDb), and loads those
+	files and Rampage's own (RampageFiles\Spooner). Sets saved by earlier
+	builds in Rampagio_Spooner.json still load. The Object Editor (moving and rotating a
 	selected object) is tabled with the rest of that area.
 */
 
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
+#include "..\Xml.h"
 
 #include <nlohmann/json.hpp>
 
@@ -267,29 +271,252 @@ namespace
 		return {};
 	}
 
-	// --- save / load (ours: Rampagio_Spooner.json)--------------------------------------
+	// --- save / load -----------------------------------------------------------------
 
-	const wchar_t* kSpoonerFile = L"Rampagio_Spooner.json";
+	const wchar_t* kSpoonerFile = L"Rampagio_Spooner.json"; // sets from earlier builds
+	constexpr wchar_t kSpoonerFolder[] = L"Rampagio_Spooner";
 	bool g_addToDatabase = true;
+
+	std::string Hex(Hash h) { return std::format("0x{:X}", h); }
+	std::string Bool(bool b) { return b ? "true" : "false"; }
+
+	std::wstring SpoonerPath(const std::string& name)
+	{
+		return std::wstring(kSpoonerFolder) + L"\\" + std::wstring(name.begin(), name.end()) + L".xml";
+	}
+
+	// Rampage's PositionRotation: X, Y, Z, Pitch, Roll, Yaw (rotation order 2).
+	void AddPositionRotation(Xml::Node& parent, Entity e)
+	{
+		const Vector3 p = ENTITY::GET_ENTITY_COORDS(e, FALSE, FALSE);
+		const Vector3 r = ENTITY::GET_ENTITY_ROTATION(e, 2);
+		Xml::Node& pr = parent.Add("PositionRotation");
+		pr.Add("X", std::format("{}", p.x));
+		pr.Add("Y", std::format("{}", p.y));
+		pr.Add("Z", std::format("{}", p.z));
+		pr.Add("Pitch", std::format("{}", r.x));
+		pr.Add("Roll", std::format("{}", r.y));
+		pr.Add("Yaw", std::format("{}", r.z));
+	}
+
+	Vector3 PositionOf(const Xml::Node* pr)
+	{
+		return pr ? Vector3{ pr->Float("X"), pr->Float("Y"), pr->Float("Z") } : Vector3{};
+	}
+
+	void ApplyPositionRotation(Entity e, const Xml::Node* pr)
+	{
+		if (!pr)
+			return;
+		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(e, pr->Float("X"), pr->Float("Y"), pr->Float("Z"), FALSE, FALSE, FALSE);
+		ENTITY::SET_ENTITY_ROTATION(e, pr->Float("Pitch"), pr->Float("Roll"), pr->Float("Yaw"), 2, TRUE);
+	}
+
+	// Outfit components Rampage leaves out of a saved ped (the body itself).
+	bool IsBodyCategory(Hash category)
+	{
+		for (const char* c : { "heads", "hair", "teeth", "eyes", "bodies_upper", "beards_chin", "beards_chops", "beards_mustache", "beards_complete" })
+			if (category == GameUtil::Joaat(c))
+				return true;
+		return false;
+	}
+
+	void AddPed(Xml::Node& map, const Menus::SpawnerDb::Entry& entry)
+	{
+		const Ped ped = entry.entity;
+		Xml::Node& n = map.Add("Ped");
+		n.Add("ModelHash", Hex(ENTITY::GET_ENTITY_MODEL(ped)));
+		n.Add("HashName", entry.model);
+		n.Add("InitialHandle", std::to_string(ped));
+		n.Add("Health", std::to_string(ENTITY::GET_ENTITY_HEALTH(ped)));
+		n.Add("Variation", "0");
+		n.Add("Scenario");
+		AddPositionRotation(n, ped);
+		Xml::Node& flags = n.Add("Flags");
+		flags.Add("Invincible", Bool(!ENTITY::_GET_ENTITY_CAN_BE_DAMAGED(ped)));
+		flags.Add("Frozen", Bool(ENTITY::_IS_ENTITY_FROZEN(ped)));
+		const std::vector<Ped>& posse = Menus::Posse::Members();
+		flags.Add("Bodyguard", Bool(std::find(posse.begin(), posse.end(), ped) != posse.end()));
+		flags.Add("Relationship", Hex(PED::GET_PED_RELATIONSHIP_GROUP_HASH(ped)));
+		flags.Add("Interactable", "false");
+		Xml::Node& weapons = n.Add("Weapons");
+		weapons.Add("Weapon", Hex(WEAPON::_GET_PED_CURRENT_HELD_WEAPON(ped)));
+		weapons.Add("Accuracy", std::to_string(PED::GET_PED_ACCURACY(ped)));
+		Xml::Node& outfit = n.Add("Outfit");
+		const int count = PED::_GET_NUM_COMPONENTS_IN_PED(ped);
+		for (int i = 0; i < count; i++)
+		{
+			if (IsBodyCategory(PED::_GET_CATEGORY_OF_COMPONENT_AT_INDEX(ped, i, 0)))
+				continue;
+			BOOL flag = FALSE;
+			Hash state = 0;
+			if (const Hash item = PED::_GET_SHOP_ITEM_COMPONENT_AT_INDEX(ped, i, TRUE, &flag, &state))
+				outfit.Add("LoadComponent").Add("Hash", Hex(item));
+		}
+		Xml::Node& tags = n.Add("MetaTags");
+		for (int i = 0; i < count; i++)
+		{
+			Hash drawable = 0, albedo = 0, normal = 0, material = 0, palette = 0;
+			int tint0 = 0, tint1 = 0, tint2 = 0;
+			PED::GET_META_PED_ASSET_GUIDS(ped, i, &drawable, &albedo, &normal, &material);
+			PED::GET_META_PED_ASSET_TINT(ped, i, &palette, &tint0, &tint1, &tint2);
+			Xml::Node& tag = tags.Add("MetaTag");
+			tag.Add("Drawable", Hex(drawable));
+			tag.Add("Albedo", Hex(albedo));
+			tag.Add("Normal", Hex(normal));
+			tag.Add("Material", Hex(material));
+			tag.Add("Palette", Hex(palette));
+			tag.Add("PrimaryColor", std::to_string(tint0));
+			tag.Add("SecondaryColor", std::to_string(tint1));
+			tag.Add("TertiaryColor", std::to_string(tint2));
+		}
+	}
 
 	std::string SaveSet()
 	{
 		std::string name;
 		if (!GameUtil::PromptText("Set name", name, 40) || name.empty())
 			return {};
-		nlohmann::json objects = nlohmann::json::array();
+		Xml::Node map;
+		map.name = "Map";
+		Xml::Node& meta = map.Add("MapMeta");
+		meta.Add("Creator", PLAYER::GET_PLAYER_NAME(PLAYER::PLAYER_ID()));
+		meta.Add("RampageVersion", "Rampagio");
+		int count = 0;
 		for (const SpawnedObject& s : g_objects)
 		{
 			if (!ENTITY::DOES_ENTITY_EXIST(s.object))
 				continue;
-			const Vector3 p = ENTITY::GET_ENTITY_COORDS(s.object, FALSE, FALSE);
-			const Vector3 r = ENTITY::GET_ENTITY_ROTATION(s.object, 2);
-			objects.push_back({ { "model", s.model }, { "x", p.x }, { "y", p.y }, { "z", p.z }, { "rx", r.x }, { "ry", r.y }, { "rz", r.z } });
+			Xml::Node& n = map.Add("Placement");
+			n.Add("ModelHash", Hex(ENTITY::GET_ENTITY_MODEL(s.object)));
+			n.Add("HashName", s.model);
+			n.Add("InitialHandle", std::to_string(s.object));
+			n.Add("Texture", "0");
+			n.Add("LOD", std::to_string(ENTITY::GET_ENTITY_LOD_DIST(s.object)));
+			n.Add("Dynamic", "false");
+			n.Add("Frozen", Bool(ENTITY::_IS_ENTITY_FROZEN(s.object)));
+			AddPositionRotation(n, s.object);
+			count++;
 		}
-		const size_t count = objects.size();
-		nlohmann::json file = DataFile::LoadJson(kSpoonerFile);
-		file[name] = std::move(objects);
-		return DataFile::SaveJson(kSpoonerFile, file) ? std::format("Saved {} objects", count) : "Couldn't save";
+		for (const Menus::SpawnerDb::Entry& v : Menus::SpawnerDb::Vehicles())
+		{
+			Xml::Node& n = map.Add("Vehicle");
+			n.Add("ModelHash", Hex(ENTITY::GET_ENTITY_MODEL(v.entity)));
+			n.Add("HashName", v.model);
+			n.Add("InitialHandle", std::to_string(v.entity));
+			n.Add("Tint", std::to_string(VEHICLE::_GET_VEHICLE_TINT(v.entity)));
+			n.Add("Livery", std::to_string(VEHICLE::_GET_VEHICLE_LIVERY(v.entity)));
+			AddPositionRotation(n, v.entity);
+			count++;
+		}
+		for (const Menus::SpawnerDb::Entry& p : Menus::SpawnerDb::Peds())
+		{
+			AddPed(map, p);
+			count++;
+		}
+		return DataFile::SaveText(SpoonerPath(name), Xml::Write(map)) ? std::format("Saved database with {} entities", count) : "Couldn't save";
+	}
+
+	void LoadPed(const Xml::Node& n)
+	{
+		const Hash model = GameUtil::ParseHash(n.Text("ModelHash"));
+		if (!GameUtil::LoadModel(model))
+			return;
+		const Xml::Node* pr = n.Child("PositionRotation");
+		const Vector3 at = PositionOf(pr);
+		const Ped ped = PED::CREATE_PED(model, at.x, at.y, at.z, pr ? pr->Float("Yaw") : 0.0f, FALSE, FALSE, FALSE, FALSE);
+		PED::_SET_RANDOM_OUTFIT_VARIATION(ped, TRUE);
+		ApplyPositionRotation(ped, pr);
+		if (n.Child("Health"))
+			ENTITY::SET_ENTITY_HEALTH(ped, n.Int("Health"), 0);
+		if (const int variation = n.Int("Variation"))
+			PED::_EQUIP_META_PED_OUTFIT_PRESET(ped, variation, FALSE);
+		if (const Xml::Node* flags = n.Child("Flags"))
+		{
+			ENTITY::SET_ENTITY_INVINCIBLE(ped, flags->Bool("Invincible"));
+			ENTITY::FREEZE_ENTITY_POSITION(ped, flags->Bool("Frozen"));
+			if (const Hash group = GameUtil::ParseHash(flags->Text("Relationship")))
+				PED::SET_PED_RELATIONSHIP_GROUP_HASH(ped, group);
+			if (flags->Bool("Bodyguard"))
+				Menus::Posse::Add(ped);
+		}
+		if (const Xml::Node* weapons = n.Child("Weapons"))
+		{
+			for (const Xml::Node* w : weapons->Children("Weapon"))
+				if (const Hash weapon = GameUtil::ParseHash(w->text); weapon && weapon != GameUtil::Joaat("WEAPON_UNARMED"))
+					WEAPON::GIVE_DELAYED_WEAPON_TO_PED(ped, weapon, 100, TRUE, 0);
+			if (weapons->Child("Accuracy"))
+				PED::SET_PED_ACCURACY(ped, weapons->Int("Accuracy"));
+		}
+		if (const Xml::Node* outfit = n.Child("Outfit"))
+			for (const Xml::Node* c : outfit->Children("LoadComponent"))
+				if (const Hash item = GameUtil::ParseHash(c->Text("Hash")))
+					PED::_APPLY_SHOP_ITEM_TO_PED(ped, item, TRUE, FALSE, FALSE);
+		if (const Xml::Node* tags = n.Child("MetaTags"))
+			for (const Xml::Node* t : tags->Children("MetaTag"))
+				if (const Hash drawable = GameUtil::ParseHash(t->Text("Drawable")))
+					PED::_SET_META_PED_TAG(ped, drawable, GameUtil::ParseHash(t->Text("Albedo")), GameUtil::ParseHash(t->Text("Normal")),
+						GameUtil::ParseHash(t->Text("Material")), GameUtil::ParseHash(t->Text("Palette")),
+						t->Int("PrimaryColor"), t->Int("SecondaryColor"), t->Int("TertiaryColor"));
+		for (int i = 0; i < 100 && !PED::IS_PED_READY_TO_RENDER(ped); i++)
+			WAIT(0);
+		PED::_UPDATE_PED_VARIATION(ped, FALSE, TRUE, TRUE, TRUE, FALSE);
+		if (g_addToDatabase)
+			Menus::SpawnerDb::AddPed(ped, n.Text("HashName", n.Text("ModelHash")));
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+	}
+
+	std::string LoadXml(const std::string& name)
+	{
+		Xml::Node map;
+		if (!Xml::Parse(DataFile::LoadText(SpoonerPath(name)), map) || map.name != "Map")
+			return std::format("{}.xml isn't a spooner database", name);
+		CAMERA::DO_SCREEN_FADE_OUT(500);
+		WAIT(500);
+		int count = 0;
+		for (const Xml::Node* n : map.Children("Placement"))
+		{
+			const Hash model = GameUtil::ParseHash(n->Text("ModelHash"));
+			if (!GameUtil::LoadModel(model))
+				continue;
+			const Xml::Node* pr = n->Child("PositionRotation");
+			const Vector3 at = PositionOf(pr);
+			const Object o = OBJECT::CREATE_OBJECT_NO_OFFSET(model, at.x, at.y, at.z, FALSE, FALSE, n->Bool("Dynamic"), FALSE);
+			ApplyPositionRotation(o, pr);
+			if (const int texture = n->Int("Texture"))
+				OBJECT::SET_OBJECT_TINT_INDEX(o, texture);
+			if (const int lod = n->Int("LOD"))
+				ENTITY::SET_ENTITY_LOD_DIST(o, lod);
+			ENTITY::FREEZE_ENTITY_POSITION(o, n->Bool("Frozen", true));
+			if (g_addToDatabase)
+				g_objects.push_back({ o, n->Text("HashName", n->Text("ModelHash")) });
+			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+			count++;
+		}
+		for (const Xml::Node* n : map.Children("Vehicle"))
+		{
+			const Hash model = GameUtil::ParseHash(n->Text("ModelHash"));
+			if (!GameUtil::LoadModel(model))
+				continue;
+			const Xml::Node* pr = n->Child("PositionRotation");
+			const Vector3 at = PositionOf(pr);
+			const Vehicle v = VEHICLE::CREATE_VEHICLE(model, at.x, at.y, at.z, pr ? pr->Float("Yaw") : 0.0f, FALSE, FALSE, FALSE, FALSE);
+			ApplyPositionRotation(v, pr);
+			VEHICLE::_SET_VEHICLE_TINT(v, n->Int("Tint"));
+			VEHICLE::_SET_VEHICLE_LIVERY(v, n->Int("Livery"));
+			if (g_addToDatabase)
+				Menus::SpawnerDb::AddVehicle(v, n->Text("HashName", n->Text("ModelHash")));
+			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+			count++;
+		}
+		for (const Xml::Node* n : map.Children("Ped"))
+		{
+			LoadPed(*n);
+			count++;
+		}
+		CAMERA::DO_SCREEN_FADE_IN(500);
+		const Xml::Node* meta = map.Child("MapMeta");
+		return std::format("Loaded {} by {} ({} entities)", name, meta ? meta->Text("Creator", "?") : "?", count);
 	}
 
 	std::string LoadSet(const std::string& name)
@@ -328,13 +555,16 @@ namespace
 	{
 		Ui::Toggle(m, "Add Entities to Database", [](bool on) { g_addToDatabase = on; })->SetState(g_addToDatabase);
 		Ui::Action(m, "Save Database", SaveSet);
+		const std::vector<std::string> files = DataFile::ListFiles(kSpoonerFolder, L".xml");
+		for (const std::string& name : files)
+			Ui::Action(m, name, [name] { return LoadXml(name); });
 		const nlohmann::json saved = DataFile::LoadJson(kSpoonerFile);
-		if (saved.empty())
+		if (files.empty() && saved.empty())
 			m->AddItem(new MenuItemLabel([] { return std::string("No files found"); }));
 		for (const auto& [name, set] : saved.items())
 		{
 			const std::string n = name;
-			Ui::Action(m, n, [n] { return LoadSet(n); });
+			Ui::Action(m, n + " (json)", [n] { return LoadSet(n); });
 		}
 	}
 

@@ -425,6 +425,7 @@ namespace
 	bool g_deletePrevious = false;
 	bool g_vehicleInvincible = false;
 	Vehicle g_lastSpawned = 0;
+	std::vector<Menus::SpawnerDb::Entry> g_vehicles; // every vehicle spawned, for saving
 
 	std::string SpawnVehicle(const std::string& name)
 	{
@@ -444,6 +445,7 @@ namespace
 		if (g_spawnInVehicle)
 			PED::SET_PED_INTO_VEHICLE(me, v, -1);
 		g_lastSpawned = v;
+		g_vehicles.push_back({ v, name });
 		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
 		return {};
 	}
@@ -563,6 +565,32 @@ namespace
 		for (auto& c : s)
 			c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
 		return s;
+	}
+}
+
+namespace Menus::SpawnerDb
+{
+	std::vector<Entry> Peds()
+	{
+		std::vector<Entry> out;
+		for (const Spawned& s : g_spawned)
+			if (ENTITY::DOES_ENTITY_EXIST(s.ped))
+				out.push_back({ s.ped, s.model });
+		return out;
+	}
+
+	std::vector<Entry> Vehicles()
+	{
+		std::erase_if(g_vehicles, [](const Entry& e) { return !ENTITY::DOES_ENTITY_EXIST(e.entity); });
+		return g_vehicles;
+	}
+
+	void AddPed(Ped ped, const std::string& model) { Track(ped, model); }
+
+	void AddVehicle(Vehicle vehicle, const std::string& model)
+	{
+		if (ENTITY::DOES_ENTITY_EXIST(vehicle))
+			g_vehicles.push_back({ vehicle, model });
 	}
 }
 

@@ -37,8 +37,8 @@ The PostBuildEvent deploys to the game folder through
 `BuildTools\Find-RDR2GameDir.ps1`, the same as every sibling project. The
 user keeps the game running and uses ScriptHookRDR2's eject/re-inject
 instead of restarting. Tests (build Debug, run the exe from `bin\Debug`):
-`tests\LogFallbackTests.vcxproj` and `tests\SettingsTests.vcxproj` (the
-settings and command core in `src/core`).
+`tests\LogFallbackTests.vcxproj`, `tests\SettingsTests.vcxproj` (the
+settings and command core in `src/core`) and `tests\XmlTests.vcxproj`.
 
 Menu key: **F5** by default (Settings > Core > Menu Key, saved as
 `settings.menukey` in `Rampagio.json`), the same key Rampage uses, at the
@@ -134,11 +134,14 @@ Manager lists and removes them).
   collections, one file each (`Rampagio_Teleports.json`,
   `Rampagio_Outfits.json`, `Rampagio_Horses.json`,
   `Rampagio_Spooner.json`), stored where `Rampagio.json` is, plus the
-  `Rampagio_Vehicles` folder of Rampage-format vehicle files (`ListFiles`); `LoadLines` reads a
+  `Rampagio_Vehicles` and `Rampagio_Spooner` folders of Rampage-format
+  vehicle files and spooner databases (`ListFiles`, `LoadText`/`SaveText`); `LoadLines` reads a
   plain list file from there (user-supplied lists such as
   `Rampagio_PedAnimList.txt`, `Rampagio_Speech*.txt` and
   `Rampagio_ClothingDb.xml`, the same formats as Rampage's
   `RampageFiles\Lists` files).
+- `src/Xml.{h,cpp}`: a minimal XML DOM (elements and text) for Rampage's
+  spooner database files; tested by `tests\XmlTests.vcxproj`.
 - `src/GamePointers.{h,cpp}`: engine pointers by AOB scan (HorseMenu's
   signatures): script threads, script programs, current thread, script
   VM, script globals; `FindScriptThread`, `FindScriptProgram`,
