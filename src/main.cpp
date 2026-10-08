@@ -10,6 +10,8 @@
 #include "keyboard.h"
 #include "NativeHooks.h"
 #include "BytePatch.h"
+#include "ScriptVM.h"
+#include "overlay\Overlay.h"
 #include "menus\Menus.h"
 #include "..\external\minhook\include\MinHook.h"
 #include "..\external\YEEAHSM\src\StowWeaponsHook.h"
@@ -29,8 +31,11 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		// lpReserved is non-null at process exit, null on FreeLibrary
 		// (ScriptHookRDR2's Ctrl+R reload).
 		ScriptUnload(lpReserved != nullptr);
+		// Waits for the render and window threads to leave the overlay's hooks.
+		Overlay::Shutdown();
 		// Game scripts must stop calling into our replacements before the
 		// module goes away.
+		ScriptVM::Shutdown();
 		NativeHooks::Shutdown();
 		YEEAHSM::StowWeaponsHook::Remove();
 		Menus::ShutdownChallenges();

@@ -47,3 +47,6 @@ zh-TW
 ja-JP
 es-MX
 zh-CN
+Debug
+Script Monitor
+Script threads, their functions, and function/native hooks, in an overlay window.\nThe menu key closes it.

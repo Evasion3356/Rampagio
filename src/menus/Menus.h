@@ -64,6 +64,8 @@ namespace Menus
 	void BuildMinigames(MenuBase* minigames);
 	void ShutdownMinigames(bool processExit);
 	void BuildScriptTools(MenuBase* root);
+	// Debug.cpp: Debug > Script Monitor (src/debug/ScriptMonitor.h).
+	void BuildDebug(MenuBase* root);
 	void BuildSettings(MenuBase* root);
 	// Settings.cpp. RegisterSettings creates the "general", "style",
 	// "themes" and "hotkeys" parts of Rampagio.json (before

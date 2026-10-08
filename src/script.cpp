@@ -20,6 +20,9 @@
 #include "GamePointers.h"
 #include "Localization.h"
 #include "menus/Menus.h"
+#include "MainThread.h"
+#include "debug/ScriptMonitor.h"
+#include "overlay/Overlay.h"
 #include "core/settings/Settings.h"
 #include "core/commands/Commands.h"
 
@@ -39,6 +42,7 @@ namespace
 		Menus::BuildWorld(root);
 		Menus::BuildRecovery(root);
 		Menus::BuildMiscellaneous(root);
+		Menus::BuildDebug(root);
 		Menus::BuildSettings(root);
 		Menus::PedEditor::Build(); // links to the Player menus, so after them
 	}
@@ -75,6 +79,9 @@ namespace
 		// Same as the online kill switch: the saved states stay as they are.
 		Rampagio::Commands::Suspend();
 		Ui::DisableAllToggles();
+		// Paused threads resume; the game's code and native tables go back
+		// as they were.
+		ScriptMonitor::Suspend();
 	}
 
 	// No C++ objects here, so it can use SEH: a hook that faults during
@@ -116,6 +123,7 @@ void ScriptMain()
 	g_scriptThreadId = GetCurrentThreadId();
 
 	BuildMenu();
+	ScriptMonitor::Register();
 	LoadSettings();
 	// Resolved now so an eject can check for an active script thread
 	// (ScriptUnload); features resolve them on first use anyway.
@@ -140,16 +148,31 @@ void ScriptMain()
 			// suspended for the rest of the session.
 			Rampagio::Commands::Suspend();
 			Ui::DisableAllToggles();
+			ScriptMonitor::Suspend();
+			MainThread::Clear();
 		}
 		wasOnline = online;
 
 		if (!online)
 		{
-			MenuController& menus = Ui::Controller();
-			if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed())
-				menus.PushMenu(Ui::Root());
+			// Actions from the ImGui tools, then their snapshot.
+			MainThread::Run();
+			ScriptMonitor::Tick();
+			Overlay::SetCloseKey(MenuKey());
 
-			menus.Update();
+			MenuController& menus = Ui::Controller();
+			if (Overlay::AnyOpen())
+			{
+				// The overlay has the keyboard and mouse; keep the game and
+				// the menu from acting on gamepad input too.
+				PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+			}
+			else
+			{
+				if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed())
+					menus.PushMenu(Ui::Root());
+				menus.Update();
+			}
 			Rampagio::Commands::RunLoopedCommands();
 			Menus::TickSettings();
 			Menus::TickChallenges();

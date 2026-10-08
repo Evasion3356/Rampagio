@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 150 done, 5 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 151 done, 7 partial, 0 pending, 7 tabled, 2 dropped.
 
 ## Debug
 
@@ -146,9 +146,9 @@ Submenus: 150 done, 5 partial, 0 pending, 10 tabled, 2 dropped.
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
 | SubGlobalEditor | 7 | Tabled |  |
-| SubScriptEditor | 3 | Tabled |  |
-| SubScriptPatcher | 7 | Tabled |  |
-| SubScriptTools | 3 | Tabled |  |
+| SubScriptEditor | 3 | Partial | Debug > Script Monitor > Thread: Kill (and Pause/Resume, ours); Restart and Force Cleanup not yet |
+| SubScriptPatcher | 7 | Done | Debug > Script Monitor > Functions: hooks named func_N or by Position, argument and return counts read from the bytecode (ours) |
+| SubScriptTools | 3 | Partial | Debug > Script Monitor (ImGui, ours): its Script Monitor, Script Patcher, Script Loader (Start Script) and Script Terminator (Kill); Force Cleanup All Scripts not yet |
 
 ## Settings
 

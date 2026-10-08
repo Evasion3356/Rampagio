@@ -30,6 +30,18 @@
     <ClCompile Include="src\GamePointers.cpp" />
     <ClCompile Include="src\ScriptFunction.cpp" />
     <ClCompile Include="src\NativeHooks.cpp" />
+    <ClCompile Include="src\ScriptBytecode.cpp" />
+    <ClCompile Include="src\ScriptVM.cpp" />
+    <ClCompile Include="src\debug\*.cpp" />
+    <!-- The ImGui overlay (src\overlay\Overlay.h) and ImGui itself. -->
+    <ClCompile Include="src\overlay\*.cpp" />
+    <ClCompile Include="external\imgui\imgui.cpp" />
+    <ClCompile Include="external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="external\imgui\imgui_tables.cpp" />
+    <ClCompile Include="external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="external\imgui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="external\imgui\backends\imgui_impl_vulkan.cpp" />
     <!-- Own object path: src\menus\Settings.cpp would overwrite tmp\...\Settings.obj. -->
     <ClCompile Include="src\core\settings\Settings.cpp">
       <ObjectFileName>$(IntDir)core\</ObjectFileName>
@@ -66,6 +78,14 @@
     <ClInclude Include="src\GamePointers.h" />
     <ClInclude Include="src\ScriptFunction.h" />
     <ClInclude Include="src\NativeHooks.h" />
+    <ClInclude Include="src\MainThread.h" />
+    <ClInclude Include="src\ScriptBytecode.h" />
+    <ClInclude Include="src\ScriptVM.h" />
+    <ClInclude Include="src\debug\ScriptData.h" />
+    <ClInclude Include="src\debug\ScriptHooks.h" />
+    <ClInclude Include="src\debug\ScriptMonitor.h" />
+    <ClInclude Include="src\overlay\Overlay.h" />
+    <ClInclude Include="src\overlay\OverlayInternal.h" />
     <ClInclude Include="src\ColorRgba.h" />
     <ClInclude Include="src\core\settings\Settings.h" />
     <ClInclude Include="src\core\settings\IStateSerializer.h" />
@@ -171,11 +191,11 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;CHALLENGECHEAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;CHALLENGECHEAT_EXPORTS;IMGUI_IMPL_VULKAN_NO_PROTOTYPES;VK_NO_PROTOTYPES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>external\spdlog\include;external\json\include;external\minhook\include;external\RDR-Classes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>external\spdlog\include;external\json\include;external\minhook\include;external\RDR-Classes;external\imgui;external\Vulkan-Headers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -184,6 +204,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalOptions>external\ScriptHookSDK\lib\ScriptHookRDR2.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>set "GAMEDIR="
@@ -201,12 +222,12 @@ copy /Y "$(TargetPath)" "%GAMEDIR%\$(TargetFileName)"</Command>
       <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;CHALLENGECHEAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;CHALLENGECHEAT_EXPORTS;IMGUI_IMPL_VULKAN_NO_PROTOTYPES;VK_NO_PROTOTYPES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>external\spdlog\include;external\json\include;external\minhook\include;external\RDR-Classes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>external\spdlog\include;external\json\include;external\minhook\include;external\RDR-Classes;external\imgui;external\Vulkan-Headers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -215,6 +236,7 @@ copy /Y "$(TargetPath)" "%GAMEDIR%\$(TargetFileName)"</Command>
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
       <AdditionalOptions>external\ScriptHookSDK\lib\ScriptHookRDR2.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>set "GAMEDIR="
