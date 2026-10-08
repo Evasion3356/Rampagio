@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 133 done, 22 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 134 done, 21 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -192,9 +192,9 @@ Submenus: 133 done, 22 partial, 0 pending, 10 tabled, 2 dropped.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubTeleport | 41 | Partial | Teleport: own town list; Rampage's region/camp/shop location lists and Blips not ported |
+| SubTeleport | 41 | Partial | Teleport: Common Locations, Camps and Safe Houses and the region submenus from the Rampage lists (data/Teleports.inc); Blips not ported |
 | SubTeleportCustom | 2 | Done | Teleport > Load Custom / Delete Custom |
-| SubTeleportShopsandStuff | 0 | Partial | Teleport > Shops and Services: a user-supplied Rampagio_Shops.txt (Name, x, y, z); no built-in list (the scripts keep shop doors without names) |
+| SubTeleportShopsandStuff | 0 | Done | Teleport > Shops and Services: the Rampage list, 14 categories, 67 locations (data/Teleports.inc) |
 
 ## Vehicles
 

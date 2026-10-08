@@ -77,7 +77,7 @@ STATUS = {
  'SubObjSpawnerPropsets':('Done','Spawner > Object Spawner > Propsets: pg_ names from the game scripts'),
  'SubObjSpawnerLoadSave':('Partial','Spawner > Object Spawner > Load / Save: objects only, in Rampagio_Spooner.ini (ours); no spooner XML, peds or vehicles'),
  'SubPlantSpawner':('Done','Spawner > Plant Spawner: the 84 COMPOSITE_LOOTABLE_ composites the scripts name'),
- 'SubTeleport':('Partial','Teleport: own town list; Rampage\'s region/camp/shop location lists and Blips not ported'),
+ 'SubTeleport':('Partial','Teleport: Common Locations, Camps and Safe Houses and the region submenus from the Rampage lists (data/Teleports.inc); Blips not ported'),
  'SubTeleportCustom':('Done','Teleport > Load Custom / Delete Custom'),
  'SubWorld':('Done','World: also the Cloud Editor and Ambient Light submenus (unnamed builders in Rampage)'),
  'SubWorldOcean':('Done','World > Water'),
@@ -170,7 +170,7 @@ STATUS = {
  'SubWeaponVisuals':('Partial','Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback (Rampage byte patches) not ported'),
  'SubWeaponsAimbot':('Done','Weapon > Aimbot: target filter (all/humans/animals) and Ignore Dying Peds are ours'),
  'SubWeaponsBullets':('Done','Weapon > Weapon Bullets: Particle Gun uses the script effects list; Ped / Vehicle Gun models and Remote Cannonball steering are ours'),
- 'SubTeleportShopsandStuff':('Partial','Teleport > Shops and Services: a user-supplied Rampagio_Shops.txt (Name, x, y, z); no built-in list (the scripts keep shop doors without names)'),
+ 'SubTeleportShopsandStuff':('Done','Teleport > Shops and Services: the Rampage list, 14 categories, 67 locations (data/Teleports.inc)'),
 }
 out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.','']
 by=collections.defaultdict(list)

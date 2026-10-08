@@ -1,7 +1,8 @@
 /*
-	Teleport menu: ports Rampage's Submenus::SubTeleport rows. The town list
-	is our own (approximate centres; the ground probe finds the height), not
-	Rampage's location tables. Custom locations are saved to
+	Teleport menu: ports Rampage's Submenus::SubTeleport rows. The location
+	lists (Common Locations, the region submenus and Shops and Services) are
+	Rampage's names and coordinates, carried over into data\Teleports.inc by
+	tools\extract_rampage_teleports_ida.py. Custom locations are saved to
 	Rampagio_Teleports.json.
 */
 
@@ -149,33 +150,6 @@ namespace
 		return {};
 	}
 
-	// Shops and Services (ours): Rampage's list is its own table, and the
-	// game scripts keep shop doors without names, so the list is a
-	// user-supplied Rampagio_Shops.txt: "Name, x, y, z" per line.
-	void BuildShops(MenuBase* menu)
-	{
-		int count = 0;
-		for (const std::string& line : DataFile::LoadLines(L"Rampagio_Shops.txt"))
-		{
-			const size_t c1 = line.find(',');
-			if (c1 == std::string::npos)
-				continue;
-			float x = 0, y = 0, z = 0;
-			if (sscanf_s(line.c_str() + c1 + 1, " %f , %f , %f", &x, &y, &z) < 2)
-				continue;
-			const std::string name = line.substr(0, c1);
-			++count;
-			Ui::Do(menu, name, [x, y, z] {
-				if (z != 0.0f)
-					ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Me(), x, y, z, FALSE, FALSE, FALSE);
-				else
-					GameUtil::TeleportToGround(Me(), x, y);
-			});
-		}
-		if (!count)
-			Ui::Section(menu, "Add lines \"Name, x, y, z\" to Rampagio_Shops.txt");
-	}
-
 	// A saved location's coordinates; false if a field is missing.
 	bool ReadPlace(const nlohmann::json& place, float& x, float& y, float& z)
 	{
@@ -224,34 +198,56 @@ namespace
 			Ui::Section(menu, "Nothing saved yet");
 	}
 
-	struct Place { const char* name; float x, y; };
-
-	// Our own approximate town centres.
-	constexpr Place kTowns[] = {
-		{ "Annesburg", 2930.0f, 1300.0f },
-		{ "Armadillo", -3660.0f, -2600.0f },
-		{ "Beecher's Hope", -1640.0f, -1440.0f },
-		{ "Benedict Point", -5240.0f, -3460.0f },
-		{ "Blackwater", -800.0f, -1300.0f },
-		{ "Braithwaite Manor", 1010.0f, -1730.0f },
-		{ "Butcher Creek", 2560.0f, 820.0f },
-		{ "Caliga Hall", 1820.0f, -1340.0f },
-		{ "Colter", -1350.0f, 2410.0f },
-		{ "Cornwall Kerosene & Tar", 470.0f, 640.0f },
-		{ "Emerald Ranch", 1430.0f, 300.0f },
-		{ "Horseshoe Overlook", -160.0f, 640.0f },
-		{ "Lagras", 2090.0f, -600.0f },
-		{ "MacFarlane's Ranch", -2370.0f, -2390.0f },
-		{ "Manzanita Post", -1960.0f, -1610.0f },
-		{ "Rhodes", 1270.0f, -1300.0f },
-		{ "Saint Denis", 2630.0f, -1250.0f },
-		{ "Sisika Penitentiary", 3340.0f, -660.0f },
-		{ "Strawberry", -1790.0f, -420.0f },
-		{ "Tumbleweed", -5500.0f, -2950.0f },
-		{ "Valentine", -290.0f, 790.0f },
-		{ "Van Horn", 2970.0f, 560.0f },
-		{ "Wapiti", 500.0f, 2200.0f },
+	struct Place
+	{
+		const char* menu;    // submenu of Teleport
+		const char* nested;  // submenu inside it, or ""
+		const char* section; // section header before the row, or ""
+		const char* idPrefix;
+		const char* name;
+		float x, y, z;
 	};
+
+	constexpr Place kPlaces[] = {
+#include "..\data\Teleports.inc"
+	};
+
+	// One submenu per Place::menu (and Place::nested), in table order, with
+	// a section row wherever Place::section changes.
+	void BuildPlaces(MenuBase* tp)
+	{
+		std::string menuName, nestedName, section;
+		MenuBase* menu = nullptr;
+		MenuBase* target = nullptr;
+		for (const Place& place : kPlaces)
+		{
+			if (place.menu != menuName)
+			{
+				menuName = place.menu;
+				menu = Ui::Submenu(tp, menuName);
+				nestedName.clear();
+				target = menu;
+				section.clear();
+			}
+			if (place.nested != nestedName)
+			{
+				nestedName = place.nested;
+				target = nestedName.empty() ? menu : Ui::Submenu(menu, nestedName);
+				section.clear();
+			}
+			if (place.section != section)
+			{
+				section = place.section;
+				if (!section.empty())
+					Ui::Section(target, section);
+			}
+			const float x = place.x, y = place.y, z = place.z;
+			Ui::Do(target, Ui::Id(place.idPrefix, place.name), place.name, [x, y, z]
+			{
+				ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Mover(), x, y, z, FALSE, FALSE, TRUE);
+			});
+		}
+	}
 }
 
 namespace Menus
@@ -282,12 +278,7 @@ namespace Menus
 		Ui::Action(tp, "teleport.nearestvehicle", "Nearest Vehicle", NearestVehicle);
 		Ui::Action(tp, "teleport.nearesttraintrack", "Nearest Train Track", NearestTrainTrack);
 
-		Ui::ListMenu(tp, "Shops and Services", BuildShops);
-		MenuBase* towns = Ui::Submenu(tp, "Common Locations");
-		for (const Place& place : kTowns)
-		{
-			const float x = place.x, y = place.y;
-			Ui::Action(towns, Ui::Id("teleport.town", place.name), place.name, [x, y] { return ToGround(x, y); });
-		}
+		Ui::Section(tp, "Locations");
+		BuildPlaces(tp);
 	}
 }
