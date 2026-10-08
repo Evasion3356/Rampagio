@@ -20,6 +20,10 @@ namespace Menus
 	void BuildPlayerEffects(MenuBase* self);
 	void BuildPlayerEmotes(MenuBase* self);
 	void BuildPlayerSpeech(MenuBase* self);
+	// Wardrobe.cpp: the Wardrobe rows before and after Walk Styles / Damage Packs.
+	void BuildWardrobeTop(MenuBase* wardrobe);
+	void BuildWardrobe(MenuBase* wardrobe);
+	void BuildModelChanger(MenuBase* wardrobe); // ModelChanger.cpp
 	void BuildHorse(MenuBase* root);
 	void BuildWeapons(MenuBase* root);
 	void BuildVehicle(MenuBase* root);

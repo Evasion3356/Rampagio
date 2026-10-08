@@ -73,8 +73,9 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
 - `src/DataFile.{h,cpp}`: named INI files for saved data (custom
   teleports, ...), stored where `Rampagio.ini` is; `LoadLines` reads a
   plain list file from there (user-supplied lists such as
-  `Rampagio_PedAnimList.txt` and `Rampagio_Speech*.txt`, the same formats
-  as Rampage's `RampageFiles\Lists` files).
+  `Rampagio_PedAnimList.txt`, `Rampagio_Speech*.txt` and
+  `Rampagio_ClothingDb.xml`, the same formats as Rampage's
+  `RampageFiles\Lists` files).
 - `src/GamePointers.{h,cpp}`: engine pointers by AOB scan (HorseMenu's
   signatures): script threads, script programs, current thread, script
   VM, script globals; `FindScriptThread`, `FindScriptProgram`,
@@ -120,6 +121,13 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
   `TASK_PLAY_ANIM` comment links. femga's rdr3_discoveries
   (`..\Githubs\rdr3_discoveries`, has a full anim list) has no license, so
   nothing from it is bundled.
+- `src/data/{PedModels,HorseModels,AnimalModels}.inc`: ped model names
+  (humans grouped by prefix) from every `joaat("...")` in the decompiled
+  scripts, by `tools/extract_models.py`; filtered at runtime with
+  `IS_MODEL_IN_CDIMAGE`/`IS_MODEL_A_PED`. For the Model Changer and the
+  spawners. `MetaPedExpressions.inc` (`_SET_CHAR_EXPRESSION` ids) comes
+  from the list alloc8or's native comment links, by
+  `tools/extract_expressions.py`.
 - `src/data/Dreamcatchers.inc`: the 20 dreamcatcher coordinates, generated
   by `tools/extract_collectibles.py` from `discoverable_generic_location`.
   Cigarette cards, dino bones and rock carvings need no data file: the
@@ -373,7 +381,8 @@ dino bones, dreamcatchers, rock carvings) and most Player submenus
 (`src/menus/PlayerSubmenus.cpp`: Scenarios, Walk Styles, Damage Packs,
 Vision, Moods, Abilities, Proofs, Config Flags; `PlayerActions.cpp`:
 Animations, Facial Animations, Effects, Emotes, Play Speech, Voice
-Changer). 38 submenus done, 10 partial, 110 pending, 9 tabled; see
+Changer; `Wardrobe.cpp` and `ModelChanger.cpp`: the rest of Wardrobe).
+49 submenus done, 12 partial, 97 pending, 9 tabled; see
 `docs/PORTING.md`. Everything builds clean
 (Debug); nothing is live-tested (the user deferred testing until the
 port is further along). Menu key is F5.
@@ -391,9 +400,7 @@ port is further along). Menu key is F5.
    own DllMain). Plan: port its UI layer (sprite look, per-option
    descriptions, controller input) behind `src/Menu.h`, against alloc8or
    names, with attribution.
-3. Keep porting, in this order: the rest of the Player submenus
-   (the rest of Wardrobe: components, outfits, model changer, meta tags,
-   facial hair, customizations, ...; then Player Posse),
+3. Keep porting, in this order: Player Posse,
    Vehicle, Spawner, the remaining World submenus, Miscellaneous,
    Settings (incl. toggle save/load). Tabled, so skip them until the user
    brings them back: the Debug, Object Editor and Script Tools areas

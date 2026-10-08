@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.
 
-Submenus: 38 done, 10 partial, 110 pending, 9 tabled.
+Submenus: 49 done, 12 partial, 97 pending, 9 tabled.
 
 ## Debug
 
@@ -89,11 +89,11 @@ Submenus: 38 done, 10 partial, 110 pending, 9 tabled.
 | SubDamagePacks | 3 | Done | Player > Wardrobe > Apply Damage Packs: list from the game scripts |
 | SubEffects | 29 | Partial | Player > Effects: Scale, Loop, Custom asset/effect, 6 effects from the game scripts; Rampage's 25 named presets are its own table and not ported |
 | SubEmotes | 11 | Done | Player > Emotes: every emote type listed under its own heading instead of an Emote Type choice; adds gun twirls (alloc8or eEmote list) |
-| SubModelChangerAnimal | 2 | Pending |  |
-| SubModelChangerHorses | 0 | Pending |  |
-| SubModelChangerHorsesList | 1 | Pending |  |
-| SubModelChangerPeds | 0 | Pending |  |
-| SubModelChangerPedsList | 1 | Pending |  |
+| SubModelChangerAnimal | 2 | Done | Player > Wardrobe > Model Changer > Animals: one list from the game scripts |
+| SubModelChangerHorses | 0 | Done | Player > Wardrobe > Model Changer > Horses: one list from the game scripts |
+| SubModelChangerHorsesList | 1 | Done | Player > Wardrobe > Model Changer > Horses |
+| SubModelChangerPeds | 0 | Done | Player > Wardrobe > Model Changer > Humans: models from the game scripts, grouped by prefix |
+| SubModelChangerPedsList | 1 | Done | Player > Wardrobe > Model Changer > Humans > <group> |
 | SubMoods | 2 | Done | Player > Moods: mood_ anims from the game scripts |
 | SubPlaySpeech | 6 | Done | Player > Play Speech |
 | SubPlaySpeechCustom | 3 | Done | Player > Play Speech > Custom Speeches: Rampagio_SpeechList.txt, re-read on open |
@@ -106,18 +106,18 @@ Submenus: 38 done, 10 partial, 110 pending, 9 tabled.
 | SubSelf | 38 | Done | Player |
 | SubSelfAnimationsCustom | 7 | Done | Player > Animations > Custom Animations: the Custom Flag submenu is a typed Custom Flags row (decimal or 0x hex) |
 | SubSelfAnimationsDicts | 1 | Done | Player > Animations > Dictionaries: script list plus Rampagio_PedAnimList.txt, re-read on open instead of Reload List |
-| SubSelfCustomizations | 4 | Pending |  |
+| SubSelfCustomizations | 4 | Partial | Player > Wardrobe > Overlay Textures: texture hashes typed in; the per-overlay texture tables of Rampage (TX Id) not ported |
 | SubSelfFacialAnimations | 4 | Done | Player > Animations > Facial Animations |
-| SubSelfFacialHair | 4 | Pending |  |
-| SubSelfModelChanger | 8 | Pending |  |
-| SubSelfOutfitSaver | 3 | Pending |  |
-| SubSelfPedMetaExpressions | 0 | Pending |  |
-| SubSelfPedMetaTags | 7 | Pending |  |
+| SubSelfFacialHair | 4 | Partial | Player > Wardrobe > Hair and Weight: Go to Barber not ported (coordinate from a Rampage table) |
+| SubSelfModelChanger | 8 | Partial | Player > Wardrobe > Model Changer: Force Player Type not ported |
+| SubSelfOutfitSaver | 3 | Done | Player > Wardrobe > Outfits: saved in Rampagio_Outfits.ini (ours; Rampage writes an XML per outfit) |
+| SubSelfPedMetaExpressions | 0 | Done | Player > Wardrobe > Meta Ped Expressions: names from the MetaPedExpression list alloc8or links |
+| SubSelfPedMetaTags | 7 | Done | Player > Wardrobe > Meta Ped Tags |
 | SubSelfScenarios | 7 | Done | Player > Scenarios: list from the game scripts plus Custom Input/Search; no Scenarios.txt reload |
 | SubSelfWalkStyles | 2 | Done | Player > Wardrobe > Walk Styles: list from the game scripts |
-| SubSelfWardrobe | 17 | Partial | Player > Wardrobe: Walk Styles and Apply Damage Packs only |
-| SubSelfWardrobeComponent | 3 | Pending |  |
-| SubSelfWardrobeWearableState | 3 | Pending |  |
+| SubSelfWardrobe | 17 | Done | Player > Wardrobe: clothing list from a user-supplied Rampagio_ClothingDb.xml (same format as Rampage); Keep Facial Hair is a toggle instead of holding Shift (ours) |
+| SubSelfWardrobeComponent | 3 | Done | Player > Wardrobe > Components > <category>: picking an item applies it, then opens its wearable states (ours) |
+| SubSelfWardrobeWearableState | 3 | Done | Player > Wardrobe > Components > Wearable State |
 | SubTimecycleMod | 3 | Done | Player > Vision > Timecycle Modifiers: list from the game scripts |
 | SubVoiceChanger | 3 | Done | Player > Play Speech > Voice Changer: Set Voice lists the script voices plus Custom Input (ours) |
 

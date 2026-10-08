@@ -1,7 +1,7 @@
 /*
 	Player submenus: ports Rampage's Submenus::SubSelfScenarios,
-	SubSelfWardrobe (Walk Styles and Damage Packs only, via SubSelfWalkStyles
-	and SubDamagePacks), SubTimecycleMod and SubAnimPostFx (Vision), SubMoods,
+	SubSelfWardrobe (Walk Styles and Damage Packs, via SubSelfWalkStyles and
+	SubDamagePacks; the other Wardrobe rows are in Wardrobe.cpp), SubTimecycleMod and SubAnimPostFx (Vision), SubMoods,
 	SubAbilities, SubPlayerProofs and SubPlayerConfigFlags. The name lists
 	come from the game scripts (tools/extract_player_lists.py), not from
 	Rampage's tables.
@@ -159,14 +159,16 @@ namespace Menus
 
 		BuildPlayerAnimations(self); // PlayerActions.cpp
 
-		// SubSelfWardrobe (partial).
+		// SubSelfWardrobe; the rest of it is in Wardrobe.cpp.
 		MenuBase* wardrobe = Ui::Submenu(self, "Wardrobe");
+		BuildWardrobeTop(wardrobe);
 		Ui::NameList(wardrobe, "Walk Styles", Names(kWalkStyles), SetWalkStyle, [](MenuBase* m) {
 			Ui::Do(m, "Reset", [] { PED::_CLEAR_PED_DESIRED_LOCO_MOTION_TYPE(Me()); });
 		});
 		Ui::NameList(wardrobe, "Apply Damage Packs", Names(kDamagePacks),
 			[](const std::string& pack) { PED::APPLY_PED_DAMAGE_PACK(Me(), pack.c_str(), 1.0f, 1.0f); },
 			[](MenuBase* m) { Ui::Do(m, "Clear all", ClearDamage); });
+		BuildWardrobe(wardrobe);
 
 		// Vision: SubTimecycleMod and SubAnimPostFx.
 		MenuBase* vision = Ui::Submenu(self, "Vision");

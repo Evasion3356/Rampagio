@@ -397,6 +397,16 @@ public:
 	// the menu is pushed; it usually calls ClearItems() and re-adds rows.
 	void SetOnOpen(std::function<void(MenuBase*)> onOpen) { m_onOpen = std::move(onOpen); }
 	void Open() { if (m_onOpen) m_onOpen(this); }
+	// Rebuilds the rows in place, keeping the selection where it still fits.
+	void Reopen()
+	{
+		const int index = GetActiveItemIndex();
+		Open();
+		const int last = static_cast<int>(m_items.size()) - 1;
+		const int keep = index > last ? (last < 0 ? 0 : last) : index;
+		m_activeScreenIndex = keep / MenuBase_linesPerScreen;
+		m_activeLineIndex = keep % MenuBase_linesPerScreen;
+	}
 	void ClearItems()
 	{
 		for (auto item : m_items)
@@ -459,6 +469,7 @@ class MenuController
 
 	string	m_statusText;
 	DWORD	m_statusTextMaxTicks;
+	bool	m_reopenPending = false;
 
 	void InputWait(int ms)		{	m_inputTurnOnTime = GetTickCount() + ms; }
 	bool InputIsOnWait()		{	return m_inputTurnOnTime > GetTickCount(); }
@@ -510,10 +521,20 @@ public:
 		for (size_t i = 0; i < m_menuList.size(); i++)
 			m_menuList[i]->OnFrame();
 	}
+	// Rampagio addition: rebuilds the top menu after this frame's input, so
+	// a row can ask for its own list to refresh without deleting itself
+	// mid-call.
+	void ReopenActiveLater()		{	m_reopenPending = true; }
 	void Update()
 	{
 		OnDraw();
 		OnInput();
+		if (m_reopenPending)
+		{
+			m_reopenPending = false;
+			if (auto menu = GetActiveMenu())
+				menu->Reopen();
+		}
 		OnFrame();
 	}
 };
