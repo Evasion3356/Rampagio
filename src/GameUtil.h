@@ -103,6 +103,13 @@ namespace GameUtil
 	// On failure `error` says why.
 	bool AddInventoryItem(Hash item, int quantity, std::string& error);
 
+	// Adds `quantity` of `item` through the game's own add function,
+	// flow_controller func_290 (Rampage's Shift path), so its side effects
+	// run too: a cigarette card's found counter and stats, the set
+	// document on the twelfth card and the journal's progress. False if the
+	// call couldn't run (logged).
+	bool AddInventoryItemViaScript(Hash item, int quantity);
+
 	// An item's name in the game's current language: the item hash is
 	// also its text label. `fallback` if the game has no text for it.
 	std::string ItemName(Hash item, std::string_view fallback);

@@ -294,14 +294,9 @@ namespace
 			g_coreRank[core] = ATTRIBUTE::GET_ATTRIBUTE_BASE_RANK(Me(), core);
 	}
 
-	// flow_controller func_290(item, quantity, b2, b3, b4, hReason, i6, i7,
-	// eEntity, b9): adds an inventory item. Position 0x766E.
-	ScriptFunction g_addItemScript("flow_controller",
-		"22 0A 32 00 00 66 00 2F 39 ? ? ? 05 8B 04 00 2F 50 0A 01 66 00 66 01 66 02 66 05 39 ? ? ? 05 8B 04 00 2F 50 0A 01");
-
 	std::string AddTank(int core)
 	{
-		if (!g_addItemScript.Call(kCores[core].tank, 1, FALSE, FALSE, FALSE, kCashAddReason, 0, 0, 0, FALSE))
+		if (!GameUtil::AddInventoryItemViaScript(kCores[core].tank, 1))
 			return "flow_controller call failed (see log)";
 		return "";
 	}
@@ -359,7 +354,7 @@ namespace
 			return "";
 		if (!ItemValid(item))
 			return ItemInvalid();
-		if (!g_addItemScript.Call(item, amount, FALSE, FALSE, FALSE, kCashAddReason, 0, 0, 0, FALSE))
+		if (!GameUtil::AddInventoryItemViaScript(item, amount))
 			return "flow_controller call failed (see log)";
 		return "";
 	}
@@ -518,7 +513,7 @@ namespace
 		const Hash item = GameUtil::Joaat(entry.name);
 		if (g_giveMethod == 1)
 		{
-			if (!g_addItemScript.Call(item, g_giveAmount, FALSE, FALSE, FALSE, kCashAddReason, 0, 0, 0, FALSE))
+			if (!GameUtil::AddInventoryItemViaScript(item, g_giveAmount))
 				return "flow_controller call failed (see log)";
 			return "";
 		}

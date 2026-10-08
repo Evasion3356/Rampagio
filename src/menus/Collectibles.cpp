@@ -15,6 +15,16 @@
 
 	Card models follow the game's s_inv_cigcard_<set>_<NN>x naming (the
 	same models Rampage's tables hold).
+
+	Ours: Complete Set / Complete All Sets follow the game's own card
+	tracking (from ..\CigCardTest and the 1491.50 scripts). A card counts
+	as collected in three places: its inventory item, the collectable's
+	"found" counter, and, on the set's twelfth card, the set document
+	(DOCUMENT_CIG_CARD_*_SET) the player mails to the collector.
+	flow_controller func_290 (the game's add-item function) does all three
+	and updates the journal, so cards go through it. shop_post_office's
+	journal objectives (func_1335) count a set as done when its document is
+	held or its bit is set in the posted-sets mask.
 */
 
 #include "Menus.h"
@@ -168,23 +178,28 @@ namespace
 		const char* label;
 		const char* subcategory; // the CARD_SET_* the scripts filter by
 		const char* model;       // s_inv_cigcard_<model>_<NN>x
+		int postedBit;           // in the posted-sets mask, by document (shop_post_office func_1875)
 	};
 
 	// In Rampage's spawn-row order.
 	const CardSet kCardSets[] = {
-		{ "Famous Gunslingers",     "CARD_SET_GUNSLINGERS", "gun" },
-		{ "Artists and Poets",      "CARD_SET_ARTISTS",     "art" },
-		{ "Vistas of America",      "CARD_SET_LANDMARKS",   "lnd" },
-		{ "Gems of Beauty",         "CARD_SET_GIRLS",       "grl" },
-		{ "Flora of North America", "CARD_SET_PLANTS",      "plt" },
-		{ "Stars of the Stage",     "CARD_SET_ACTRESSES",   "act" },
-		{ "Fauna of North America", "CARD_SET_ANIMALS",     "aml" },
-		{ "Marvels of Travel",      "CARD_SET_VEHICLES",    "veh" },
-		{ "World's Champions",      "CARD_SET_SPORTS",      "spt" },
-		{ "Amazing Inventions",     "CARD_SET_INVENTIONS",  "inv" },
-		{ "Breeds of Horses",       "CARD_SET_HORSES",      "hrs" },
-		{ "Prominent Americans",    "CARD_SET_AMERICANS",   "amer" },
+		{ "Famous Gunslingers",     "CARD_SET_GUNSLINGERS", "gun",  32 },
+		{ "Artists and Poets",      "CARD_SET_ARTISTS",     "art",  8 },
+		{ "Vistas of America",      "CARD_SET_LANDMARKS",   "lnd",  256 },
+		{ "Gems of Beauty",         "CARD_SET_GIRLS",       "grl",  16 },
+		{ "Flora of North America", "CARD_SET_PLANTS",      "plt",  512 },
+		{ "Stars of the Stage",     "CARD_SET_ACTRESSES",   "act",  1 },
+		{ "Fauna of North America", "CARD_SET_ANIMALS",     "aml",  4 },
+		{ "Marvels of Travel",      "CARD_SET_VEHICLES",    "veh",  2048 },
+		{ "World's Champions",      "CARD_SET_SPORTS",      "spt",  1024 },
+		{ "Amazing Inventions",     "CARD_SET_INVENTIONS",  "inv",  128 },
+		{ "Breeds of Horses",       "CARD_SET_HORSES",      "hrs",  64 },
+		{ "Prominent Americans",    "CARD_SET_AMERICANS",   "amer", 2 },
 	};
+
+	// Global_40.f_12019: sets mailed to the collector (shop_post_office
+	// func_2380 sets the bits).
+	constexpr int kPostedSets = 40 + 12019;
 
 	Hash CardModel(const CardSet& set, int card)
 	{
@@ -218,39 +233,186 @@ namespace
 		return cards;
 	}
 
-	std::string GiveCard(Hash item)
+	// Where a set stands in the game's own tracking.
+	struct SetStatus
 	{
-		std::string error;
+		std::vector<Hash> cards; // collectables, in the game's order
+		int owned = 0;
+		Hash document = 0;       // DOCUMENT_CIG_CARD_*_SET
+		bool hasDocument = false;
+		bool posted = false;     // its document was mailed to the collector
+	};
+
+	SetStatus GetStatus(const CardSet& set)
+	{
+		SetStatus status;
+		status.cards = SetCards(set);
+		for (Hash card : status.cards)
+			if (OwnedCount(CardItem(card)) > 0)
+				status.owned++;
+		// flow_controller func_545: the document a full set earns.
+		status.document = static_cast<Hash>(COLLECTABLE::_0x93F2E7B5DB85657B(kCigaretteCards, GameUtil::Joaat(set.subcategory)));
+		status.hasDocument = OwnedCount(status.document) > 0;
+		const UINT64* posted = GameUtil::Global(kPostedSets);
+		status.posted = posted && (static_cast<int>(*posted) & set.postedBit);
+		return status;
+	}
+
+	// Adds one card through the game's add function, unless `plain` (a
+	// posted set, whose twelfth card would bring its document back). If the
+	// game's function can't run: a plain add plus the found counter it
+	// would have bumped.
+	bool AddCard(Hash card, bool plain, std::string& error)
+	{
+		const Hash item = CardItem(card);
+		if (!plain && GameUtil::AddInventoryItemViaScript(item, 1) && OwnedCount(item) > 0)
+			return true;
 		if (!GameUtil::AddInventoryItem(item, 1, error))
-			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
-		return TrFormat("Added {}", GameUtil::ItemName(item, std::format("{:#x}", item)));
+			return false;
+		if (COLLECTABLE::_COLLECTABLE_GET_NUM_FOUND(card) == 0)
+			COLLECTABLE::_COLLECTABLE_INCREMENT_NUM_FOUND(card, 1);
+		return true;
+	}
+
+	struct CompleteResult
+	{
+		int added = 0;
+		bool document = false; // the set's document was handed over
+		bool alreadyDone = false;
+		std::string error;
+	};
+
+	// Ours: completes a set as picking up its missing cards would. A set
+	// held in full without its document (its cards added with a plain
+	// inventory add, Rampage's way) has one card taken out and put back
+	// through the game, so the game hands the document over itself. A
+	// posted set only gets its missing cards.
+	CompleteResult CompleteSet(const CardSet& set)
+	{
+		CompleteResult result;
+		const SetStatus status = GetStatus(set);
+		if (status.cards.empty())
+		{
+			result.error = "The game has no cards for this set";
+			return result;
+		}
+		std::vector<Hash> missing;
+		for (Hash card : status.cards)
+			if (OwnedCount(CardItem(card)) == 0)
+				missing.push_back(card);
+		if (missing.empty() && (status.hasDocument || status.posted))
+		{
+			result.alreadyDone = true;
+			return result;
+		}
+
+		Hash readded = 0;
+		int restoreCopies = 0;
+		if (missing.empty())
+		{
+			readded = status.cards.front();
+			const Hash item = CardItem(readded);
+			const int copies = OwnedCount(item);
+			INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEM_WITH_ITEMID(GameUtil::kInventorySp, item, copies, GameUtil::kRemoveReasonDefault);
+			if (OwnedCount(item) != 0)
+			{
+				result.error = "Couldn't take a card out to put it back";
+				return result;
+			}
+			restoreCopies = copies - 1;
+			missing.push_back(readded);
+		}
+
+		for (Hash card : missing)
+		{
+			std::string error;
+			if (!AddCard(card, status.posted, error))
+				result.error = error;
+			else if (card != readded)
+				result.added++;
+		}
+		std::string error;
+		if (restoreCopies > 0)
+			GameUtil::AddInventoryItem(CardItem(readded), restoreCopies, error);
+
+		// The game's add hands the document over on the twelfth card; if it
+		// couldn't run, give the document directly.
+		if (!status.posted && OwnedCount(status.document) == 0 && GetStatus(set).owned == static_cast<int>(status.cards.size()))
+			GameUtil::AddInventoryItem(status.document, 1, error);
+		result.document = !status.posted && !status.hasDocument && OwnedCount(status.document) > 0;
+		Log::Write("Complete Set {}: {} cards added, document {}, posted {}{}", set.label, result.added,
+			result.document ? "handed over" : (status.hasDocument ? "already held" : "not held"), status.posted,
+			result.error.empty() ? "" : ", error: " + result.error);
+		return result;
+	}
+
+	std::string CompleteSetMessage(const CompleteResult& result)
+	{
+		if (!result.error.empty())
+			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(result.error));
+		if (result.alreadyDone)
+			return std::string(Tr("Set already complete"));
+		if (result.document)
+			return TrFormat("Added {} cards and the set document", result.added);
+		return TrFormat("Added {} cards", result.added);
+	}
+
+	std::string StatusLine(const SetStatus& status)
+	{
+		const int total = static_cast<int>(status.cards.size());
+		if (status.posted)
+			return TrFormat("{} / {} cards, posted to the collector", status.owned, total);
+		if (status.hasDocument)
+			return TrFormat("{} / {} cards, set document held", status.owned, total);
+		return TrFormat("{} / {} cards", status.owned, total);
 	}
 
 	// SubCollectiblesCigaretteCardsSet: one row per card, adding it to the
-	// inventory (Rampage's default path; its Shift path through
-	// flow_controller is Recovery > Add Items > Give Items' "Game Script").
+	// inventory. Rampage's default is a plain inventory add (its Shift path
+	// goes through flow_controller); ours always goes through the game, so
+	// the twelfth card brings the set document as a real pick-up does.
 	void BuildCardSet(MenuBase* list, const CardSet& set)
 	{
-		// Ours: the whole set at once, skipping cards already owned.
-		Ui::Action(list, "Give Missing Cards", [&set] {
-			int added = 0;
-			for (Hash card : SetCards(set))
-			{
-				const Hash item = CardItem(card);
-				std::string error;
-				if (OwnedCount(item) == 0 && GameUtil::AddInventoryItem(item, 1, error))
-					added++;
-			}
-			return TrFormat("Added {} cards", added);
+		const SetStatus status = GetStatus(set);
+		Ui::Section(list, StatusLine(status));
+		Ui::Action(list, "Complete Set", [&set] {
+			const std::string message = CompleteSetMessage(CompleteSet(set));
+			Ui::Controller().ReopenActiveLater();
+			return message;
 		});
 		int n = 0;
-		for (Hash card : SetCards(set))
+		for (Hash card : status.cards)
 		{
 			const Hash item = CardItem(card);
 			const int owned = OwnedCount(item);
 			const std::string name = GameUtil::ItemName(item, TrFormat("Card {}", ++n));
-			Ui::Action(list, owned > 0 ? std::format("{} ~COLOR_GREEN~({})", name, owned) : name, [item] { return GiveCard(item); });
+			const bool posted = status.posted;
+			Ui::Action(list, owned > 0 ? std::format("{} ~COLOR_GREEN~({})", name, owned) : name, [card, item, posted] {
+				std::string error;
+				if (!AddCard(card, posted, error))
+					return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+				Ui::Controller().ReopenActiveLater();
+				return TrFormat("Added {}", GameUtil::ItemName(item, std::format("{:#x}", item)));
+			});
 		}
+	}
+
+	std::string CompleteAllSets()
+	{
+		int added = 0;
+		int documents = 0;
+		std::string error;
+		for (const CardSet& set : kCardSets)
+		{
+			const CompleteResult result = CompleteSet(set);
+			added += result.added;
+			documents += result.document ? 1 : 0;
+			if (!result.error.empty())
+				error = result.error;
+		}
+		if (!error.empty())
+			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+		return TrFormat("Added {} cards and {} set documents", added, documents);
 	}
 
 	// Spawns the set on a chest 5 m ahead, as Rampage does: the chest is
@@ -360,6 +522,7 @@ namespace
 	void BuildCigaretteCards(MenuBase* parent)
 	{
 		MenuBase* menu = Ui::Submenu(parent, "Cigarette Cards");
+		Ui::Action(menu, "collectibles.completeallsets", "Complete All Sets", CompleteAllSets);
 		for (const CardSet& set : kCardSets)
 			Ui::ListMenu(menu, set.label, [&set](MenuBase* list) { BuildCardSet(list, set); });
 		Ui::Section(menu, "Spawn Card Sets");

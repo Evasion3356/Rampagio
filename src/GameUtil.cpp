@@ -1,5 +1,6 @@
 #include "GameUtil.h"
 #include "Localization.h"
+#include "ScriptFunction.h"
 
 #include <algorithm>
 #include <cctype>
@@ -208,5 +209,20 @@ namespace GameUtil
 			return false;
 		}
 		return true;
+	}
+
+	// flow_controller func_290(item, quantity, b2, b3, b4, hReason, i6, i7,
+	// eEntity, b9). Position 0x766E.
+	namespace
+	{
+		ScriptFunction g_addItemScript("flow_controller",
+			"22 0A 32 00 00 66 00 2F 39 ? ? ? 05 8B 04 00 2F 50 0A 01 66 00 66 01 66 02 66 05 39 ? ? ? 05 8B 04 00 2F 50 0A 01");
+	}
+
+	bool AddInventoryItemViaScript(Hash item, int quantity)
+	{
+		// The reason the game's scripts pass with their own grants.
+		constexpr Hash kAddReason = 752097756;
+		return g_addItemScript.Call(item, quantity, FALSE, FALSE, FALSE, kAddReason, 0, 0, 0, FALSE);
 	}
 }
