@@ -11,13 +11,15 @@
 	it to (data/LawDispatchRegions.inc).
 
 	The legendary animals and fish are Rampage's table (model plus outfit
-	preset, data/LegendaryAnimals.inc).
+	preset, data/LegendaryAnimals.inc). Ours: the story legendaries show
+	whether they've been killed (Legendaries.h).
 
 	The vehicle JSON Loader reads Rampage's vehicle files (RampageFiles\Vehicle)
 	from a Rampagio_Vehicles folder next to Rampagio.json.
 */
 
 #include "Menus.h"
+#include "Legendaries.h"
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
 
@@ -264,7 +266,11 @@ namespace
 				continue;
 			const std::string model = l.model;
 			const int preset = l.preset;
-			Ui::Action(m, l.label, [model, preset] { return SpawnPed(model, preset); });
+			// Ours: marks the story legendaries the player has killed.
+			const int zone = Legendaries::ZoneOf(l.label);
+			const bool killed = zone >= 0 && Legendaries::Killed(zone);
+			Ui::Action(m, killed ? l.label + std::string(Tr(" ~COLOR_RED~(Killed)")) : std::string(l.label),
+				[model, preset] { return SpawnPed(model, preset); });
 		}
 	}
 

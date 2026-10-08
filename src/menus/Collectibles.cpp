@@ -13,6 +13,14 @@
 	function (extracted to Dreamcatchers.inc) and marks each found in a
 	bit of Global_40.f_8863.f_148.
 
+	Ours (docs/COLLECTIBLES_AND_ITEMS_PLAN.md, step A): "found" is
+	_COLLECTABLE_GET_NUM_FOUND, as the world scripts decide it (Rampage's
+	lists don't check); Show on Map re-reads it every few seconds and Hide
+	Found leaves found ones off the map. The same category code adds
+	legendary fish, gator eggs, Carolina parakeets, wilderness chests,
+	treasure and herbs, and Legendary Animals lists the kill state the
+	hunting zones keep (Legendaries.h).
+
 	Card models follow the game's s_inv_cigcard_<set>_<NN>x naming (the
 	same models Rampage's tables hold).
 
@@ -28,9 +36,11 @@
 */
 
 #include "Menus.h"
+#include "Legendaries.h"
 #include "..\GameUtil.h"
 #include "..\Log.h"
 
+#include <algorithm>
 #include <format>
 
 namespace
@@ -56,23 +66,69 @@ namespace
 		return {};
 	}
 
-	// A "Show on Map" toggle's blips, one per location.
+	// Ours: Recovery > Collectibles > Hide Found. Show on Map leaves out what
+	// the player already has (Rampage blips everything); the Locations lists
+	// keep every row, marked (Found).
+	bool g_hideFound = true;
+
+	// A location and whether the game counts it as found.
+	struct Spot
+	{
+		Vector3 at;
+		bool found;
+	};
+
+	bool HasLocation(const Vector3& at) { return at.x != 0.0f || at.y != 0.0f || at.z != 0.0f; }
+
+	// A "Show on Map" toggle's blips, one per location. Ours: re-reads the
+	// found state every few seconds while on, so picking one up removes its
+	// blip without switching the toggle off and on.
 	struct BlipSet
 	{
-		std::vector<Blip> blips;
+		static constexpr int kRefreshMs = 3000;
 
-		void Show(const std::vector<Vector3>& locations, const char* name)
+		std::vector<Blip> blips;
+		// Per spot, as last blipped: 0 none, 1 a blip, 2 a found one's blip.
+		std::vector<int> shown;
+		int nextRefresh = 0;
+
+		// Show on Map's onChange.
+		void Set(bool on, const std::function<std::vector<Spot>()>& source, const char* name)
 		{
+			if (!on)
+				return Clear();
+			Refresh(source, name, true);
+		}
+
+		// Show on Map's onTick.
+		void Refresh(const std::function<std::vector<Spot>()>& source, const char* name, bool force = false)
+		{
+			const int now = MISC::GET_GAME_TIMER();
+			if (!force && now < nextRefresh)
+				return;
+			nextRefresh = now + kRefreshMs;
+
+			const std::vector<Spot> spots = source();
+			std::vector<int> wanted;
+			wanted.reserve(spots.size());
+			for (const Spot& spot : spots)
+				wanted.push_back(!HasLocation(spot.at) || (g_hideFound && spot.found) ? 0 : (spot.found ? 2 : 1));
+			if (!force && wanted == shown)
+				return;
+
 			Clear();
-			const std::string shown(Tr(name));
-			for (const Vector3& at : locations)
+			const std::string plain(Tr(name));
+			const std::string found = TrFormat("{} (Found)", Tr(name));
+			for (size_t i = 0; i < spots.size(); i++)
 			{
-				if (at.x == 0.0f && at.y == 0.0f && at.z == 0.0f)
+				if (wanted[i] == 0)
 					continue;
+				const Vector3& at = spots[i].at;
 				const Blip blip = MAP::BLIP_ADD_FOR_RADIUS(kBlipStyleArea, at.x, at.y, at.z, 5.0f);
-				MAP::_SET_BLIP_NAME(blip, shown.c_str());
+				MAP::_SET_BLIP_NAME(blip, (wanted[i] == 2 ? found : plain).c_str());
 				blips.push_back(blip);
 			}
+			shown = std::move(wanted);
 		}
 
 		void Clear()
@@ -81,17 +137,32 @@ namespace
 				if (MAP::DOES_BLIP_EXIST(blip))
 					MAP::REMOVE_BLIP(&blip);
 			blips.clear();
+			shown.clear();
 		}
 	};
 
+	std::string FoundSuffix(bool found) { return found ? std::string(Tr(" ~COLOR_GREEN~(Found)")) : ""; }
+
 	// ---- SubCollectiblesDinoBones / SubCollectiblesRockCarvings ----
+	// Ours: the same code covers the game's other collectable categories
+	// (legendary fish, gator eggs, Carolina parakeets, wilderness chests,
+	// treasure, herbs).
 
 	struct Collectable
 	{
 		Hash item;
+		Hash subcategory;
 		Vector3 location;
-		bool found; // turned in: the world script won't spawn it again
+		bool found;
 	};
+
+	// Found, the way the world scripts decide whether to spawn it again
+	// (dino_bones func_16, rock_carvings): NUM_FOUND. TURNED_IN is the later
+	// hand-in, so it counts too, but a found item isn't always turned in.
+	bool CollectableFound(Hash item)
+	{
+		return COLLECTABLE::_COLLECTABLE_GET_NUM_FOUND(item) > 0 || COLLECTABLE::_COLLECTABLE_GET_NUM_TURNED_IN(item) > 0;
+	}
 
 	std::vector<Collectable> CategoryItems(Hash category)
 	{
@@ -102,38 +173,110 @@ namespace
 			const Hash item = COLLECTABLE::_COLLECTABLE_GET_COLLECTABLE_ITEM_HASH(i, category, 0);
 			if (item == 0)
 				continue;
-			items.push_back({ item, COLLECTABLE::_COLLECTABLE_GET_PLACEMENT_LOCATION(item),
-				COLLECTABLE::_COLLECTABLE_GET_NUM_TURNED_IN(item) > 0 });
+			items.push_back({ item, COLLECTABLE::_COLLECTABLE_GET_SUBCATEGORY(item),
+				COLLECTABLE::_COLLECTABLE_GET_PLACEMENT_LOCATION(item), CollectableFound(item) });
 		}
 		return items;
 	}
 
-	std::string FoundSuffix(bool found) { return found ? std::string(Tr(" ~COLOR_GREEN~(Found)")) : ""; }
+	// How a category's Locations rows are named.
+	enum class Naming
+	{
+		Numbered,    // "<singular> <n>"
+		Item,        // the collectable's own text label, else numbered
+		Subcategory, // the subcategory's text label plus a number (herbs)
+	};
+
+	struct Category
+	{
+		const char* title;
+		const char* id;        // collectibles.<id>.showonmap (never renamed)
+		const char* singular;
+		Hash hashes[2];        // the category; a second candidate where unsure
+		Naming naming = Naming::Numbered;
+		bool tracksFound = true; // false for things that respawn (herbs)
+		BlipSet blips;
+
+		// The first candidate the game has items for.
+		Hash Resolve() const
+		{
+			for (Hash hash : hashes)
+				if (hash != 0 && COLLECTABLE::_COLLECTABLE_CATEGORY_GET_NUM_COLLECTABLES(hash, 0) > 0)
+					return hash;
+			return hashes[0];
+		}
+
+		std::vector<Spot> Spots() const
+		{
+			std::vector<Spot> spots;
+			for (const Collectable& c : CategoryItems(Resolve()))
+				spots.push_back({ c.location, tracksFound && c.found });
+			return spots;
+		}
+	};
+
+	// Category hashes from the 1491.50 scripts (docs/COLLECTIBLES_AND_ITEMS_PLAN.md).
+	// Only dino bones and rock carvings are known to have placement
+	// locations; the others are untested (rows without one say so).
+	Category g_categories[] = {
+		{ "Dino Bones", "dino_bones", "Dino Bone", { GameUtil::Joaat("dino_bones") } },
+		{ "Rock Carvings", "rock_carvings", "Rock Carving", { GameUtil::Joaat("rock_carvings") } },
+		// rare_fish.ysc, rcm_collect_rare_fish1.ysc; the category's name is unknown.
+		{ "Legendary Fish", "legendary_fish", "Legendary Fish", { 0xC7EEA672 }, Naming::Item },
+		// gator_eggs.ysc: joaat("gator_eggs"), or 689918374 (joaat("gator_egg_nest")).
+		{ "Gator Eggs", "gator_eggs", "Gator Egg", { GameUtil::Joaat("gator_eggs"), 0x291F51A6 } },
+		{ "Carolina Parakeets", "carolina_parakeets", "Carolina Parakeet", { GameUtil::Joaat("carolina_parakeets") } },
+		// wilderness_chest.ysc's -1129417850.
+		{ "Wilderness Chests", "wilderness_chests", "Wilderness Chest", { GameUtil::Joaat("wilderness_chests") } },
+		{ "Treasure", "treasure_hunter", "Treasure", { GameUtil::Joaat("treasure_hunter") }, Naming::Item },
+		// herb_*.ysc's 1777389635, one subcategory per herb. Herbs grow
+		// back, so found doesn't hide them.
+		{ "Herb Pickups", "herbs", "Herb", { 0x69F0D043 }, Naming::Subcategory, false },
+	};
+
+	std::string RowName(const Category& category, const Collectable& c, int n)
+	{
+		const std::string numbered = std::format("{} {}", Tr(category.singular), n);
+		switch (category.naming)
+		{
+		case Naming::Item:
+			return GameUtil::ItemName(c.item, numbered);
+		case Naming::Subcategory:
+			return std::format("{} {}", GameUtil::ItemName(c.subcategory, Tr(category.singular)), n);
+		default:
+			return numbered;
+		}
+	}
 
 	// "Show on Map", then one row per item that teleports to it.
-	void BuildCategory(MenuBase* parent, const char* title, const char* category, const char* singular, BlipSet& blips)
+	void BuildCategory(MenuBase* parent, Category& category)
 	{
-		MenuBase* menu = Ui::Submenu(parent, title);
-		const Hash hash = GameUtil::Joaat(category);
-		Ui::Toggle(menu, std::string("collectibles.") + category + ".showonmap", "Show on Map", [hash, singular, &blips](bool on) {
-			if (!on)
-				return blips.Clear();
-			std::vector<Vector3> locations;
-			for (const Collectable& c : CategoryItems(hash))
-				locations.push_back(c.location);
-			blips.Show(locations, singular);
-		});
-		Ui::ListMenu(menu, "Locations", [hash, singular](MenuBase* list) {
-			int n = 0;
-			for (const Collectable& c : CategoryItems(hash))
+		MenuBase* menu = Ui::Submenu(parent, category.title);
+		Category* c = &category;
+		auto source = [c] { return c->Spots(); };
+		Ui::Toggle(menu, std::string("collectibles.") + category.id + ".showonmap", "Show on Map",
+			[c, source](bool on) { c->blips.Set(on, source, c->singular); },
+			[c, source] { c->blips.Refresh(source, c->singular); });
+		Ui::ListMenu(menu, "Locations", [c](MenuBase* list) {
+			const std::vector<Collectable> items = CategoryItems(c->Resolve());
+			if (items.empty())
 			{
-				const Vector3 at = c.location;
-				Ui::Action(list, std::format("{} {}{}", Tr(singular), ++n, FoundSuffix(c.found)), [at] { return TeleportTo(at); });
+				Ui::Section(list, "The game has none of these");
+				return;
+			}
+			if (c->tracksFound)
+			{
+				const auto found = std::count_if(items.begin(), items.end(), [](const Collectable& i) { return i.found; });
+				Ui::Section(list, TrFormat("{} / {} found", found, items.size()));
+			}
+			int n = 0;
+			for (const Collectable& item : items)
+			{
+				const Vector3 at = item.location;
+				Ui::Action(list, RowName(*c, item, ++n) + FoundSuffix(c->tracksFound && item.found), [at] { return TeleportTo(at); });
 			}
 		});
 	}
-
-	BlipSet g_dinoBlips, g_rockBlips, g_dreamcatcherBlips;
 
 	// ---- SubCollectiblesDreamcatchers ----
 
@@ -151,21 +294,53 @@ namespace
 		return bits && (static_cast<int>(*bits) & (2 << index));
 	}
 
+	std::vector<Spot> DreamcatcherSpots()
+	{
+		std::vector<Spot> spots;
+		for (int i = 0; i < static_cast<int>(std::size(kDreamcatchers)); i++)
+			spots.push_back({ kDreamcatchers[i], DreamcatcherFound(i) });
+		return spots;
+	}
+
+	BlipSet g_dreamcatcherBlips;
+
 	void BuildDreamcatchers(MenuBase* parent)
 	{
 		MenuBase* menu = Ui::Submenu(parent, "Dreamcatchers");
-		Ui::Toggle(menu, "collectibles.showonmap", "Show on Map", [](bool on) {
-			if (!on)
-				return g_dreamcatcherBlips.Clear();
-			g_dreamcatcherBlips.Show({ std::begin(kDreamcatchers), std::end(kDreamcatchers) }, "Dreamcatcher");
-		});
+		Ui::Toggle(menu, "collectibles.showonmap", "Show on Map",
+			[](bool on) { g_dreamcatcherBlips.Set(on, DreamcatcherSpots, "Dreamcatcher"); },
+			[] { g_dreamcatcherBlips.Refresh(DreamcatcherSpots, "Dreamcatcher"); });
 		Ui::ListMenu(menu, "Locations", [](MenuBase* list) {
+			int found = 0;
+			for (int i = 0; i < static_cast<int>(std::size(kDreamcatchers)); i++)
+				found += DreamcatcherFound(i) ? 1 : 0;
+			Ui::Section(list, TrFormat("{} / {} found", found, std::size(kDreamcatchers)));
 			for (int i = 0; i < static_cast<int>(std::size(kDreamcatchers)); i++)
 			{
 				const Vector3 at = kDreamcatchers[i];
 				Ui::Action(list, TrFormat("Dreamcatcher {}{}", i + 1, FoundSuffix(DreamcatcherFound(i))), [at] { return TeleportTo(at); });
 			}
 		});
+	}
+
+	// ---- Legendary Animals (ours) ----
+
+	// Kill state only: the zone locations aren't known yet (Legendaries.h).
+	void BuildLegendaryAnimals(MenuBase* parent)
+	{
+		Ui::ListMenu(parent, "Legendary Animals", [](MenuBase* list) {
+			int killed = 0;
+			for (int i = 0; i < Legendaries::kZoneCount; i++)
+				killed += Legendaries::Killed(i) ? 1 : 0;
+			Ui::Section(list, TrFormat("{} / {} killed", killed, Legendaries::kZoneCount));
+			for (int i = 0; i < Legendaries::kZoneCount; i++)
+			{
+				const std::string caption = std::string(Legendaries::kZones[i])
+					+ (Legendaries::Killed(i) ? std::string(Tr(" ~COLOR_RED~(Killed)")) : "");
+				list->AddItem(new MenuItemLabel([caption] { return caption; }));
+			}
+		});
+		Ui::Describe(parent, "The 16 legendary animals and which ones you've killed, as the game's hunting zones track it.");
 	}
 
 	// ---- SubCollectiblesCigaretteCards ----
@@ -540,9 +715,18 @@ namespace Menus
 	void BuildRecoveryCollectibles(MenuBase* recovery)
 	{
 		MenuBase* collectibles = Ui::Submenu(recovery, "Collectibles");
+		// Ours: applies to every Show on Map below.
+		Ui::Toggle(collectibles, "collectibles.hidefound", "Hide Found", [](bool on) { g_hideFound = on; })
+			->SetDefault(true)
+			->SetAlwaysRestore();
+		Ui::Describe(collectibles, "Show on Map leaves out what you've already found. The location lists still show everything.");
 		BuildCigaretteCards(collectibles);
-		BuildCategory(collectibles, "Dino Bones", "dino_bones", "Dino Bone", g_dinoBlips);
+		BuildCategory(collectibles, g_categories[0]); // Dino Bones
 		BuildDreamcatchers(collectibles);
-		BuildCategory(collectibles, "Rock Carvings", "rock_carvings", "Rock Carving", g_rockBlips);
+		BuildCategory(collectibles, g_categories[1]); // Rock Carvings
+		Ui::Section(collectibles, "More Collectibles");
+		for (size_t i = 2; i < std::size(g_categories); i++)
+			BuildCategory(collectibles, g_categories[i]);
+		BuildLegendaryAnimals(collectibles);
 	}
 }
