@@ -546,6 +546,12 @@ fishing/dead-eye fixes, horse stat lock) are the first examples of this
 kind of work. GoldHorse (including moving it to the alloc8or native
 header) belongs here too, later.
 
+Active Goal C work: `docs/COLLECTIBLES_AND_ITEMS_PLAN.md` (researched
+2026-10-08, not built): collectible and legendary blips/lists that know
+what's already found or killed, and Give Items built from the game's full
+SP item catalog (`catalog_sp.ymt`, 5,049 items) instead of script names.
+`tools/catalog_dump.py` reads the catalog (prototype for step B1).
+
 ## Next steps
 
 Resume point (2026-10-08). Every non-tabled Rampage submenu is ported:
@@ -609,3 +615,7 @@ code is what the standalone mods already ran live.
    Known gaps: eject/re-inject doesn't release the ImGui context or
    backends, and `MH_Uninitialize` runs from DllMain while the render
    thread can still be inside a hook.
+8. Goal C: found-aware collectibles and the full item catalog
+   (`docs/COLLECTIBLES_AND_ITEMS_PLAN.md`). Step A (collectibles) first;
+   its step 1 fixes a real bug (dino bones/rock carvings test TURNED_IN
+   instead of FOUND).
