@@ -9,8 +9,9 @@
     python tools/lang_sync.py --prune <code>        drop stale entries
 
 The English strings are the literals in the menu sources (src/menus,
-Menu.cpp, GameUtil.cpp, Descriptions.cpp) that read as text rather than
-identifiers, plus src/data/Descriptions.inc's descriptions, minus
+Menu.cpp, GameUtil.cpp, Descriptions.cpp, and the sibling advisors'
+option tables, external/*/src/*CheatConfig.cpp) that read as text
+rather than identifiers, plus src/data/Descriptions.inc's descriptions, minus
 src/lang/ignore.txt. A string that's never drawn costs nothing, so the
 filter errs on keeping. Text built at runtime must use Tr/TrFormat with a
 literal template (Localization.h) to be found.
@@ -38,6 +39,9 @@ SRC = os.path.join(ROOT, "src")
 LANG = os.path.join(SRC, "lang")
 CODES = ["fr", "de", "it", "es", "pt-BR", "pl", "ru", "ko", "zh-TW", "ja", "es-MX", "zh-CN"]
 SOURCES = ["menus/*.cpp", "Menu.cpp", "GameUtil.cpp", "Descriptions.cpp"]
+# The sibling advisors' option tables (Config::Options), drawn by
+# menus/Minigames.cpp. Their Debug-only blocks are layout tuning, left in English.
+SUBMODULE_SOURCES = ["../external/*/src/*CheatConfig.cpp"]
 
 LITERAL = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 SKIP_LINE = re.compile(r"^\s*(//|#include)|Log::Write|Joaat\(|VAR_STRING|DataFile::|Ui::Id\(|assert\(|REQUEST_ANIM_DICT|TASK_PLAY_ANIM")
@@ -86,10 +90,12 @@ def english_strings():
     if os.path.exists(path):
         ignore = {l.rstrip("\r\n").replace("\\n", "\n") for l in open(path, encoding="utf-8") if l.strip() and not l.startswith("#")}
     found = {}
-    for pattern in SOURCES:
+    for pattern in SOURCES + SUBMODULE_SOURCES:
         for f in sorted(glob.glob(os.path.join(SRC, pattern))):
             # Block comments blanked (newlines kept, so line numbers hold).
             text = re.sub(r"/\*.*?\*/", lambda m: re.sub(r"[^\n]", " ", m.group(0)), open(f, encoding="utf-8").read(), flags=re.S)
+            if pattern in SUBMODULE_SOURCES:
+                text = re.sub(r"#ifdef _DEBUG.*?#endif", lambda m: re.sub(r"[^\n]", " ", m.group(0)), text, flags=re.S)
             for n, line in enumerate(text.split("\n"), 1):
                 if SKIP_LINE.search(line):
                     continue

@@ -29,3 +29,21 @@ do as i say
 Built 
 Alexander Blade
 Halen84
+handed over
+already held
+not held
+, error: 
+{}.enabled
+en-US
+fr-FR
+de-DE
+it-IT
+es-ES
+pt-BR
+pl-PL
+ru-RU
+ko-KR
+zh-TW
+ja-JP
+es-MX
+zh-CN
