@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 134 done, 21 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 135 done, 20 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -16,7 +16,7 @@ Submenus: 134 done, 21 partial, 0 pending, 10 tabled, 2 dropped.
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
 | SubHorseBlip | 3 | Done | Horse > Blip |
-| SubHorseLoader | 2 | Done | Horse > Horse Loader: model, meta tags and gender in Rampagio_Horses.ini (ours) |
+| SubHorseLoader | 2 | Done | Horse > Horse Loader: model, meta tags and gender in Rampagio_Horses.json (ours) |
 | SubHorsePedMetaExpressions | 0 | Done | Horse > Meta Ped Expressions: the horse expressions of the shared menu |
 | SubHorsePedMetaTags | 6 | Done | Horse > Meta Ped Tags: the shared menu with Index / Load Data from Index |
 | SubHorseStats | 6 | Done | Horse > Horse Stats: ranks 0-10 per attribute |
@@ -108,9 +108,9 @@ Submenus: 134 done, 21 partial, 0 pending, 10 tabled, 2 dropped.
 | SubSelfAnimationsDicts | 1 | Done | Player > Animations > Dictionaries: script list plus Rampagio_PedAnimList.txt, re-read on open instead of Reload List |
 | SubSelfCustomizations | 4 | Partial | Player > Wardrobe > Overlay Textures: texture hashes typed in; the per-overlay texture tables of Rampage (TX Id) not ported |
 | SubSelfFacialAnimations | 4 | Done | Player > Animations > Facial Animations |
-| SubSelfFacialHair | 4 | Partial | Player > Wardrobe > Hair and Weight: Go to Barber not ported (coordinate from a Rampage table) |
+| SubSelfFacialHair | 4 | Done | Player > Wardrobe > Hair and Weight |
 | SubSelfModelChanger | 8 | Partial | Player > Wardrobe > Model Changer: Force Player Type not ported |
-| SubSelfOutfitSaver | 3 | Done | Player > Wardrobe > Outfits: saved in Rampagio_Outfits.ini (ours; Rampage writes an XML per outfit) |
+| SubSelfOutfitSaver | 3 | Done | Player > Wardrobe > Outfits: saved in Rampagio_Outfits.json (ours; Rampage writes an XML per outfit) |
 | SubSelfPedMetaExpressions | 0 | Done | Player > Wardrobe > Meta Ped Expressions: names from the MetaPedExpression list alloc8or links |
 | SubSelfPedMetaTags | 7 | Done | Player > Wardrobe > Meta Ped Tags |
 | SubSelfScenarios | 7 | Done | Player > Scenarios: list from the game scripts plus Custom Input/Search; no Scenarios.txt reload |
@@ -161,8 +161,8 @@ Submenus: 134 done, 21 partial, 0 pending, 10 tabled, 2 dropped.
 | SubSettings | 1 | Partial | Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Plugins and Language have no Rampagio counterpart |
 | SubSettingsColor | 12 | Partial | Settings > Theme: eight colors, menu position and Max Display Options; no font choice or menu title text |
 | SubSettingsCore | 10 | Partial | Settings > Core: Gamepad Controls, Menu Sounds, Show Controller Screen; Mouse Controls still to come (CLAUDE.md UI direction); welcome/ToS/update/landing rows dropped |
-| SubSettingsCustomThemes | 2 | Done | Settings > Theme > Custom Themes: Rampagio_Themes.ini |
-| SubSettingsLoadSave | 7 | Done | Settings > Load / Save: Rampagio_Settings.ini and Rampagio_Toggles.ini |
+| SubSettingsCustomThemes | 2 | Done | Settings > Theme > Custom Themes: the themes component of Rampagio.json |
+| SubSettingsLoadSave | 7 | Done | Settings > Load / Save: Rampagio.json |
 | SubSettingsPremadeThemes | 26 | Done | Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own) |
 | SubSettingsXUI | 6 | Partial | Settings > Theme > Max Display Options; teleport map, spawner previews, ink rendering, inverted colors and centered title not ported |
 | SubWindowManager | 7 | Tabled | ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay |
@@ -173,7 +173,7 @@ Submenus: 134 done, 21 partial, 0 pending, 10 tabled, 2 dropped.
 |---|---|---|---|
 | SubObjSpawnerAllObjs | 1 | Done | Spawner > Object Spawner > All Objects: game script objects plus Rampagio_ObjectList.txt |
 | SubObjSpawnerDatabase | 1 | Done | Spawner > Object Spawner > Object Database: per-object actions (ours) until the Object Editor is back |
-| SubObjSpawnerLoadSave | 7 | Partial | Spawner > Object Spawner > Load / Save: objects only, in Rampagio_Spooner.ini (ours); no spooner XML, peds or vehicles |
+| SubObjSpawnerLoadSave | 7 | Partial | Spawner > Object Spawner > Load / Save: objects only, in Rampagio_Spooner.json (ours); no spooner XML, peds or vehicles |
 | SubObjSpawnerPropsets | 2 | Done | Spawner > Object Spawner > Propsets: pg_ names from the game scripts |
 | SubObjectSpawner | 3 | Done | Spawner > Object Spawner: objects from the game scripts; creator cam is our own free cam |
 | SubPedSpawner | 2 | Done | Spawner > Ped Spawner: models from the game scripts; Hijack Ped adds the first ped of a typed model to the database |

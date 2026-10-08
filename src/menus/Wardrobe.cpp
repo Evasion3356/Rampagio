@@ -803,8 +803,7 @@ namespace Menus
 
 	void BuildWardrobe(MenuBase* wardrobe)
 	{
-		// SubSelfFacialHair ("Hair and Weight"). Rampage's Go to Barber uses a
-		// coordinate from its own table; not ported.
+		// SubSelfFacialHair ("Hair and Weight").
 		MenuBase* hair = Ui::Submenu(wardrobe, "Hair and Weight");
 		hair->AddItem(new MenuItemLabel([] {
 			const float* w = WeightSlot();
@@ -819,6 +818,10 @@ namespace Menus
 			CAMERA::DO_SCREEN_FADE_OUT(500);
 			WAIT(1000);
 			CAMERA::DO_SCREEN_FADE_IN(500);
+		});
+		// Go to Barber: the Valentine barber, Rampage's coordinate.
+		Ui::Do(hair, "wardrobe.gotobarber", "Go to Barber", [] {
+			ENTITY::SET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), -307.223f, 821.904f, 118.738f, true, true, true, false);
 		});
 		hair->SetOnOpen([](MenuBase*) { ReadHair(); });
 		Ui::Transient(hair);
