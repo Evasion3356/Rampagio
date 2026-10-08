@@ -489,13 +489,13 @@ namespace Menus
 		for (const Flag& f : kFlags)
 		{
 			bool* value = f.value;
-			Ui::Toggle(settings, f.name, [value](bool on) { *value = on; });
+			Ui::Toggle(settings, Ui::Id("spawner.ped", f.name), f.name, [value](bool on) { *value = on; })->SetDefault(*value);
 		}
 		Ui::Section(settings, "Values");
-		Ui::Toggle(settings, "Scale", [](bool on) { g_useScale = on; });
-		Ui::Number(settings, "Scale Value", &g_scale, 0.01f, 5.0f, 0.01f);
-		Ui::Toggle(settings, "Health", [](bool on) { g_useHealth = on; });
-		Ui::Number(settings, "Health Value", &g_health, 1, 10000, 10);
+		Ui::Toggle(settings, "spawner.scale", "Scale", [](bool on) { g_useScale = on; });
+		Ui::Number(settings, "spawner.scalevalue", "Scale Value", &g_scale, 0.01f, 5.0f, 0.01f);
+		Ui::Toggle(settings, "spawner.health", "Health", [](bool on) { g_useHealth = on; });
+		Ui::Number(settings, "spawner.healthvalue", "Health Value", &g_health, 1, 10000, 10);
 
 		g_pedMenu = Ui::DetachedListMenu("Spawned Ped", BuildSelectedPed);
 		Ui::ListMenu(peds, "Ped Database", BuildDatabase);
@@ -552,39 +552,39 @@ namespace Menus
 					horses.push_back(n);
 			AddPedRows(m, horses, true);
 		});
-		Ui::Action(peds, "Custom Input", [] {
+		Ui::Action(peds, "spawner.pedspawner.custominput", "Custom Input", [] {
 			std::string name;
 			if (!GameUtil::PromptText("Enter Name or Hash:", name) || name.empty())
 				return std::string();
 			return SpawnPed(name);
-		});
-		Ui::Action(peds, "Hijack Ped", HijackPed);
+		})->SetHotkeyable(false);
+		Ui::Action(peds, "spawner.hijackped", "Hijack Ped", HijackPed)->SetHotkeyable(false);
 
 		// SubPedSpawnerDispatch.
 		MenuBase* dispatch = Ui::Submenu(spawner, "Law Dispatch Spawner");
-		Ui::Number(dispatch, "Dispatch Multiplier", &g_dispatchMultiplier, 0.1f, 10.0f, 0.1f,
+		Ui::Number(dispatch, "spawner.dispatchmultiplier", "Dispatch Multiplier", &g_dispatchMultiplier, 0.1f, 10.0f, 0.1f,
 			[] { LAW::_SET_DISPATCH_MULTIPLIER_OVERRIDE(g_dispatchMultiplier); });
 		Ui::Section(dispatch, "Responses");
 		for (const char* response : kLawResponses)
 		{
 			const Hash h = GameUtil::Joaat(response);
-			Ui::Do(dispatch, response, [h] { Dispatch(h); });
+			Ui::Do(dispatch, Ui::Id("spawner.dispatch", response), response, [h] { Dispatch(h); });
 		}
 
 		// SubVehicleSpawner. The settings are ours (Rampage's are not in its
 		// menu inventory).
 		MenuBase* vehicles = Ui::Submenu(spawner, "Vehicle Spawner");
 		MenuBase* vsettings = Ui::Submenu(vehicles, "Spawner Settings");
-		Ui::Toggle(vsettings, "Spawn In Vehicle", [](bool on) { g_spawnInVehicle = on; })->SetState(g_spawnInVehicle);
-		Ui::Toggle(vsettings, "Delete Previous", [](bool on) { g_deletePrevious = on; });
-		Ui::Toggle(vsettings, "Spawn Invincible", [](bool on) { g_vehicleInvincible = on; });
-		Ui::Action(vehicles, "Custom Input", [] {
+		Ui::Toggle(vsettings, "spawner.spawninvehicle", "Spawn In Vehicle", [](bool on) { g_spawnInVehicle = on; })->SetDefault(g_spawnInVehicle);
+		Ui::Toggle(vsettings, "spawner.deleteprevious", "Delete Previous", [](bool on) { g_deletePrevious = on; });
+		Ui::Toggle(vsettings, "spawner.spawninvincible", "Spawn Invincible", [](bool on) { g_vehicleInvincible = on; });
+		Ui::Action(vehicles, "spawner.vehiclespawner.custominput", "Custom Input", [] {
 			std::string name;
 			if (!GameUtil::PromptText("Enter Name or Hash:", name) || name.empty())
 				return std::string();
 			return SpawnVehicle(name);
-		});
-		Ui::Action(vehicles, "Hijack Vehicle", HijackVehicle);
+		})->SetHotkeyable(false);
+		Ui::Action(vehicles, "spawner.hijackvehicle", "Hijack Vehicle", HijackVehicle)->SetHotkeyable(false);
 		VehicleList(vehicles, "Train Spawner", VehicleKind::Train);
 		VehicleList(vehicles, "Wagon Spawner", VehicleKind::Wagon);
 		VehicleList(vehicles, "Boat Spawner", VehicleKind::Boat);
