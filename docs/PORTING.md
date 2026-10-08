@@ -127,14 +127,14 @@ Submenus: 150 done, 5 partial, 0 pending, 10 tabled, 2 dropped.
 |---|---|---|---|
 | SubCollectiblesCigaretteCards | 13 | Done | Recovery > Collectibles > Cigarette Cards: sets and card models from the game (CARD_SET_* collectables, s_inv_cigcard_* models); Auto Collect All runs as a stoppable per-frame job (ours) |
 | SubCollectiblesCigaretteCardsSet | 1 | Done | Recovery > Collectibles > Cigarette Cards > <set>: cards by in-game name with owned count; Give Missing Cards (ours) |
-| SubCollectiblesDinoBones | 2 | Done | Recovery > Collectibles > Dino Bones: read from the dino_bones collectable category with _COLLECTABLE_GET_PLACEMENT_LOCATION; locations in a Locations list |
-| SubCollectiblesDreamcatchers | 2 | Done | Recovery > Collectibles > Dreamcatchers: coordinates from discoverable_generic_location (tools/extract_collectibles.py), found state from Global_40.f_8863.f_148 |
-| SubCollectiblesRockCarvings | 2 | Done | Recovery > Collectibles > Rock Carvings: read from the rock_carvings collectable category; locations in a Locations list |
+| SubCollectiblesDinoBones | 2 | Done | Recovery > Collectibles > Dino Bones: read from the dino_bones collectable category with _COLLECTABLE_GET_PLACEMENT_LOCATION; locations in a Locations list. Ours: found is NUM_FOUND (Rampage checks nothing), Show on Map re-reads it every 3 s and Hide Found leaves found ones off the map; the same code adds legendary fish, gator eggs, Carolina parakeets, wilderness chests, treasure and herbs, and Legendary Animals lists the kill state (untested) |
+| SubCollectiblesDreamcatchers | 2 | Done | Recovery > Collectibles > Dreamcatchers: coordinates from discoverable_generic_location (tools/extract_collectibles.py), found state from Global_40.f_8863.f_148; Show on Map refreshes and honours Hide Found (ours) |
+| SubCollectiblesRockCarvings | 2 | Done | Recovery > Collectibles > Rock Carvings: read from the rock_carvings collectable category; locations in a Locations list; found is NUM_FOUND, Show on Map refreshes and honours Hide Found (ours) |
 | SubMapDiscoverables | 2 | Done | Recovery > Unlocks > Map Discoverables: the 284 of Rampage discoveries (data/RampageMapDiscoveries.inc) plus any more the scripts name |
 | SubRecoveryAddItems | 13 | Done | Recovery > Add Items: Unlimited Items also blocks by-GUID removals (ours) |
 | SubRecoveryBounty | 9 | Done | Recovery > Bounty: state rows also show each state bounty (ours) |
 | SubRecoveryCores | 9 | Done | Recovery > Cores: temporary rank applies on every step (ours) |
-| SubRecoveryGiveItemsList | 1 | Done | Recovery > Add Items > Give Items: own item list from the game scripts (tools/extract_items.py); method is a visible choice instead of Shift (ours) |
+| SubRecoveryGiveItemsList | 1 | Done | Recovery > Add Items > Give Items: the game's whole SP item catalog (catalog_sp.ymt, tools/extract_catalog.py), one list per item type plus Search (ours); method is a visible choice instead of Shift (ours) |
 | SubRecoveryHonor | 5 | Done | Recovery > Honor: all actions; current honor reads honor_current; the honor HUD meter shows while the menu is open |
 | SubRecoveryMoney | 5 | Done | Recovery > Money: drop is a timed toggle (ours) instead of every tick |
 | SubRecoveryUnlocks | 8 | Done | Recovery > Unlocks: own lists from the game scripts (tools/extract_unlocks.py); Unlock Checks lists every unlock the scripts name; Add Entries writes every journal entry the game allows; Discover Fish skips legendary outfit presets (ours) |
@@ -178,7 +178,7 @@ Submenus: 150 done, 5 partial, 0 pending, 10 tabled, 2 dropped.
 | SubObjectSpawner | 3 | Done | Spawner > Object Spawner: objects from the game scripts; creator cam is our own free cam |
 | SubPedSpawner | 2 | Done | Spawner > Ped Spawner: models from the game scripts; Hijack Ped adds the first ped of a typed model to the database |
 | SubPedSpawnerAddon | 3 | Done | Spawner > Ped Spawner > Addon Peds: Rampagio_AddonPeds.txt, re-read on open |
-| SubPedSpawnerAnimal | 1 | Done | Spawner > Ped Spawner > Animals: Legendary Animals are the table of Rampage (model plus outfit preset, data/LegendaryAnimals.inc); Fishes gets its legendary fish too |
+| SubPedSpawnerAnimal | 1 | Done | Spawner > Ped Spawner > Animals: Legendary Animals are the table of Rampage (model plus outfit preset, data/LegendaryAnimals.inc), the story ones marked when killed (ours); Fishes gets its legendary fish too |
 | SubPedSpawnerDatabase | 2 | Done | Spawner > Ped Spawner > Ped Database: per-ped actions, and Ped Editor opens the full editor |
 | SubPedSpawnerDispatch | 1 | Done | Spawner > Law Dispatch Spawner: LAW_ responses from the game scripts plus the table of Rampage, which also sets the law region of each response (data/LawDispatchRegions.inc) |
 | SubPedSpawnerFish | 1 | Done | Spawner > Ped Spawner > Fishes |

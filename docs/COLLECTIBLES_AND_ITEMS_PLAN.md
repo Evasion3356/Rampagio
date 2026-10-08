@@ -1,6 +1,8 @@
 # Plan: found-aware collectibles and the full item catalog (Goal C)
 
-Status: researched 2026-10-08, nothing built. Two independent workstreams;
+Status: researched 2026-10-08; A1-A6 and B1-B3 built 2026-10-08 (not
+compiled in that session, not live-tested; see "Implementation notes"). B4
+and the live tests (C) are open. Two independent workstreams;
 A is smaller and fixes a real bug, so it goes first. Nothing here is
 Rampage's code or data: it comes from the 1491.50 scripts and the game's
 own files.
@@ -79,9 +81,10 @@ launches from a world scenario point.
   `..\external-tools\RAGE-StringsDatabase\RDR2\TextKeys\*.txt`. The rest
   need none at runtime: an item hash is its own text label
   (`GameUtil::ItemName`).
-- Reader: `tools/catalog_dump.py` (prototype, verified 2026-10-08 to
-  reproduce the 5,049 items and type counts). `schema` mode prints the PSO
-  structs, `items` mode writes JSON.
+- Reader: `tools/extract_catalog.py` (grown from the `catalog_dump.py`
+  prototype, which was verified 2026-10-08 to reproduce the 5,049 items
+  and type counts). `--schema` prints the PSO structs, `--dump-json`
+  writes `tools/data/catalog_sp_items.json`.
 - Coverage of our current list against the catalog, per type:
 
   | Type | Catalog | In ItemNames.inc | Missing |
@@ -128,36 +131,36 @@ launches from a world scenario point.
 
 ### A. Found-aware collectibles
 
-1. [ ] Fix "found" for dino bones and rock carvings: `NUM_FOUND > 0 ||
+1. [x] Fix "found" for dino bones and rock carvings: `NUM_FOUND > 0 ||
    NUM_TURNED_IN > 0`. Show turned-in separately if useful.
-2. [ ] `BlipSet` keeps one blip per item with its found test; a "Hide
+2. [x] `BlipSet` keeps one blip per item with its found test; a "Hide
    Found" option (default on) skips or recolors found ones; refresh on a
    timer (every few seconds) so a pickup removes its blip.
-3. [ ] Legendary fish: new Collectibles entry on category `0xC7EEA672`
+3. [x] Legendary fish: new Collectibles entry on category `0xC7EEA672`
    (locations from `_COLLECTABLE_GET_PLACEMENT_LOCATION`, like dino bones).
    Check names/models against `LegendaryAnimals.inc`.
-4. [ ] Legendary animals: kill state from `Global_40.f_9319[i].f_1` in a
+4. [x] Legendary animals: kill state from `Global_40.f_9319[i].f_1` in a
    list (and in Spawner > Legendary Animals rows). Locations: find the 16
    zone positions (world scenario points, or the map discovery each zone
    enables via `_MAP_DISCOVERY_SET_ENABLED`); until then, state only.
-5. [ ] New categories on the shared code: gator eggs, Carolina parakeets,
+5. [x] New categories on the shared code: gator eggs, Carolina parakeets,
    wilderness chests, treasure hunter, herb pickups. Verify each category's
    `_COLLECTABLE_GET_PLACEMENT_LOCATION` returns real coordinates first.
-6. [ ] Translations for new strings (`tools/lang_sync.py`), descriptions,
+6. [x] Translations for new strings (`tools/lang_sync.py`), descriptions,
    `docs/PORTING.md` notes ("ours").
 
 ### B. Full item catalog
 
-1. [ ] `tools/extract_catalog.py <catalog_sp.ymt> <names...> src/data/ItemCatalog.inc`:
+1. [x] `tools/extract_catalog.py <catalog_sp.ymt> <names...> src/data/ItemCatalog.inc`:
    grow `tools/catalog_dump.py` into it, writing `{ hash, type, name-or-null }` per item.
    Takes the extracted `.ymt` (the extraction stays a manual step with the
    RPF tool; document it in the docstring). Regenerate rather than edit.
-2. [ ] Give Items reads `ItemCatalog.inc`: groups by item type, skips the
+2. [x] Give Items reads `ItemCatalog.inc`: groups by item type, skips the
    types other menus own (clothing, weapon, horse, maybe horse_equipment
    and weapon_mod/decoration if their menus cover them), labels with
    `GameUtil::ItemName`, keeps `_ITEMDATABASE_IS_KEY_VALID` as the filter.
    Search row over the whole list.
-3. [ ] Retire `ItemNames.inc` / `extract_items.py` once nothing uses them
+3. [x] Retire `ItemNames.inc` / `extract_items.py` once nothing uses them
    (check `Unlocks.cpp`, `Recovery.cpp`, the collectibles code first).
 4. [ ] Optional: name the `ci_category_*` hashes for finer groups
    (brute-force against TextKeys + `ci_category_` prefixes).
@@ -169,3 +172,53 @@ launches from a world scenario point.
 - [ ] A save with some legendaries killed shows the right ones.
 - [ ] Adding items from each new type works and shows in the satchel;
   note which types fail (story-locked, intrinsic, MP-only flags).
+
+## Implementation notes (2026-10-08)
+
+Written in a Linux session without the game, MSVC or the decompiled
+scripts, so none of it has been compiled or run.
+
+- A1/A2/A3/A5: `src/menus/Collectibles.cpp`. One `Category` table drives
+  Dino Bones, Rock Carvings and the new entries under "More Collectibles"
+  (Legendary Fish, Gator Eggs, Carolina Parakeets, Wilderness Chests,
+  Treasure, Herb Pickups). Found is `NUM_FOUND > 0 || NUM_TURNED_IN > 0`;
+  Locations lists show "n / total found". `BlipSet` re-reads the spots
+  every 3 s from the Show on Map toggle's tick and rebuilds the blips only
+  when the set (or a found state) changes. Recovery > Collectibles > Hide
+  Found (`collectibles.hidefound`, default on, always restored) skips found
+  ones; with it off, found ones are blipped named "<name> (Found)" (no
+  recolor: no blip modifier hash was checked). Herbs respawn, so they
+  never count as found. Treasure and Legendary Fish rows use the
+  collectable's own text label, falling back to "<name> <n>"; herbs use
+  their subcategory's label. Whether any of these labels exist is untested,
+  as is whether the new categories return placement locations (rows
+  without one say so when selected).
+- Gator eggs: `689918374` is `joaat("gator_egg_nest")`, not
+  `joaat("gator_eggs")`; the code tries `gator_eggs` first and falls back
+  to the other when the first has no items. Wilderness chests'
+  `-1129417850` is `joaat("wilderness_chests")`. The legendary fish
+  (`0xC7EEA672`) and herb (`1777389635`) category names are still unknown.
+  Legendary fish names were not checked against `LegendaryAnimals.inc`.
+- A4: `src/menus/Legendaries.h` (header-only, so no project change):
+  zone i's killed flag is `Global(40 + 9319 + 1 + i * 4 + 1)` (array size
+  slot, then 4 slots per zone), read as nonzero. Collectibles > Legendary
+  Animals lists all 16 with "n / 16 killed"; the Ped Spawner's Animals
+  list marks killed story legendaries (matched by LegendaryAnimals.inc
+  label). Locations: TODO (not in the scripts available to that session).
+- A6: the 30 new strings are translated in all 12 tables (hand-written);
+  `tools/lang_sync.py` reports none missing. The category table keeps its
+  `Joaat` calls on their own lines because lang_sync skips any line with
+  `Joaat(`.
+- B1: `tools/extract_catalog.py <ymt|json> src/data/ItemCatalog.inc
+  [--names ...]` (positional output instead of the plan's order). The .inc
+  holds all 5,048 items (the root `character` item is dropped; `CURRENCY`
+  and `Component` become `other`), 3,553 with an internal name.
+- B2: Give Items lists consumable, provision, document, ammo, kit,
+  upgrade, core_item, horse_equipment, weapon_mod, weapon_decoration,
+  money ("Money Items"), advert and other; clothing, weapon and horse are
+  left out. Rows are sorted by the game's name, unnamed ones last under
+  their internal name or hex hash. Search matches game and internal
+  names. Horse equipment and weapon mods/decorations are included because
+  no other menu gives them as inventory items.
+- B3: `ItemNames.inc`, `extract_items.py` and `catalog_dump.py` are gone;
+  only Give Items used the list.
