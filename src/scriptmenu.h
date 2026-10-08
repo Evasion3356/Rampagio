@@ -53,6 +53,7 @@ struct MenuStyle
 	std::string title = "Rampagio";             // the root menu's title
 	bool invertColors = false;                  // draw every menu color inverted
 	bool centeredTitle = false;                 // center title rows' text
+	bool mouse = false;                         // cursor: hover, click, right-click back, wheel
 };
 
 // Rampage's Main Font and Body Font choices: Scaleform font faces.
@@ -422,6 +423,11 @@ class MenuBase
 	// Rampagio: one absolute index; the page comes from Style().linesPerScreen
 	// at draw time, so changing it in Settings can't strand the selection.
 	int		m_activeIndex;
+	// The rows drawn this frame, for mouse hit-testing (OnDraw fills it).
+	struct DrawnRow { int index; float left, top, width, height; };
+	vector<DrawnRow>	m_drawnRows;
+	float	m_lastCursorX = -1.0f, m_lastCursorY = -1.0f;
+	int		OnMouse();
 
 	MenuController *			m_controller;
 	std::function<void(MenuBase*)>	m_onOpen; // Rampagio addition

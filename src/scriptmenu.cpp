@@ -402,6 +402,7 @@ void MenuBase::OnDraw()
 			SetCurrentItemInfo(GetActiveItemIndex() + 1, static_cast<int>(m_items.size()));
 	m_itemTitle->OnDraw(lineTop, lineLeft, false);
 	lineTop += m_itemTitle->GetLineHeight();
+	m_drawnRows.clear();
 	for (int i = 0; i < lines; i++)
 	{
 		int itemIndex = first + i;
@@ -409,8 +410,76 @@ void MenuBase::OnDraw()
 			break;
 		MenuItemBase *item = m_items[itemIndex];
 		item->OnDraw(lineTop, lineLeft, itemIndex == m_activeIndex);
+		m_drawnRows.push_back({ itemIndex, lineLeft, lineTop, item->GetLineWidth(), item->GetLineHeight() });
 		lineTop += item->GetLineHeight() - item->GetLineHeight() * MenuBase_lineOverlap;
 	}
+}
+
+// Settings > Core > Mouse Controls: shows the cursor while the menu is
+// open, keeps the camera and weapons still, and maps the cursor onto the
+// rows drawn this frame: hover selects, left click runs the row, right
+// click goes back, the wheel moves the selection (or changes a value row
+// under the cursor with Shift held). Returns the input wait, 0 if unused.
+int MenuBase::OnMouse()
+{
+	constexpr Hash INPUT_CURSOR_X = 0xD6C4ECDC, INPUT_CURSOR_Y = 0xE4130778;
+	constexpr Hash INPUT_CURSOR_ACCEPT = 0x9D2AEA88, INPUT_CURSOR_CANCEL = 0x27568539;
+	constexpr Hash INPUT_CURSOR_SCROLL_UP = 0x62800C92, INPUT_CURSOR_SCROLL_DOWN = 0x8BDE7443;
+	constexpr Hash INPUT_LOOK_LR = 0xA987235F, INPUT_LOOK_UD = 0xD2047988, INPUT_ATTACK = 0x07CE1E61, INPUT_AIM = 0xF84FA74F;
+	if (!Style().mouse || !PAD::IS_USING_KEYBOARD_AND_MOUSE(0))
+		return 0;
+	INTERACTION::SET_MOUSE_CURSOR_THIS_FRAME();
+	for (Hash input : { INPUT_LOOK_LR, INPUT_LOOK_UD, INPUT_ATTACK, INPUT_AIM, INPUT_CURSOR_ACCEPT, INPUT_CURSOR_CANCEL,
+		INPUT_CURSOR_SCROLL_UP, INPUT_CURSOR_SCROLL_DOWN })
+		PAD::DISABLE_CONTROL_ACTION(0, input, TRUE);
+
+	const float x = PAD::GET_DISABLED_CONTROL_NORMAL(0, INPUT_CURSOR_X);
+	const float y = PAD::GET_DISABLED_CONTROL_NORMAL(0, INPUT_CURSOR_Y);
+	const DrawnRow* hovered = nullptr;
+	for (const DrawnRow& row : m_drawnRows)
+		if (x >= row.left && x <= row.left + row.width && y >= row.top && y < row.top + row.height)
+			hovered = &row;
+	// Hover only moves the selection when the cursor moves, so the
+	// keyboard and gamepad keep working with the cursor parked on a row.
+	const bool moved = x != m_lastCursorX || y != m_lastCursorY;
+	m_lastCursorX = x;
+	m_lastCursorY = y;
+	if (hovered && moved)
+		m_activeIndex = hovered->index;
+
+	const int itemCount = static_cast<int>(m_items.size());
+	if (PAD::IS_DISABLED_CONTROL_JUST_PRESSED(0, INPUT_CURSOR_ACCEPT) && hovered)
+	{
+		MenuInput::MenuInputBeep();
+		m_activeIndex = hovered->index;
+		m_items[m_activeIndex]->OnSelect();
+		return 150;
+	}
+	if (PAD::IS_DISABLED_CONTROL_JUST_PRESSED(0, INPUT_CURSOR_CANCEL))
+	{
+		MenuInput::MenuInputBeep();
+		if (auto controller = GetController())
+			controller->PopMenu();
+		return 200;
+	}
+	const bool up = PAD::IS_DISABLED_CONTROL_JUST_PRESSED(0, INPUT_CURSOR_SCROLL_UP) != 0;
+	const bool down = PAD::IS_DISABLED_CONTROL_JUST_PRESSED(0, INPUT_CURSOR_SCROLL_DOWN) != 0;
+	if ((up || down) && itemCount)
+	{
+		if (IsKeyDownLong(VK_SHIFT) && hovered)
+		{
+			m_activeIndex = hovered->index;
+			if (up)
+				m_items[m_activeIndex]->OnRight();
+			else
+				m_items[m_activeIndex]->OnLeft();
+		}
+		else
+			m_activeIndex = (m_activeIndex + (up ? itemCount - 1 : 1)) % itemCount;
+		MenuInput::MenuInputBeep();
+		return 50;
+	}
+	return 0;
 }
 
 int MenuBase::OnInput()
@@ -418,6 +487,8 @@ int MenuBase::OnInput()
 	const int itemCount = static_cast<int>(m_items.size());
 	if (m_activeIndex >= itemCount)
 		m_activeIndex = itemCount ? itemCount - 1 : 0;
+	if (const int mouseWait = OnMouse())
+		return mouseWait;
 
 	auto buttons = MenuInput::GetButtonState();
 

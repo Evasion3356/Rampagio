@@ -125,6 +125,7 @@ namespace
 			j["title"] = style.title;
 			j["invertColors"] = style.invertColors;
 			j["centeredTitle"] = style.centeredTitle;
+			j["mouse"] = style.mouse;
 		}
 		void LoadStateImpl(nlohmann::json& j) override
 		{
@@ -140,6 +141,7 @@ namespace
 			ReadValue(j, "bodyFont", style.bodyFont);
 			ReadValue(j, "invertColors", style.invertColors);
 			ReadValue(j, "centeredTitle", style.centeredTitle);
+			ReadValue(j, "mouse", style.mouse);
 			if (auto it = j.find("title"); it != j.end() && it->is_string())
 				style.title = it->get<std::string>();
 			style.titleFont = std::clamp(style.titleFont, 0, static_cast<int>(std::size(kTitleFonts)) - 1);
@@ -640,6 +642,7 @@ namespace Menus
 			[] { StartCapture(Capture::MenuKey, nullptr, "Press the new menu key"); return std::string(); }));
 		core->AddItem(new StyleFlagItem("Gamepad Controls", &MenuStyle::gamepad));
 		core->AddItem(new StyleFlagItem("Menu Sounds", &MenuStyle::sounds));
+		core->AddItem(new StyleFlagItem("Mouse Controls", &MenuStyle::mouse));
 		static std::vector<std::string> openNames(std::begin(MenuInput::kGamepadOpenNames), std::end(MenuInput::kGamepadOpenNames));
 		Ui::Choice(core, "Gamepad Open Key", openNames, &Style().gamepadOpen, [](int) { StyleChanged(); });
 		Ui::Number(core, "settings.wrapwidth", "Text Wrap Width", &WrapWidth(), 0, 120, 10);

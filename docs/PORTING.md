@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 149 done, 6 partial, 0 pending, 10 tabled, 2 dropped.
+Submenus: 150 done, 5 partial, 0 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -160,7 +160,7 @@ Submenus: 149 done, 6 partial, 0 pending, 10 tabled, 2 dropped.
 | SubOverlaySettings | 17 | Done | Settings > Overlay Settings |
 | SubSettings | 1 | Partial | Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Plugins and Language have no Rampagio counterpart |
 | SubSettingsColor | 12 | Done | Settings > Theme: eight colors, Main Font and Body Font (the faces of Rampage), Menu Title, menu position and Max Display Options |
-| SubSettingsCore | 10 | Partial | Settings > Core: Gamepad Controls, Menu Sounds, Show Controller Screen; Mouse Controls still to come (CLAUDE.md UI direction); welcome/ToS/update/landing rows dropped |
+| SubSettingsCore | 10 | Done | Settings > Core: Gamepad Controls, Menu Sounds, Mouse Controls (ours: hover, click, right-click back, wheel), Show Controller Screen; welcome/ToS/update/landing rows dropped |
 | SubSettingsCustomThemes | 2 | Done | Settings > Theme > Custom Themes: the themes component of Rampagio.json |
 | SubSettingsLoadSave | 7 | Done | Settings > Load / Save: Rampagio.json |
 | SubSettingsPremadeThemes | 26 | Done | Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own) |

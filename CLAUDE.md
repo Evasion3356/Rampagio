@@ -501,8 +501,9 @@ live-tested. Menu key is F5.
 5. Live-test once the user asks for it.
 6. UI direction (decided 2026-10-07): the native menu stays the main UI
    and must be drivable by controller, keyboard and mouse. Mouse support
-   (cursor via `SET_MOUSE_CURSOR_THIS_FRAME`, hover/click/wheel
-   hit-testing in `scriptmenu.cpp`) is still to do. No ImGui-only fork
+   is built, untested (Settings > Core > Mouse Controls, `MenuBase::OnMouse`
+   in `scriptmenu.cpp`: hover, click, right-click back, wheel, Shift+wheel
+   on a value row). No ImGui-only fork
    and no dual-renderer row model. ImGui is added only for complicated
    desk tools (script monitor, global/local editor, the reworked Debug >
    Scripts) as an optional overlay, with a native fallback where one
