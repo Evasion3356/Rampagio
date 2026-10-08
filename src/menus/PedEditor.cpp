@@ -95,7 +95,6 @@ namespace
 		MenuItemToggle* t = Ui::Toggle(menu, caption,
 			[onChange](bool on) { WithPed([&](Ped p) { onChange(p, on); }); },
 			onTick ? std::function<void()>([onTick] { WithPed(onTick); }) : nullptr);
-		t->SetPersist(false); // per ped, never saved
 		g_editorToggles.push_back(t);
 		return t;
 	}

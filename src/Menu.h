@@ -103,13 +103,8 @@ namespace Ui
 	// show the game's own state, re-read when the menu opens.
 	void Transient(MenuBase* menu);
 
-	// Switches every toggle off through its onChange (online kill switch).
+	// Online kill switch, for the rows Commands::Suspend doesn't reach:
+	// switches every plain toggle (list and per-ped rows) off through its
+	// onChange and closes the menu.
 	void DisableAllToggles();
-
-	// Every toggle that exists right now (Settings saves them by Key).
-	const std::vector<MenuItemToggle*>& AllToggles();
-	// "Menu Title > Caption": how Settings names a row in its saved files.
-	std::string Key(MenuItemBase* item);
-	// A row of a built menu by Key, or nullptr.
-	MenuItemBase* Find(const std::string& key);
 }

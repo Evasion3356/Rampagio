@@ -12,7 +12,7 @@ namespace
 {
 	MenuController g_controller;
 	MenuBase* g_root = nullptr;
-	std::vector<MenuItemToggle*> g_toggles; // owned by their menus
+	std::vector<MenuItemToggle*> g_toggles; // plain toggles, owned by their menus
 	int g_listBuildDepth = 0; // > 0 while a ListMenu's build runs
 
 	MenuBase* NewMenu(MenuBase* parent, const std::string& title)
@@ -225,27 +225,6 @@ namespace Ui
 	void Do(MenuBase* menu, const std::string& caption, std::function<void()> action)
 	{
 		menu->AddItem(new MenuItemAction(caption, action));
-	}
-
-	const std::vector<MenuItemToggle*>& AllToggles()
-	{
-		return g_toggles;
-	}
-
-	std::string Key(MenuItemBase* item)
-	{
-		MenuBase* menu = item->GetMenu();
-		const std::string title = menu ? menu->GetTitle()->MenuItemTitle::GetCaption() : "";
-		return title + " > " + item->GetCaption();
-	}
-
-	MenuItemBase* Find(const std::string& key)
-	{
-		for (MenuBase* menu : g_controller.GetMenus())
-			for (MenuItemBase* item : menu->GetItems())
-				if (Key(item) == key)
-					return item;
-		return nullptr;
 	}
 
 	MenuItemToggle* Toggle(MenuBase* menu, const std::string& caption, std::function<void(bool)> onChange, std::function<void()> onTick)

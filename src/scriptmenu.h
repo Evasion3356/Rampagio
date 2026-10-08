@@ -288,21 +288,17 @@ public:
 	}
 };
 
-// Rampagio addition: an on/off feature. onChange runs once on every flip
-// (true = just turned on); onTick runs every frame while it's on, menu open
-// or not -- MenuController::OnFrame reaches every registered menu's items
-// each frame. SetOff() flips it off through onChange, so a feature can undo
+// Rampagio addition: an on/off row that isn't a command (rows built in list
+// menus or per ped; see Menu.h). onChange runs once on every flip (true =
+// just turned on); onTick runs every frame while it's on, menu open or not
+// -- MenuController::OnFrame reaches every registered menu's items each
+// frame. SetOff() flips it off through onChange, so a feature can undo
 // whatever it set (used by the online kill switch in script.cpp).
 class MenuItemToggle : public MenuItemSwitchable
 {
 	std::function<void(bool)>	m_onChange;
 	std::function<void()>		m_onTick;
-	bool						m_persist = true;
 public:
-	// Rampagio: false keeps it out of Settings' saved toggles (per-ped
-	// toggles in the Ped Editor).
-	void SetPersist(bool persist) { m_persist = persist; }
-	bool Persist() const { return m_persist; }
 	MenuItemToggle(string caption, std::function<void(bool)> onChange, std::function<void()> onTick = nullptr)
 		: MenuItemSwitchable(caption),
 		m_onChange(onChange),
@@ -317,15 +313,6 @@ public:
 	{
 		if (GetState() && m_onTick)
 			m_onTick();
-	}
-	// Rampagio: turns it on through onChange (Settings > Load Toggles).
-	void SetOn()
-	{
-		if (GetState())
-			return;
-		SetState(true);
-		if (m_onChange)
-			m_onChange(true);
 	}
 	void SetOff()
 	{
