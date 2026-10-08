@@ -18,6 +18,7 @@
 #include "LogFallback.h"
 #include "GameUtil.h"
 #include "GamePointers.h"
+#include "Localization.h"
 #include "menus/Menus.h"
 #include "core/settings/Settings.h"
 #include "core/commands/Commands.h"
@@ -121,8 +122,16 @@ void ScriptMain()
 	GamePointers::Get();
 
 	bool wasOnline = false;
+	DWORD languageRead = 0;
 	while (true)
 	{
+		// The game's language can change in its settings menu.
+		if (GetTickCount() - languageRead > 3000)
+		{
+			Localization::Refresh();
+			languageRead = GetTickCount();
+		}
+
 		const bool online = GameUtil::IsOnline();
 		if (online && !wasOnline)
 		{

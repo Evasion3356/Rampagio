@@ -475,7 +475,7 @@ namespace
 			if (!VEHICLE::DOES_EXTRA_EXIST(v, id))
 				continue;
 			count++;
-			Ui::Toggle(m, std::format("Extra {}", id), [v, id](bool on) { VEHICLE::SET_VEHICLE_EXTRA(v, id, !on); })
+			Ui::Toggle(m, TrFormat("Extra {}", id), [v, id](bool on) { VEHICLE::SET_VEHICLE_EXTRA(v, id, !on); })
 				->SetState(VEHICLE::IS_VEHICLE_EXTRA_TURNED_ON(v, id));
 		}
 		if (!count)
@@ -550,7 +550,7 @@ namespace
 				break;
 			for (int id = 0; id <= 12; id++)
 				if (VEHICLE::DOES_EXTRA_EXIST(c, id))
-					Ui::Toggle(m, std::format("Carriage {} Extra {}", car, id), [c, id](bool on) { VEHICLE::SET_VEHICLE_EXTRA(c, id, !on); })
+					Ui::Toggle(m, TrFormat("Carriage {} Extra {}", car, id), [c, id](bool on) { VEHICLE::SET_VEHICLE_EXTRA(c, id, !on); })
 						->SetState(VEHICLE::IS_VEHICLE_EXTRA_TURNED_ON(c, id));
 		}
 	}
@@ -608,7 +608,7 @@ namespace Menus
 		for (const TrainConfig& c : kTrainConfigs)
 			configs.push_back(*c.name ? c.name : std::format("Config 0x{:08X}", c.hash));
 		Ui::Choice(train, "vehicle.configuration", "Configuration", configs, &g_trainConfig);
-		train->AddItem(new MenuItemLabel([] { return "Cars: " + TrainConfigLabel(kTrainConfigs[g_trainConfig]); }));
+		train->AddItem(new MenuItemLabel([] { return TrFormat("Cars: {}", TrainConfigLabel(kTrainConfigs[g_trainConfig])); }));
 		Ui::Choice(train, "vehicle.direction", "Direction", { "Forward", "Backward" }, &g_trainDirection);
 		Ui::Toggle(train, "vehicle.trainpassengers", "Train Passengers", [](bool on) { g_trainPassengers = on; });
 		Ui::Toggle(train, "vehicle.aicontrolled", "AI Controlled", [](bool on) { g_trainAi = on; })->SetDefault(g_trainAi);

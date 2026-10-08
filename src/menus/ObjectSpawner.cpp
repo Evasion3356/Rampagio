@@ -516,7 +516,7 @@ namespace
 		}
 		CAMERA::DO_SCREEN_FADE_IN(500);
 		const Xml::Node* meta = map.Child("MapMeta");
-		return std::format("Loaded {} by {} ({} entities)", name, meta ? meta->Text("Creator", "?") : "?", count);
+		return TrFormat("Loaded {} by {} ({} entities)", name, meta ? meta->Text("Creator", "?") : "?", count);
 	}
 
 	std::string LoadSet(const std::string& name)
@@ -548,7 +548,7 @@ namespace
 				// a damaged entry; load the rest
 			}
 		}
-		return std::format("Loaded {} objects", count);
+		return TrFormat("Loaded {} objects", count);
 	}
 
 	void BuildLoadSave(MenuBase* m)
@@ -564,7 +564,7 @@ namespace
 		for (const auto& [name, set] : saved.items())
 		{
 			const std::string n = name;
-			Ui::Action(m, n + " (json)", [n] { return LoadSet(n); });
+			Ui::Action(m, TrFormat("{} (json)", n), [n] { return LoadSet(n); });
 		}
 	}
 

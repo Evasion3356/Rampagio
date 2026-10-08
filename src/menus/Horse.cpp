@@ -182,7 +182,7 @@ namespace
 		if (!GameUtil::PromptText("Horse name", name, 30) || name.empty())
 			return {};
 		PED::_SET_PED_PROMPT_NAME(m, name.c_str());
-		return "Renamed to " + name;
+		return TrFormat("Renamed to {}", name);
 	}
 
 	void Ragdoll()
@@ -403,7 +403,7 @@ namespace
 		const nlohmann::json file = DataFile::LoadJson(kHorsesFile);
 		auto it = file.find(name);
 		if (it == file.end() || !it->is_object() || !it->contains("model") || !it->at("model").is_number())
-			return "No horse named " + name;
+			return TrFormat("No horse named {}", name);
 		const nlohmann::json& saved = *it;
 		const Hash model = saved["model"].get<Hash>();
 		if (!GameUtil::LoadModel(model))
@@ -443,13 +443,13 @@ namespace
 		{
 			Ui::Section(m, "Delete");
 			for (const auto& [name, horse] : saved.items())
-				Ui::Action(m, "Delete " + name, [name]
+				Ui::Action(m, TrFormat("Delete {}", name), [name]
 				{
 					nlohmann::json file = DataFile::LoadJson(kHorsesFile);
 					file.erase(name);
 					DataFile::SaveJson(kHorsesFile, file);
 					Ui::Controller().ReopenActiveLater();
-					return "Deleted " + name;
+					return TrFormat("Deleted {}", name);
 				});
 		}
 	}

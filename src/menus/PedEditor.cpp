@@ -298,7 +298,7 @@ namespace
 		const int flag = std::atoi(text.c_str());
 		const bool on = !PED::GET_PED_CONFIG_FLAG(p, flag, FALSE);
 		PED::SET_PED_CONFIG_FLAG(p, flag, on);
-		return std::format("Flag {} {}", flag, on ? "on" : "off");
+		return on ? TrFormat("Flag {} on", flag) : TrFormat("Flag {} off", flag);
 	}
 
 	void BuildCombatStyle(MenuBase* combat)
@@ -312,7 +312,7 @@ namespace
 			for (int i = 0; i < 128; i++)
 			{
 				values[i] = PED::_GET_PED_COMBAT_ATTRIBUTE(g_ped, i) ? 1 : 0;
-				Ui::Choice(m, std::format("Attribute {}", i), { "Off", "On" }, &values[i],
+				Ui::Choice(m, TrFormat("Attribute {}", i), { "Off", "On" }, &values[i],
 					[i](int v) { WithPed([&](Ped p) { PED::SET_PED_COMBAT_ATTRIBUTES(p, i, v != 0); }); });
 			}
 		});
@@ -691,7 +691,7 @@ namespace Menus
 			MenuBase* e = g_editor;
 			const SharedMenus& s = g_shared;
 
-			e->AddItem(new MenuItemLabel([] { return Valid() ? "Editing: " + Label(g_ped) : std::string("The ped is gone"); }));
+			e->AddItem(new MenuItemLabel([] { return Valid() ? TrFormat("Editing: {}", Label(g_ped)) : std::string(Tr("The ped is gone")); }));
 			BuildGeneral(e);
 			BuildEditorWardrobe(e);
 			BuildEditorWeapons(e);

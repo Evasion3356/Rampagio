@@ -488,7 +488,7 @@ namespace
 				given++;
 			}
 		}
-		return "Gave " + std::to_string(given) + " weapons";
+		return TrFormat("Gave {} weapons", given);
 	}
 
 	std::string GiveCustom()
@@ -506,7 +506,7 @@ namespace
 			return "Bad hash";
 		}
 		if (!WEAPON::IS_WEAPON_VALID(weapon))
-			return "Not a weapon: " + name;
+			return TrFormat("Not a weapon: {}", name);
 		GiveWeapon(weapon, true);
 		return {};
 	}

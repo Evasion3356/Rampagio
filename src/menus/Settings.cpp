@@ -25,6 +25,7 @@
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\KeyNames.h"
+#include "..\Localization.h"
 #include "..\keyboard.h"
 #include "..\Log.h"
 #include "..\core\settings\Settings.h"
@@ -272,7 +273,7 @@ namespace
 				g_themes->themes[name] = Style();
 				g_themes->MarkStateDirty();
 				Ui::Controller().ReopenActiveLater();
-				return "Saved " + name;
+				return TrFormat("Saved {}", name);
 			});
 			if (g_themes->themes.empty())
 				Ui::Section(menu, "No Themes found");
@@ -364,18 +365,12 @@ namespace
 
 	// --- search ----------------------------------------------------------------------------
 
-	std::string Lower(std::string s)
-	{
-		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-		return s;
-	}
-
 	// "Menu Title > Caption", how a search result names a row.
 	std::string RowPath(MenuItemBase* item)
 	{
 		MenuBase* menu = item->GetMenu();
 		const std::string title = menu ? menu->GetTitle()->MenuItemTitle::GetCaption() : "";
-		return title + " > " + item->GetCaption();
+		return std::string(Tr(title)) + " > " + std::string(Tr(item->GetCaption()));
 	}
 
 	// Every static menu (and so every command row) is built at start, so
@@ -386,7 +381,9 @@ namespace
 		std::string text;
 		if (!GameUtil::PromptText("Search:", text) || text.empty())
 			return;
-		text = Lower(text);
+		// Matched against the captions as shown, so in the menu's language;
+		// Upper folds Latin and Cyrillic case.
+		text = Localization::Upper(text);
 		int found = 0;
 		for (MenuBase* menu : Ui::Controller().GetMenus())
 		{
@@ -397,7 +394,7 @@ namespace
 			{
 				MenuItemBase* item = items[i];
 				const std::string caption = item->GetCaption();
-				if (caption.empty() || Lower(caption).find(text) == std::string::npos)
+				if (caption.empty() || Localization::Upper(Tr(caption)).find(text) == std::string::npos)
 					continue;
 				++found;
 				const int index = static_cast<int>(i);
@@ -436,7 +433,7 @@ namespace
 		g_capture = capture;
 		g_bindingCommand = command;
 		g_chain.clear();
-		Ui::Controller().SetStatusText(prompt + " (Esc cancels)", 10000);
+		Ui::Controller().SetStatusText(TrFormat("{} (Esc cancels)", Tr(prompt)), 10000);
 	}
 
 	void FinishCapture()
@@ -445,7 +442,7 @@ namespace
 		if (g_capture == Capture::Hotkey)
 		{
 			HotkeySystem::Bind(g_bindingCommand->GetName(), g_chain);
-			menus.SetStatusText(std::format("{} bound to {}", HotkeySystem::ChainLabel(g_chain), g_bindingCommand->GetLabel()), 3000);
+			menus.SetStatusText(TrFormat("{} bound to {}", HotkeySystem::ChainLabel(g_chain), Tr(g_bindingCommand->GetLabel())), 3000);
 		}
 		else if (g_capture == Capture::MenuKey)
 		{
@@ -453,10 +450,10 @@ namespace
 			if (IsUsableMenuKey(vk) && !KeyNames::IsReserved(static_cast<DWORD>(vk)))
 			{
 				g_menuKey->SetState(vk);
-				menus.SetStatusText("Menu key: " + KeyNames::Format(static_cast<DWORD>(vk)), 3000);
+				menus.SetStatusText(TrFormat("Menu key: {}", KeyNames::Format(static_cast<DWORD>(vk))), 3000);
 			}
 			else
-				menus.SetStatusText(HotkeySystem::KeyLabel(vk) + " can't open the menu", 3000);
+				menus.SetStatusText(TrFormat("{} can't open the menu", HotkeySystem::KeyLabel(vk)), 3000);
 		}
 		g_capture = Capture::None;
 		g_chain.clear();
@@ -484,6 +481,17 @@ namespace
 		}
 	}
 
+	// A fired hotkey's status text, translated (Command::StatusText is
+	// English: src/core doesn't depend on the game).
+	std::string HotkeyStatus(Rampagio::Command* command)
+	{
+		if (auto* toggle = dynamic_cast<Rampagio::BoolCommand*>(command))
+			return TrFormat(toggle->GetState() ? "{}: on" : "{}: off", Tr(toggle->GetLabel()));
+		if (auto* list = dynamic_cast<Rampagio::ListCommand*>(command))
+			return std::format("{}: {}", Tr(list->GetLabel()), Tr(list->GetSelected()));
+		return command->StatusText();
+	}
+
 	void HotkeyTick()
 	{
 		MenuController& menus = Ui::Controller();
@@ -500,14 +508,14 @@ namespace
 						return;
 					Rampagio::Command* command = items[index]->GetCommand();
 					if (command && command->IsRegistered() && command->Hotkeyable())
-						StartCapture(Capture::Hotkey, command, "Press the key(s) for " + command->GetLabel());
+						StartCapture(Capture::Hotkey, command, TrFormat("Press the key(s) for {}", Tr(command->GetLabel())));
 					else
 						menus.SetStatusText("This row can't be bound", 2500);
 				}
 			return;
 		}
 		if (Rampagio::Command* fired = HotkeySystem::Update([](int vk) { return IsKeyDown(static_cast<DWORD>(vk)); }))
-			menus.SetStatusText(fired->StatusText(), 1500);
+			menus.SetStatusText(HotkeyStatus(fired), 1500);
 	}
 
 	void BuildHotkeyManager(MenuBase* settings)
@@ -520,12 +528,12 @@ namespace
 			for (const auto& [name, chain] : HotkeySystem::GetBindings())
 			{
 				Rampagio::Command* command = Commands::GetCommand(name);
-				const std::string label = command ? command->GetLabel() : name + " (not found)";
+				const std::string label = command ? std::string(Tr(command->GetLabel())) : TrFormat("{} (not found)", name);
 				Ui::Action(menu, HotkeySystem::ChainLabel(chain) + ": " + label, [name, label]
 				{
 					HotkeySystem::Clear(name);
 					Ui::Controller().ReopenActiveLater();
-					return "Removed " + label;
+					return TrFormat("Removed {}", label);
 				});
 			}
 		});
@@ -546,20 +554,20 @@ namespace
 		const std::time_t now = std::time(nullptr);
 		std::tm tm{};
 		localtime_s(&tm, &now);
-		Overlay(std::format("{} {:02}:{:02}", kDays[tm.tm_wday], tm.tm_hour, tm.tm_min));
+		Overlay(std::format("{} {:02}:{:02}", Tr(kDays[tm.tm_wday]), tm.tm_hour, tm.tm_min));
 	}
 
 	void GameTimeOverlay()
 	{
 		const int day = CLOCK::GET_CLOCK_DAY_OF_WEEK();
-		Overlay(std::format("{} {:02}:{:02}", kDays[(day % 7 + 7) % 7], CLOCK::GET_CLOCK_HOURS(), CLOCK::GET_CLOCK_MINUTES()));
+		Overlay(std::format("{} {:02}:{:02}", Tr(kDays[(day % 7 + 7) % 7]), CLOCK::GET_CLOCK_HOURS(), CLOCK::GET_CLOCK_MINUTES()));
 	}
 
 	void CoordsOverlay()
 	{
 		const Ped me = PLAYER::PLAYER_PED_ID();
 		const Vector3 p = ENTITY::GET_ENTITY_COORDS(me, TRUE, FALSE);
-		Overlay(std::format("X: {:.3f}  Y: {:.3f}  Z: {:.3f}  Heading: {:.1f}", p.x, p.y, p.z, ENTITY::GET_ENTITY_HEADING(me)));
+		Overlay(TrFormat("X: {:.3f}  Y: {:.3f}  Z: {:.3f}  Heading: {:.1f}", p.x, p.y, p.z, ENTITY::GET_ENTITY_HEADING(me)));
 	}
 
 	void TemperatureOverlay()
@@ -576,7 +584,7 @@ namespace
 		const Vector3 w = MAP::_GET_WAYPOINT_COORDS();
 		const Vector3 p = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), FALSE, FALSE);
 		const float d = MISC::GET_DISTANCE_BETWEEN_COORDS(p.x, p.y, p.z, w.x, w.y, p.z, FALSE);
-		Overlay(d >= 1000.0f ? std::format("Waypoint: {:.2f} km", d / 1000.0f) : std::format("Waypoint: {} m", static_cast<int>(d)));
+		Overlay(d >= 1000.0f ? TrFormat("Waypoint: {:.2f} km", d / 1000.0f) : TrFormat("Waypoint: {} m", static_cast<int>(d)));
 	}
 
 	constexpr Hash HUD_CTX_HONOR_SHOW = 0x074132EF; // Rampage's Always Show Honor context
@@ -584,7 +592,7 @@ namespace
 	void BuildOverlays(MenuBase* settings)
 	{
 		MenuBase* o = Ui::Submenu(settings, "Overlay Settings");
-		Ui::Looped(o, "settings.overlay.fps", "Display FPS", [] { Overlay(std::format("{} FPS", g_fps)); });
+		Ui::Looped(o, "settings.overlay.fps", "Display FPS", [] { Overlay(TrFormat("{} FPS", g_fps)); });
 		Ui::Looped(o, "settings.overlay.realtime", "Display Day & Time (Real time)", RealTimeOverlay);
 		Ui::Looped(o, "settings.overlay.gametime", "Display Time (Ingame)", GameTimeOverlay);
 		Ui::Looped(o, "settings.overlay.coords", "Display Coordinates", CoordsOverlay);
@@ -643,10 +651,34 @@ namespace
 		Ui::Action(about, "spdlog", [] { return std::string("Logging (Gabi Melman)"); });
 	}
 
+	// Settings > Language: the game's language (default) or one picked.
+	// Chinese, Japanese and Korean need the game itself in one of them for
+	// their fonts (Localization.h).
+	void BuildLanguage(MenuBase* settings)
+	{
+		using Localization::Language;
+		static std::vector<std::string> names;
+		names.push_back("Game Language");
+		for (int i = 0; i < static_cast<int>(Language::Count); ++i)
+			names.emplace_back(Localization::NativeName(static_cast<Language>(i)));
+		Ui::Choice(settings, "settings.language", "Language", names, &Localization::Setting(), [](int)
+		{
+			const Language picked = Localization::Current();
+			const bool cjk = picked == Language::Korean || picked == Language::Japanese
+				|| picked == Language::ChineseTraditional || picked == Language::ChineseSimplified;
+			const Language game = Localization::GameLanguage();
+			const bool gameCjk = game == Language::Korean || game == Language::Japanese
+				|| game == Language::ChineseTraditional || game == Language::ChineseSimplified;
+			if (cjk && !gameCjk)
+				Ui::Controller().SetStatusText("This language only shows while the game itself is set to Chinese, Japanese or Korean", 5000);
+		});
+	}
+
 	void ShowControls()
 	{
 		Ui::Controller().SetStatusText(
-			KeyNames::Format(static_cast<DWORD>(MenuKey())) + " or RB + Left: open / close~n~NUMPAD 8/2 or d-pad: move~n~NUMPAD 5 or A: select~n~NUMPAD 4/6 or d-pad: change value~n~NUMPAD 0, Backspace or B: back~n~F11 on a row: bind a hotkey",
+			TrFormat("{} or RB + Left: open / close~n~NUMPAD 8/2 or d-pad: move~n~NUMPAD 5 or A: select~n~NUMPAD 4/6 or d-pad: change value~n~NUMPAD 0, Backspace or B: back~n~F11 on a row: bind a hotkey",
+				KeyNames::Format(static_cast<DWORD>(MenuKey()))),
 			8000);
 	}
 }
@@ -658,10 +690,12 @@ namespace Menus
 		MenuBase* settings = Ui::Submenu(root, "Settings");
 		Ui::ListMenu(settings, "Search", BuildSearch);
 
+		BuildLanguage(settings);
+
 		MenuBase* core = Ui::Submenu(settings, "Core");
 		g_menuKey = new MenuKeyCommand();
 		core->AddItem(new MenuItemActionStatus(
-			[] { return "Menu Key: " + KeyNames::Format(static_cast<DWORD>(MenuKey())); },
+			[] { return TrFormat("Menu Key: {}", KeyNames::Format(static_cast<DWORD>(MenuKey()))); },
 			[] { StartCapture(Capture::MenuKey, nullptr, "Press the new menu key"); return std::string(); }));
 		core->AddItem(new StyleFlagItem("Gamepad Controls", &MenuStyle::gamepad));
 		core->AddItem(new StyleFlagItem("Menu Sounds", &MenuStyle::sounds));

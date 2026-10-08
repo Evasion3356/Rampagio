@@ -1,5 +1,6 @@
 #include "Menu.h"
 #include "GameUtil.h"
+#include "Localization.h"
 #include "Log.h"
 #include "core\commands\Commands.h"
 
@@ -97,7 +98,7 @@ namespace
 		{
 			MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 			if (!m_command->GetList().empty())
-				DrawRowValue(this, lineTop, lineLeft, active, m_command->GetSelected());
+				DrawRowValue(this, lineTop, lineLeft, active, std::string(Tr(m_command->GetSelected())));
 		}
 	};
 
@@ -110,7 +111,7 @@ namespace
 		string GetCaption() override
 		{
 			const std::string& value = m_command->GetState();
-			return m_command->GetLabel() + ": " + (value.empty() ? "Not set" : value);
+			return std::string(Tr(m_command->GetLabel())) + ": " + (value.empty() ? std::string(Tr("Not set")) : value);
 		}
 		void OnSelect() override
 		{
@@ -277,7 +278,7 @@ namespace Ui
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange)
 	{
 		menu->AddItem(new MenuItemActionStatus(
-			[caption, value] { return caption + ": " + (value->empty() ? "Not set" : *value); },
+			[caption, value] { return std::string(Tr(caption)) + ": " + (value->empty() ? std::string(Tr("Not set")) : *value); },
 			[caption, value, onChange]
 			{
 				std::string text = *value;

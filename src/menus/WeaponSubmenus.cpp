@@ -576,7 +576,7 @@ namespace
 			if (g_portalBlips[i] && MAP::DOES_BLIP_EXIST(g_portalBlips[i]))
 				MAP::REMOVE_BLIP(&g_portalBlips[i]);
 			g_portalBlips[i] = MAP::BLIP_ADD_FOR_COORDS(0x97B6F06C, at.x, at.y, at.z);
-			MAP::_SET_BLIP_NAME(g_portalBlips[i], MISC::VAR_STRING(10, "LITERAL_STRING", i ? "Portal B" : "Portal A"));
+			MAP::_SET_BLIP_NAME(g_portalBlips[i], MISC::VAR_STRING(10, "LITERAL_STRING", Tr(i ? "Portal B" : "Portal A").data()));
 			g_portalNext ^= 1;
 		}
 		const int colors[2][3] = { { 0, 120, 255 }, { 255, 140, 0 } };
@@ -619,8 +619,8 @@ namespace
 		if (!GRAPHICS::GET_SCREEN_COORD_FROM_WORLD_COORD(p.x, p.y, p.z, &sx, &sy))
 			return;
 		const char* type = ENTITY::IS_ENTITY_A_PED(e) ? "Ped" : ENTITY::IS_ENTITY_A_VEHICLE(e) ? "Vehicle" : "Object";
-		const std::string text = std::format("Type: {}~n~Model: 0x{:08X}~n~Health: {}~n~Coords: {:.2f}, {:.2f}, {:.2f}~n~Heading: {:.1f}",
-			type, ENTITY::GET_ENTITY_MODEL(e), ENTITY::GET_ENTITY_HEALTH(e), p.x, p.y, p.z, ENTITY::GET_ENTITY_HEADING(e));
+		const std::string text = TrFormat("Type: {}~n~Model: 0x{:08X}~n~Health: {}~n~Coords: {:.2f}, {:.2f}, {:.2f}~n~Heading: {:.1f}",
+			Tr(type), ENTITY::GET_ENTITY_MODEL(e), ENTITY::GET_ENTITY_HEALTH(e), p.x, p.y, p.z, ENTITY::GET_ENTITY_HEADING(e));
 		DrawTextAt(sx, sy, text.c_str(), 20, ColorRgba{ 255, 255, 255, 230 });
 	}
 

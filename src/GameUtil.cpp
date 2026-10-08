@@ -1,4 +1,5 @@
 #include "GameUtil.h"
+#include "Localization.h"
 
 #include <algorithm>
 #include <cctype>
@@ -113,7 +114,8 @@ namespace GameUtil
 
 	bool PromptText(const char* title, std::string& text, int maxLength)
 	{
-		MISC::DISPLAY_ONSCREEN_KEYBOARD(0, title, "", text.c_str(), "", "", "", maxLength);
+		const std::string shown(Tr(title));
+		MISC::DISPLAY_ONSCREEN_KEYBOARD(0, shown.c_str(), "", text.c_str(), "", "", "", maxLength);
 		int state;
 		while ((state = MISC::UPDATE_ONSCREEN_KEYBOARD()) == 0)
 			WAIT(0);

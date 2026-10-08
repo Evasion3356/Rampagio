@@ -108,7 +108,7 @@ namespace
 		case kOn: return "~COLOR_GREEN~On";
 		case kActivate: return "Activating";
 		case kDeactivate: return "Deactivating";
-		default: return std::format("State {}", state);
+		default: return TrFormat("State {}", state);
 		}
 	}
 
@@ -162,7 +162,7 @@ namespace
 				[id, name = std::string()]() mutable {
 					if (name.empty())
 						name = GameUtil::ItemName(GameUtil::Joaat(kCheats[id]), kCheats[id]);
-					return std::format("{}: {}", name, CheatStateName(GetCheatState(id)));
+					return std::format("{}: {}", name, Tr(CheatStateName(GetCheatState(id))));
 				},
 				[id] { return ToggleCheat(id); }));
 		}
@@ -253,7 +253,7 @@ namespace
 			UNLOCK::UNLOCK_SET_VISIBLE(unlock, TRUE);
 			count++;
 		}
-		return std::format("Unlocked {} weapons", count);
+		return TrFormat("Unlocked {} weapons", count);
 	}
 
 	// A row that shows a game flag and flips it on select. Not a Ui::Toggle:
@@ -428,7 +428,7 @@ namespace
 				count++;
 			}
 		});
-		return std::format("Wrote {} journal entries", count);
+		return TrFormat("Wrote {} journal entries", count);
 	}
 
 	// "Discover X (n)": n is the game's count for the compendium category,
@@ -437,7 +437,7 @@ namespace
 	{
 		const Hash hash = GameUtil::Joaat(category);
 		menu->AddItem(new MenuItemActionStatus(
-			[label, hash] { return std::format("{} ({})", label, COMPENDIUM::_COMPENDIUM_GET_NUM_OF_ENTRIES_IN_CATEGORY(hash)); },
+			[label, hash] { return std::format("{} ({})", Tr(label), COMPENDIUM::_COMPENDIUM_GET_NUM_OF_ENTRIES_IN_CATEGORY(hash)); },
 			[discover] { discover(); return std::string(); }));
 	}
 
@@ -525,7 +525,7 @@ namespace Menus
 		CompendiumRow(unlocks, "Discover Gangs", "GANGS", DiscoverGangs);
 		unlocks->AddItem(new MenuItemActionStatus(
 			[] {
-				return std::format("Discover Cigcards ({}/{})",
+				return TrFormat("Discover Cigcards ({}/{})",
 					COLLECTABLE::_COLLECTABLE_CATEGORY_GET_NUM_FOUND(kCigaretteCards, 0),
 					COLLECTABLE::_COLLECTABLE_CATEGORY_GET_NUM_COLLECTABLES(kCigaretteCards, 0));
 			},

@@ -54,12 +54,13 @@ namespace
 		void Show(const std::vector<Vector3>& locations, const char* name)
 		{
 			Clear();
+			const std::string shown(Tr(name));
 			for (const Vector3& at : locations)
 			{
 				if (at.x == 0.0f && at.y == 0.0f && at.z == 0.0f)
 					continue;
 				const Blip blip = MAP::BLIP_ADD_FOR_RADIUS(kBlipStyleArea, at.x, at.y, at.z, 5.0f);
-				MAP::_SET_BLIP_NAME(blip, name);
+				MAP::_SET_BLIP_NAME(blip, shown.c_str());
 				blips.push_back(blip);
 			}
 		}
@@ -97,7 +98,7 @@ namespace
 		return items;
 	}
 
-	std::string FoundSuffix(bool found) { return found ? " ~COLOR_GREEN~(Found)" : ""; }
+	std::string FoundSuffix(bool found) { return found ? std::string(Tr(" ~COLOR_GREEN~(Found)")) : ""; }
 
 	// "Show on Map", then one row per item that teleports to it.
 	void BuildCategory(MenuBase* parent, const char* title, const char* category, const char* singular, BlipSet& blips)
@@ -117,7 +118,7 @@ namespace
 			for (const Collectable& c : CategoryItems(hash))
 			{
 				const Vector3 at = c.location;
-				Ui::Action(list, std::format("{} {}{}", singular, ++n, FoundSuffix(c.found)), [at] { return TeleportTo(at); });
+				Ui::Action(list, std::format("{} {}{}", Tr(singular), ++n, FoundSuffix(c.found)), [at] { return TeleportTo(at); });
 			}
 		});
 	}
@@ -152,7 +153,7 @@ namespace
 			for (int i = 0; i < static_cast<int>(std::size(kDreamcatchers)); i++)
 			{
 				const Vector3 at = kDreamcatchers[i];
-				Ui::Action(list, std::format("Dreamcatcher {}{}", i + 1, FoundSuffix(DreamcatcherFound(i))), [at] { return TeleportTo(at); });
+				Ui::Action(list, TrFormat("Dreamcatcher {}{}", i + 1, FoundSuffix(DreamcatcherFound(i))), [at] { return TeleportTo(at); });
 			}
 		});
 	}
@@ -221,8 +222,8 @@ namespace
 	{
 		std::string error;
 		if (!GameUtil::AddInventoryItem(item, 1, error))
-			return "~COLOR_RED~Error:~s~ " + error;
-		return "Added " + GameUtil::ItemName(item, std::format("{:#x}", item));
+			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+		return TrFormat("Added {}", GameUtil::ItemName(item, std::format("{:#x}", item)));
 	}
 
 	// SubCollectiblesCigaretteCardsSet: one row per card, adding it to the
@@ -240,14 +241,14 @@ namespace
 				if (OwnedCount(item) == 0 && GameUtil::AddInventoryItem(item, 1, error))
 					added++;
 			}
-			return std::format("Added {} cards", added);
+			return TrFormat("Added {} cards", added);
 		});
 		int n = 0;
 		for (Hash card : SetCards(set))
 		{
 			const Hash item = CardItem(card);
 			const int owned = OwnedCount(item);
-			const std::string name = GameUtil::ItemName(item, std::format("Card {}", ++n));
+			const std::string name = GameUtil::ItemName(item, TrFormat("Card {}", ++n));
 			Ui::Action(list, owned > 0 ? std::format("{} ~COLOR_GREEN~({})", name, owned) : name, [item] { return GiveCard(item); });
 		}
 	}
@@ -277,7 +278,7 @@ namespace
 			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
 			spawned++;
 		}
-		return std::format("Spawned {} cards", spawned);
+		return TrFormat("Spawned {} cards", spawned);
 	}
 
 	// Auto Collect All, as Rampage does it: each card spawns as a

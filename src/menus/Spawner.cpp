@@ -394,7 +394,7 @@ namespace
 		{
 			const Ped p = s.ped;
 			const bool alive = ENTITY::DOES_ENTITY_EXIST(p) && !ENTITY::IS_ENTITY_DEAD(p);
-			m->AddItem(new MenuItemAction(std::format("{} {}{}", ++i, s.model, alive ? "" : " (dead)"), [p] {
+			m->AddItem(new MenuItemAction(std::format("{} {}{}", ++i, s.model, alive ? std::string_view() : Tr(" (dead)")), [p] {
 				g_selectedPed = p;
 				Ui::Push(g_pedMenu);
 			}));
@@ -491,7 +491,7 @@ namespace
 			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
 			attached++;
 		}
-		return std::format("Loaded {} with {} entities", name, attached);
+		return TrFormat("Loaded {} with {} entities", name, attached);
 	}
 
 	void BuildVehicleJson(MenuBase* m)

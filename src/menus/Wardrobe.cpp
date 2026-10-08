@@ -529,7 +529,7 @@ namespace
 		const nlohmann::json file = DataFile::LoadJson(kOutfitsFile);
 		auto it = file.find(name);
 		if (it == file.end() || !it->is_object())
-			return "No outfit named " + name;
+			return TrFormat("No outfit named {}", name);
 		const nlohmann::json& outfit = *it;
 		try
 		{
@@ -552,7 +552,7 @@ namespace
 		}
 		catch (const nlohmann::json::exception&)
 		{
-			return "Outfit " + name + " is damaged";
+			return TrFormat("Outfit {} is damaged", name);
 		}
 		return {};
 	}
@@ -584,12 +584,12 @@ namespace
 			for (const auto& [name, outfit] : saved.items())
 			{
 				const std::string n = name;
-				Ui::Action(m, "Delete " + n, [n] {
+				Ui::Action(m, TrFormat("Delete {}", n), [n] {
 					nlohmann::json file = DataFile::LoadJson(kOutfitsFile);
 					file.erase(n);
 					DataFile::SaveJson(kOutfitsFile, file);
 					Ui::Controller().ReopenActiveLater();
-					return "Deleted " + n;
+					return TrFormat("Deleted {}", n);
 				});
 			}
 		}
@@ -834,7 +834,7 @@ namespace Menus
 		MenuBase* hair = Ui::Submenu(wardrobe, "Hair and Weight");
 		hair->AddItem(new MenuItemLabel([] {
 			const float* w = WeightSlot();
-			return std::format("Current Weight: {:.0f}", w ? *w : 0.0f);
+			return TrFormat("Current Weight: {:.0f}", w ? *w : 0.0f);
 		}));
 		Ui::Action(hair, "wardrobe.changeweight", "Change Weight", ChangeWeight)->SetHotkeyable(false);
 		const char* const kBeard[] = { "Chin Length", "Chops Length", "Stache Length" };

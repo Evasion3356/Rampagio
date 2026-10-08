@@ -22,6 +22,7 @@ namespace
 	// row of the same name. Same keys as Descriptions.inc.
 	constexpr Entry kOurs[] = {
 		{ "Home", "Recovery", "Money, items, honor, bounty, unlocks and collectibles." },
+		{ "Settings", "Language", "The menu's language.\nGame Language follows the game's own setting." },
 		{ "Blip", "Add Blip", "Add a blip for it on the map." },
 		{ "Blip", "Teleport to", "Teleports you to it." },
 		{ "Blip", "Teleport to Me", "Teleports it to you." },

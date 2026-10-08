@@ -135,6 +135,29 @@ Manager lists and removes them).
   Editor and Horse menu reach those menus with `Ui::Link` through
   `Menus::Shared()` instead of building copies. Ticks run with the menu
   closed, so they always act on the player.
+- `src/Localization.{h,cpp}`: the menu in RDR2's 13 languages (user,
+  2026-10-08), as PokerCheat does it: the game's language
+  (`GET_CURRENT_LANGUAGE`, re-read every 3 s) unless Settings > Language
+  (`settings.language`) picks one. Tables are compiled in, one
+  `src/lang/<code>.inc` per language, `{ English, translation }` keyed by
+  the exact English text; `es-MX.inc` holds only what differs from
+  `es.inc`. The menu translates what it draws (captions, titles, choice
+  values, sections, descriptions, status text, keyboard titles), so rows
+  need nothing; text built at runtime uses `Tr`/`TrFormat` with a literal
+  template where it's built (`TrFormat("Spawned {} cards", n)`), never
+  `"Added " + name`. Captions computed in a static menu's build would be
+  fixed in the start-up language, so compute them only in list builds or
+  caption callbacks. Translations are written by hand (user: no XML
+  language files, no copying), with the community Rampage translations in
+  `..\RampageTranslations` as a reference only.
+  `tools/lang_sync.py` extracts the English strings (literals that read as
+  text, plus the descriptions, minus `src/lang/ignore.txt`), reports
+  missing/stale entries and `{}`/`~code~` mismatches, and does the batch
+  workflow (`--batch N out.json --ref ..\RampageTranslations`, then
+  `--merge-batch out.json translations.json` with
+  `{"<i>": {"fr": ..., ...}}`). Chinese, Japanese and Korean only render
+  while the game itself runs in one of them (PokerCheat
+  `docs/PITFALLS.md`).
 - `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, `PlayerMount`,
   `PlayerHorse`, `TeleportToGround`, entity pools, script globals,
   model/anim loading, `PromptText` on-screen keyboard, `Joaat`).

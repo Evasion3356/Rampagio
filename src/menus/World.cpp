@@ -96,14 +96,14 @@ namespace
 	std::string StartScript(const char* name, int stackSize)
 	{
 		if (SCRIPT::GET_NUMBER_OF_THREADS_RUNNING_THE_SCRIPT_WITH_THIS_HASH(GameUtil::Joaat(name)) > 0)
-			return std::string(name) + " is already running";
+			return TrFormat("{} is already running", name);
 		if (!SCRIPT::DOES_SCRIPT_EXIST(name))
-			return std::string(name) + " doesn't exist";
+			return TrFormat("{} doesn't exist", name);
 		SCRIPT::REQUEST_SCRIPT(name);
 		for (int i = 0; i < 300 && !SCRIPT::HAS_SCRIPT_LOADED(name); i++)
 			WAIT(10);
 		if (!SCRIPT::HAS_SCRIPT_LOADED(name))
-			return std::string(name) + " didn't load";
+			return TrFormat("{} didn't load", name);
 		SCRIPT::START_NEW_SCRIPT(name, stackSize);
 		SCRIPT::SET_SCRIPT_AS_NO_LONGER_NEEDED(name);
 		return {};

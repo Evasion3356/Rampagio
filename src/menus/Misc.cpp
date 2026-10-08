@@ -510,8 +510,8 @@ namespace
 		std::string Status() const
 		{
 			if (!open)
-				return "Nothing";
-			return current.filename().string() + (paused ? " [Paused]" : "");
+				return std::string(Tr("Nothing"));
+			return current.filename().string() + (paused ? std::string(Tr(" [Paused]")) : "");
 		}
 	} g_player;
 
@@ -520,7 +520,7 @@ namespace
 	void BuildMusicPlayer(MenuBase* misc)
 	{
 		MenuBase* player = Ui::Submenu(misc, "Music Player");
-		Ui::Action(player, "misc.nowplaying", "Now Playing", [] { return "Playing: " + g_player.Status(); });
+		Ui::Action(player, "misc.nowplaying", "Now Playing", [] { return TrFormat("Playing: {}", g_player.Status()); });
 		Ui::Do(player, "misc.musicplayer.pause", "Pause", [] { if (g_player.open) { MusicPlayer::Send(L"pause rampagio_music"); g_player.paused = true; } });
 		Ui::Do(player, "misc.resume", "Resume", [] { if (g_player.open) { MusicPlayer::Send(L"resume rampagio_music"); g_player.paused = false; } });
 		Ui::Do(player, "misc.stop", "Stop", [] { g_player.Close(); });
@@ -950,11 +950,11 @@ namespace
 		{
 			Ui::Choice(menu, "Precision", { "0.01", "0.1", "1", "10" }, &g_volPrecision);
 			for (const char* shape : { "Box", "Sphere", "Cylinder" })
-				Ui::Do(menu, std::string("Create ") + shape + " at Player", [shape] { CreateVolume(shape); });
+				Ui::Do(menu, TrFormat("Create {} at Player", Tr(shape)), [shape] { CreateVolume(shape); });
 			std::erase_if(g_volumes, [](const EditVolume& v) { return !VOLUME::DOES_VOLUME_EXIST(v.handle); });
-			Ui::Section(menu, std::format("Volumes ({})", g_volumes.size()));
+			Ui::Section(menu, TrFormat("Volumes ({})", g_volumes.size()));
 			for (size_t i = 0; i < g_volumes.size(); ++i)
-				Ui::Do(menu, std::format("{} #{}", g_volumes[i].shape, g_volumes[i].handle), [i]
+				Ui::Do(menu, std::format("{} #{}", Tr(g_volumes[i].shape), g_volumes[i].handle), [i]
 				{
 					g_selVolume = i;
 					Ui::Push(g_volumeEdit);
@@ -1009,7 +1009,7 @@ namespace
 		{
 			return "Not a number";
 		}
-		return ok ? "Now " + GetStat() : "Couldn't set it";
+		return ok ? TrFormat("Now {}", GetStat()) : std::string("Couldn't set it");
 	}
 
 	void BuildStatEditor(MenuBase* misc)

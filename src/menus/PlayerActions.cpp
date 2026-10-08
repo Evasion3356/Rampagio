@@ -348,7 +348,7 @@ namespace
 			const auto lines = DataFile::LoadLines(file);
 			if (lines.empty())
 			{
-				Ui::Section(m, "Add lines to " + fileName);
+				Ui::Section(m, TrFormat("Add lines to {}", fileName));
 				return;
 			}
 			AddSpeechRows(m, lines);

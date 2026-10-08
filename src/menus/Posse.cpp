@@ -168,7 +168,7 @@ namespace
 		if (ENTITY::IS_ENTITY_DEAD(p))
 			return "That ped is dead";
 		Menus::Posse::Add(p);
-		return std::format("{} member(s)", g_members.size());
+		return TrFormat("{} member(s)", g_members.size());
 	}
 
 	std::string AddNearest()
@@ -252,7 +252,7 @@ namespace Menus
 	{
 		MenuBase* posse = Ui::Submenu(self, "Posse");
 		Ui::Text(posse, "posse.name", "Name", &g_name, ApplyName);
-		posse->AddItem(new MenuItemLabel([] { return std::format("Members: {}", Posse::Members().size()); }));
+		posse->AddItem(new MenuItemLabel([] { return TrFormat("Members: {}", Posse::Members().size()); }));
 		Ui::Choice(posse, "posse.formation", "Formation", { "Default", "Circle Around Leader", "Alternative Circle", "Line" }, &g_formation,
 			[](int f) { PED::SET_GROUP_FORMATION(PlayerGroup(), f); });
 

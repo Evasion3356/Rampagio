@@ -21,6 +21,7 @@
     <ClCompile Include="src\PatternScan.cpp" />
     <ClCompile Include="src\Menu.cpp" />
     <ClCompile Include="src\Descriptions.cpp" />
+    <ClCompile Include="src\Localization.cpp" />
     <ClCompile Include="src\DataFile.cpp" />
     <ClCompile Include="src\Xml.cpp" />
     <ClCompile Include="src\BytePatch.cpp" />
@@ -56,6 +57,7 @@
     <ClInclude Include="src\PatternScan.h" />
     <ClInclude Include="src\Menu.h" />
     <ClInclude Include="src\Descriptions.h" />
+    <ClInclude Include="src\Localization.h" />
     <ClInclude Include="src\DataFile.h" />
     <ClInclude Include="src\Xml.h" />
     <ClInclude Include="src\BytePatch.h" />

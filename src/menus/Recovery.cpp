@@ -56,7 +56,7 @@ namespace
 		if (!dollars)
 			return "";
 		MONEY::_MONEY_INCREMENT_CASH_BALANCE((std::max)(0, *dollars * 100), kCashAddReason);
-		return std::format("Added ${}", *dollars);
+		return TrFormat("Added ${}", *dollars);
 	}
 
 	std::string RemoveMoney()
@@ -65,7 +65,7 @@ namespace
 		if (!dollars)
 			return "";
 		MONEY::_MONEY_DECREMENT_CASH_BALANCE((std::max)(0, *dollars * 100));
-		return std::format("Removed ${}", *dollars);
+		return TrFormat("Removed ${}", *dollars);
 	}
 
 	std::string AddMoneyViaScript()
@@ -339,8 +339,8 @@ namespace
 			return "";
 		std::string error;
 		if (!GameUtil::AddInventoryItem(item, amount, error))
-			return "~COLOR_RED~Error:~s~ " + error;
-		return std::format("Added {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
+			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+		return TrFormat("Added {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
 	}
 
 	std::string AddItemViaScript()
@@ -516,8 +516,8 @@ namespace
 		}
 		std::string error;
 		if (!GameUtil::AddInventoryItem(item, g_giveAmount, error))
-			return "~COLOR_RED~Error:~s~ " + error;
-		return std::format("Added {}x {}", g_giveAmount, GameUtil::ItemName(item, entry.label));
+			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+		return TrFormat("Added {}x {}", g_giveAmount, GameUtil::ItemName(item, entry.label));
 	}
 
 	// One list per category, keeping only names the item database knows.
@@ -568,7 +568,7 @@ namespace Menus
 		Ui::Number(money, "recovery.amountcents", "Amount (cents)", &g_dropAmount, 0, 50000, 1000);
 		Ui::Looped(money, "recovery.dropmoney", "Drop Money", DropMoneyTick);
 		money->AddItem(new MenuItemActionStatus(
-			[] { return std::format("Total Money Dropped: ${}.{:02}", g_totalDropped / 100, g_totalDropped % 100); },
+			[] { return TrFormat("Total Money Dropped: ${}.{:02}", g_totalDropped / 100, g_totalDropped % 100); },
 			[] { g_totalDropped = 0; return std::string("Counter reset"); }));
 
 		MenuBase* honor = Ui::Submenu(recovery, "Honor");
@@ -576,7 +576,7 @@ namespace Menus
 		// shows the game's honor meter then, as Rampage does.
 		honor->AddItem(new MenuItemLabel([] {
 			HUD::_ENABLE_HUD_CONTEXT_THIS_FRAME(GameUtil::Joaat("HUD_CTX_HONOR_SHOW"));
-			return std::format("Current Honor: {}", CurrentHonor());
+			return TrFormat("Current Honor: {}", CurrentHonor());
 		}));
 		Ui::Number(honor, "recovery.honor.amount", "Amount", &g_honorAmount, 0, 320, 1);
 		Ui::Action(honor, "recovery.addpositive", "Add Positive", [] { return ChangeHonorByKill(-g_honorAmount); });
@@ -585,7 +585,7 @@ namespace Menus
 		Ui::Action(honor, "recovery.editviagamescript", "Edit via Game Script", EditHonorViaScript);
 
 		MenuBase* bounty = Ui::Submenu(recovery, "Bounty");
-		bounty->AddItem(new MenuItemLabel([] { return "Current Bounty: " + Dollars(LAW::GET_BOUNTY(PLAYER::PLAYER_ID())); }));
+		bounty->AddItem(new MenuItemLabel([] { return TrFormat("Current Bounty: {}", Dollars(LAW::GET_BOUNTY(PLAYER::PLAYER_ID()))); }));
 		Ui::Number(bounty, "recovery.bountyvaluecents", "Bounty Value (cents)", &g_bountyAmount, 0, 10000, 100);
 		Ui::Do(bounty, "recovery.increasebounty", "Increase Bounty", [] { ChangeBounty(g_bountyAmount); });
 		Ui::Do(bounty, "recovery.decreasebounty", "Decrease Bounty", [] { ChangeBounty(-g_bountyAmount); });
@@ -597,7 +597,7 @@ namespace Menus
 			bounty->AddItem(new MenuItemActionStatus(
 				[state] {
 					const UINT64* value = StateBounty(state.index);
-					return std::format("{}: {}", state.name, value ? Dollars(*reinterpret_cast<const int*>(value)) : "?");
+					return std::format("{}: {}", Tr(state.name), value ? Dollars(*reinterpret_cast<const int*>(value)) : "?");
 				},
 				[state] { return ClearStateBounty(state.index); }));
 		}

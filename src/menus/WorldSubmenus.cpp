@@ -161,20 +161,20 @@ namespace
 		const auto peds = OtherPeds();
 		ScannerTick(std::vector<Entity>(peds.begin(), peds.end()), [](Entity e) {
 			const char* kind = PED::IS_PED_HUMAN(e) ? "Human" : PED::_IS_THIS_MODEL_A_HORSE(ENTITY::GET_ENTITY_MODEL(e)) ? "Horse" : "Animal";
-			return std::format("{} {} HP {}", kind, Hex(ENTITY::GET_ENTITY_MODEL(e)), ENTITY::GET_ENTITY_HEALTH(e));
+			return std::format("{} {} HP {}", Tr(kind), Hex(ENTITY::GET_ENTITY_MODEL(e)), ENTITY::GET_ENTITY_HEALTH(e));
 		});
 	}
 
 	void VehicleScannerTick()
 	{
 		const auto vehicles = OtherVehicles();
-		ScannerTick(std::vector<Entity>(vehicles.begin(), vehicles.end()), [](Entity e) { return "Vehicle " + Hex(ENTITY::GET_ENTITY_MODEL(e)); });
+		ScannerTick(std::vector<Entity>(vehicles.begin(), vehicles.end()), [](Entity e) { return TrFormat("Vehicle {}", Hex(ENTITY::GET_ENTITY_MODEL(e))); });
 	}
 
 	void ObjectScannerTick()
 	{
 		const auto objects = GameUtil::AllObjects();
-		ScannerTick(std::vector<Entity>(objects.begin(), objects.end()), [](Entity e) { return "Object " + Hex(ENTITY::GET_ENTITY_MODEL(e)); });
+		ScannerTick(std::vector<Entity>(objects.begin(), objects.end()), [](Entity e) { return TrFormat("Object {}", Hex(ENTITY::GET_ENTITY_MODEL(e))); });
 	}
 
 	void ClearAreaAround(int flags)
@@ -264,7 +264,7 @@ namespace
 			if (!OBJECT::IS_DOOR_REGISTERED_WITH_SYSTEM(door))
 				continue;
 			count++;
-			Ui::Toggle(m, "Locked " + Hex(door), [door](bool on) { OBJECT::DOOR_SYSTEM_SET_DOOR_STATE(door, on ? 1 : 0); })
+			Ui::Toggle(m, TrFormat("Locked {}", Hex(door)), [door](bool on) { OBJECT::DOOR_SYSTEM_SET_DOOR_STATE(door, on ? 1 : 0); })
 				->SetState(OBJECT::DOOR_SYSTEM_GET_DOOR_STATE(door) == 1);
 		}
 		if (!count)
@@ -513,7 +513,7 @@ namespace
 	{
 		std::ifstream in(file);
 		if (!in)
-			return "Failed to load " + file.filename().string();
+			return TrFormat("Failed to load {}", file.filename().string());
 		const bool load = g_iplSetMode == 0;
 		std::vector<Hash> loads, unloads;
 		std::vector<std::pair<int, std::string>> sets;
@@ -544,7 +544,8 @@ namespace
 				INTERIOR::ACTIVATE_INTERIOR_ENTITY_SET(interior, name.c_str(), 0);
 			else
 				INTERIOR::DEACTIVATE_INTERIOR_ENTITY_SET(interior, name.c_str(), TRUE);
-		return std::format("{} {}: {} IPLs, {} entity sets", load ? "Loaded" : "Unloaded", file.stem().string(), loads.size() + unloads.size(), sets.size());
+		return load ? TrFormat("Loaded {}: {} IPLs, {} entity sets", file.stem().string(), loads.size() + unloads.size(), sets.size())
+			: TrFormat("Unloaded {}: {} IPLs, {} entity sets", file.stem().string(), loads.size() + unloads.size(), sets.size());
 	}
 
 	void BuildIplSets(MenuBase* m)
@@ -555,7 +556,7 @@ namespace
 		{
 			for (const auto& f : files)
 				ApplyIplSet(f);
-			return std::format("{} sets", files.size());
+			return TrFormat("{} sets", files.size());
 		});
 		if (files.empty())
 			Ui::Section(m, "No files in RampagioIPLS");
@@ -812,7 +813,7 @@ namespace Menus
 		Ui::Action(ipl, "world.unloadcustom", "Unload Custom", [] { return LoadIpl(GameUtil::ParseHash(g_customIpl), false); });
 		Ui::Action(ipl, "world.teleporttocustom", "Teleport to Custom", [] { return TeleportToIpl(GameUtil::ParseHash(g_customIpl)); });
 		Ui::Section(ipl, "Interior");
-		ipl->AddItem(new MenuItemLabel([] { return "Current Interior: " + std::to_string(INTERIOR::GET_INTERIOR_FROM_ENTITY(Me())); }));
+		ipl->AddItem(new MenuItemLabel([] { return TrFormat("Current Interior: {}", INTERIOR::GET_INTERIOR_FROM_ENTITY(Me())); }));
 		Ui::Text(ipl, "world.entityset", "Entity Set", &g_entitySet);
 		Ui::Action(ipl, "world.loadentityset", "Load Entity Set", [] { return EntitySet(true); });
 		Ui::Action(ipl, "world.unloadentityset", "Unload Entity Set", [] { return EntitySet(false); });

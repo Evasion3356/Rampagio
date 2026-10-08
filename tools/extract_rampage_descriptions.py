@@ -33,6 +33,10 @@ REWRITES = [
     (r"\b[Rr]ampage\b", "Rampagio"),
 ]
 
+# Menus Rampagio doesn't have: Rampage's own credits and windows, and the
+# tabled areas (CLAUDE.md, Next steps); regenerate if they come back.
+SKIP_MENUS = {"About Rampage", "Window Manager", "Debug", "Script Tools"}
+
 # Rows whose label isn't fixed text (counters, formatted values).
 SKIP_LABEL = re.compile(r"\{\d*\}|^\s*$")
 
@@ -71,7 +75,7 @@ def main(inv_path, out_path):
         lines = [clean(l) for l in row_description(r)]
         lines = [l for l in lines if l]
         label, title = row_label(r), titles.get(r["sub"], "")
-        if not lines or not title or SKIP_LABEL.search(label):
+        if not lines or not title or title in SKIP_MENUS or SKIP_LABEL.search(label):
             continue
         entries.setdefault((title, label), "\n".join(lines))
     with open(out_path, "w", encoding="utf-8", newline="\r\n") as fp:

@@ -67,7 +67,7 @@ namespace
 	{
 		if (!MAP::DOES_BLIP_EXIST(blip))
 			return;
-		const std::string name = std::format("Blip ({}) {}", index, label ? GameUtil::ItemName(label, "") : std::string());
+		const std::string name = TrFormat("Blip ({}) {}", index, label ? GameUtil::ItemName(label, "") : std::string());
 		Ui::Action(m, name, [blip] {
 			if (!MAP::DOES_BLIP_EXIST(blip))
 				return std::string("Blip is gone");
@@ -200,7 +200,7 @@ namespace
 			if (i == 2 && text.empty())
 				return ToGround(coords[0], coords[1]);
 			if (!ParseFloat(text, coords[i]))
-				return "Not a number: " + text;
+				return TrFormat("Not a number: {}", text);
 		}
 		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Mover(), coords[0], coords[1], coords[2], FALSE, FALSE, TRUE);
 		return {};

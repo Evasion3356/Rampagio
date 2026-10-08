@@ -1,0 +1,2 @@
+# Literals tools/lang_sync.py takes for text but that are never shown (one per line, 
+ for a newline).

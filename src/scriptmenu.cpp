@@ -35,6 +35,7 @@
 
 #include "scriptmenu.h"
 #include "Descriptions.h"
+#include "Localization.h"
 #include "PatternScan.h"
 #include "core\commands\Command.h"
 #include "Log.h"
@@ -245,7 +246,7 @@ void MenuItemBase::SetStatusText(string text, int ms)
 // and lineTop the row's top; MenuBase::OnDraw draws the row's background.
 void MenuItemBase::OnDraw(float lineTop, float lineLeft, bool active)
 {
-	DrawMenuText(GetCaption(), lineLeft + m_textLeft, lineTop + kTextDrop, kTextScale, GetTextColor(active));
+	DrawMenuText(std::string(Tr(GetCaption())), lineLeft + m_textLeft, lineTop + kTextDrop, kTextScale, GetTextColor(active));
 }
 
 namespace
@@ -432,7 +433,7 @@ void MenuItemChoice::OnDraw(float lineTop, float lineLeft, bool active)
 {
 	MenuItemDefault::OnDraw(lineTop, lineLeft, active);
 	if (*m_index >= 0 && *m_index < static_cast<int>(m_options.size()))
-		DrawRowValue(this, lineTop, lineLeft, active, m_options[*m_index]);
+		DrawRowValue(this, lineTop, lineLeft, active, std::string(Tr(m_options[*m_index])));
 }
 
 void MenuItemSection::OnDraw(float lineTop, float lineLeft, bool active)
@@ -441,7 +442,7 @@ void MenuItemSection::OnDraw(float lineTop, float lineLeft, bool active)
 	if (caption.empty())
 		DrawMenuSprite("menu_textures", "divider_line", lineLeft + kWidth / 2.0f, lineTop + 0.015f, 0.2f, 0.0011f, 0.0f, kWhite);
 	else
-		DrawMenuText(caption, lineLeft + kWidth / 2.0f, lineTop + kTextDrop, kTextScale, Style().sectionText, nullptr, TextAlign::Center);
+		DrawMenuText(std::string(Tr(caption)), lineLeft + kWidth / 2.0f, lineTop + kTextDrop, kTextScale, Style().sectionText, nullptr, TextAlign::Center);
 }
 
 void MenuItemMenu::OnSelect()
@@ -497,10 +498,7 @@ void MenuBase::OnDraw()
 	// Subheader: the menu's name in capitals, and "position/total" over the
 	// selectable rows.
 	DrawBox(centerX, y + 0.1115f, kWidth, 0.035f, style.subheader);
-	std::string name = m_itemTitle->GetCaption();
-	for (char& c : name)
-		if (c >= 'a' && c <= 'z')
-			c = static_cast<char>(c - 'a' + 'A');
+	const std::string name = Localization::Upper(Tr(m_itemTitle->GetCaption()));
 	DrawMenuText(name, x + 0.0041f, y + 0.099f, kTextScale, style.text);
 	const int count = static_cast<int>(m_items.size());
 	int position = 0, total = 0;
@@ -574,7 +572,7 @@ void MenuBase::OnDraw()
 	// 0.02 (Rampage's sub_1801F6A60, after it sets draw order 4).
 	if (count && m_items[m_activeIndex]->IsSelectable())
 	{
-		const std::string_view description = m_items[m_activeIndex]->GetDescription();
+		const std::string_view description = Tr(m_items[m_activeIndex]->GetDescription());
 		if (!description.empty())
 		{
 			static std::string s_text;
@@ -729,7 +727,7 @@ void MenuController::DrawStatusText()
 		// screen center rather than DrawTextAt's normal 0..1 left-edge
 		// position -- 0.5 (screen-center in 0..1) maps to 0.0 here.
 		std::string formatText = "<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Center'><FONT FACE='$Font5' LETTERSPACING='0' SIZE='28'>~s~"
-			+ m_statusText + "</FONT></P><TEXTFORMAT>";
+			+ std::string(Tr(m_statusText)) + "</FONT></P><TEXTFORMAT>";
 		UIDEBUG::_BG_SET_TEXT_COLOR(255, 255, 255, 255);
 		UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), -1.0f + (0.5f * 2.0f), 0.5f);
 	}

@@ -8,6 +8,7 @@
 #pragma once
 
 #include "..\Menu.h"
+#include "..\Localization.h"
 
 #include <span>
 
