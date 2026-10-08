@@ -779,7 +779,7 @@ namespace Menus
 		Ui::Section(mods, "Stats");
 		mods->AddItem(new MenuItemLabel([] {
 			const char* name = WEAPON::_GET_WEAPON_NAME(CurrentWeapon());
-			return std::string("Weapon: ") + (name ? name : "-");
+			return TrFormat("Weapon: {}", name ? name : "-");
 		}));
 		Ui::Number(mods, "weapon.skill", "Skill", &g_weaponSkill, 0.0f, 1000.0f, 10.0f, [] { SetWeaponSkill(); }, true);
 	}

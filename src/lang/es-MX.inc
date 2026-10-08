@@ -37,6 +37,7 @@
 { "Enter a custom hash to load that IPL.", "Ingresa un hash para cargar ese IPL." },
 { "Enter a custom hash to unload that IPL.", "Ingresa un hash para descargar ese IPL." },
 { "Enter Amount:", "Ingresa la cantidad:" },
+{ "Enter Component Hash:", "Ingresa el hash del componente:" },
 { "Enter custom object name or hash.", "Ingresa el nombre o hash de un objeto." },
 { "Enter custom ped name or hash.", "Ingresa el nombre o hash de un NPC." },
 { "Enter Speech Line:", "Ingresa la línea:" },
