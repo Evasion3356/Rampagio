@@ -559,7 +559,7 @@ namespace Menus
 		MenuBase* weapons = Ui::Submenu(root, "Weapon");
 
 		MenuBase* manage = Ui::Submenu(weapons, "Manage Weapons");
-		Ui::Action(manage, "Weapon Locker", []
+		Ui::Action(manage, "weapon.weaponlocker", "Weapon Locker", []
 		{
 			if (MISC::GET_MISSION_FLAG())
 				return std::string("Not during a mission");
@@ -572,11 +572,11 @@ namespace Menus
 			SCRIPT::SET_SCRIPT_AS_NO_LONGER_NEEDED("weapon_locker");
 			return std::string();
 		});
-		Ui::Action(manage, "Give All", GiveAll);
-		Ui::Do(manage, "Remove All", [] { WEAPON::REMOVE_ALL_PED_WEAPONS(Me(), TRUE, TRUE); });
-		Ui::Do(manage, "Drop Current", [] { WEAPON::MAKE_PED_DROP_WEAPON(Me(), TRUE, 0, TRUE, FALSE); });
-		Ui::Do(manage, "Remove Current", [] { WEAPON::REMOVE_WEAPON_FROM_PED(Me(), CurrentWeapon(), TRUE, REMOVE_REASON_DEFAULT); });
-		Ui::Action(manage, "Give Custom", GiveCustom);
+		Ui::Action(manage, "weapon.giveall", "Give All", GiveAll);
+		Ui::Do(manage, "weapon.removeall", "Remove All", [] { WEAPON::REMOVE_ALL_PED_WEAPONS(Me(), TRUE, TRUE); });
+		Ui::Do(manage, "weapon.dropcurrent", "Drop Current", [] { WEAPON::MAKE_PED_DROP_WEAPON(Me(), TRUE, 0, TRUE, FALSE); });
+		Ui::Do(manage, "weapon.removecurrent", "Remove Current", [] { WEAPON::REMOVE_WEAPON_FROM_PED(Me(), CurrentWeapon(), TRUE, REMOVE_REASON_DEFAULT); });
+		Ui::Action(manage, "weapon.givecustom", "Give Custom", GiveCustom)->SetHotkeyable(false);
 		MenuBase* give = Ui::ListMenu(manage, "Give Weapon", [](MenuBase* m)
 		{
 			for (const char* name : kWeapons)
@@ -589,54 +589,54 @@ namespace Menus
 		(void)give;
 
 		MenuBase* ammo = Ui::Submenu(weapons, "Ammunition");
-		Ui::Do(ammo, "Fill Ammo", FillCurrentAmmo);
-		Ui::Do(ammo, "Fill Ammo (All)", FillAllAmmo);
-		Ui::Do(ammo, "Remove All Ammo", [] { WEAPON::_HIDE_PED_WEAPONS(Me(), 2, TRUE); WEAPON::_REMOVE_ALL_PED_AMMO(Me()); });
+		Ui::Do(ammo, "weapon.fillammo", "Fill Ammo", FillCurrentAmmo);
+		Ui::Do(ammo, "weapon.fillammoall", "Fill Ammo (All)", FillAllAmmo);
+		Ui::Do(ammo, "weapon.removeallammo", "Remove All Ammo", [] { WEAPON::_HIDE_PED_WEAPONS(Me(), 2, TRUE); WEAPON::_REMOVE_ALL_PED_AMMO(Me()); });
 		Ui::Section(ammo, "Ammo Types");
 		for (const char* name : kAmmo)
 		{
 			const Hash hash = GameUtil::Joaat(name);
-			Ui::Do(ammo, name + 5, [hash] { FillAmmo(hash); });
+			Ui::Do(ammo, Ui::Id("weapon.fillammo", name + 5), name + 5, [hash] { FillAmmo(hash); });
 		}
 
 		MenuBase* mods = Ui::Submenu(weapons, "Weapon Modifiers");
-		Ui::Number(mods, "Damage Modifier", &g_damage, 0.0f, 100.0f, 0.5f, ApplyModifiers);
-		Ui::Number(mods, "Melee Modifier", &g_melee, 0.0f, 100.0f, 0.5f, ApplyModifiers);
-		Ui::Number(mods, "Defense Modifier", &g_defense, 0.0f, 100.0f, 0.5f, ApplyModifiers);
-		Ui::Number(mods, "Accuracy", &g_accuracy, 0, 100, 5, [] { PED::SET_PED_ACCURACY(Me(), g_accuracy); });
-		Ui::Do(mods, "Reset", ResetModifiers);
+		Ui::Number(mods, "weapon.damagemodifier", "Damage Modifier", &g_damage, 0.0f, 100.0f, 0.5f, ApplyModifiers);
+		Ui::Number(mods, "weapon.meleemodifier", "Melee Modifier", &g_melee, 0.0f, 100.0f, 0.5f, ApplyModifiers);
+		Ui::Number(mods, "weapon.defensemodifier", "Defense Modifier", &g_defense, 0.0f, 100.0f, 0.5f, ApplyModifiers);
+		Ui::Number(mods, "weapon.accuracy", "Accuracy", &g_accuracy, 0, 100, 5, [] { PED::SET_PED_ACCURACY(Me(), g_accuracy); });
+		Ui::Do(mods, "weapon.weaponmodifiers.reset", "Reset", ResetModifiers);
 
 		BuildWeaponSubmenus(weapons); // Visuals, Aimbot, Bullets
 		BuildWeaponExtras(weapons, manage, ammo, mods);
-		Ui::Toggle(weapons, "Disable Dual Wield", [](bool on) { WEAPON::_SET_ALLOW_DUAL_WIELD(Me(), !on); });
+		Ui::Toggle(weapons, "weapon.disabledualwield", "Disable Dual Wield", [](bool on) { WEAPON::_SET_ALLOW_DUAL_WIELD(Me(), !on); });
 		Ui::Section(weapons, "Weapon Mods");
-		Ui::Looped(weapons, "Slow Motion on Aiming", SlowMoAimTick, [] { MISC::SET_TIME_SCALE(1.0f); });
-		Ui::Looped(weapons, "First Person on Aim", FirstPersonAimTick);
-		Ui::Looped(weapons, "Rapid Fire", [] { SpawnBullets(1); });
-		Ui::Looped(weapons, "Rapid Gun", RapidGunTick, RapidGunOff);
-		Ui::Looped(weapons, "Auto Cock", AutoCockTick);
-		Ui::Looped(weapons, "Tenfold Bullets", [] { SpawnBullets(3); });
-		Ui::Looped(weapons, "Explosive Ammo", [] { ImpactExplosion(22); });
-		Ui::Looped(weapons, "Fire Ammo", [] { ImpactExplosion(30); });
-		Ui::Looped(weapons, "Infinite Ammo", InfiniteAmmoTick);
-		Ui::Looped(weapons, "No Reload", [] { g_noReload = true; NoReloadTick(); }, [] { g_noReload = false; NoReloadOff(); });
-		Ui::Toggle(weapons, "One Hit Kill", [](bool on) { PLAYER::SET_PLAYER_WEAPON_DAMAGE_MODIFIER(MyPlayer(), on ? 100.0f : g_damage); });
-		Ui::Toggle(weapons, "Super Punch", [](bool on) { PLAYER::SET_PLAYER_MELEE_WEAPON_DAMAGE_MODIFIER(MyPlayer(), on ? 100.0f : g_melee); });
+		Ui::Looped(weapons, "weapon.slowmotiononaiming", "Slow Motion on Aiming", SlowMoAimTick, [] { MISC::SET_TIME_SCALE(1.0f); });
+		Ui::Looped(weapons, "weapon.firstpersononaim", "First Person on Aim", FirstPersonAimTick);
+		Ui::Looped(weapons, "weapon.rapidfire", "Rapid Fire", [] { SpawnBullets(1); });
+		Ui::Looped(weapons, "weapon.rapidgun", "Rapid Gun", RapidGunTick, RapidGunOff);
+		Ui::Looped(weapons, "weapon.autocock", "Auto Cock", AutoCockTick);
+		Ui::Looped(weapons, "weapon.tenfoldbullets", "Tenfold Bullets", [] { SpawnBullets(3); });
+		Ui::Looped(weapons, "weapon.explosiveammo", "Explosive Ammo", [] { ImpactExplosion(22); });
+		Ui::Looped(weapons, "weapon.fireammo", "Fire Ammo", [] { ImpactExplosion(30); });
+		Ui::Looped(weapons, "weapon.infiniteammo", "Infinite Ammo", InfiniteAmmoTick);
+		Ui::Looped(weapons, "weapon.noreload", "No Reload", [] { g_noReload = true; NoReloadTick(); }, [] { g_noReload = false; NoReloadOff(); });
+		Ui::Toggle(weapons, "weapon.onehitkill", "One Hit Kill", [](bool on) { PLAYER::SET_PLAYER_WEAPON_DAMAGE_MODIFIER(MyPlayer(), on ? 100.0f : g_damage); });
+		Ui::Toggle(weapons, "weapon.superpunch", "Super Punch", [](bool on) { PLAYER::SET_PLAYER_MELEE_WEAPON_DAMAGE_MODIFIER(MyPlayer(), on ? 100.0f : g_melee); });
 		Ui::Section(weapons, "Guns");
-		Ui::Looped(weapons, "Teleport Gun", TeleportGunTick);
-		Ui::Looped(weapons, "Lightning Strike Gun", LightningGunTick);
-		Ui::Looped(weapons, "Gravity Gun", GravityGunTick, [] { g_held = 0; });
-		Ui::Looped(weapons, "Soul Swap Gun", SoulSwapTick);
-		Ui::Looped(weapons, "Magnet Gun", MagnetTick);
-		Ui::Looped(weapons, "Pickup Gun", PickupGunTick);
-		Ui::Looped(weapons, "Perfect Pelt Gun", PerfectPeltTick);
-		Ui::Looped(weapons, "Force Gun", ForceGunTick);
-		Ui::Looped(weapons, "Freeze Gun", FreezeGunTick);
-		Ui::Looped(weapons, "Drive it Gun", DriveItTick);
-		Ui::Looped(weapons, "Bleed Out Gun", BleedOutTick);
-		Ui::Looped(weapons, "Weapon Laser", LaserTick);
-		Ui::Looped(weapons, "Delete Gun", DeleteGunTick);
-		Ui::Looped(weapons, "Revive Gun", ReviveGunTick);
-		Ui::Looped(weapons, "Disco Lantern", DiscoLanternTick);
+		Ui::Looped(weapons, "weapon.teleportgun", "Teleport Gun", TeleportGunTick);
+		Ui::Looped(weapons, "weapon.lightningstrikegun", "Lightning Strike Gun", LightningGunTick);
+		Ui::Looped(weapons, "weapon.gravitygun", "Gravity Gun", GravityGunTick, [] { g_held = 0; });
+		Ui::Looped(weapons, "weapon.soulswapgun", "Soul Swap Gun", SoulSwapTick);
+		Ui::Looped(weapons, "weapon.magnetgun", "Magnet Gun", MagnetTick);
+		Ui::Looped(weapons, "weapon.pickupgun", "Pickup Gun", PickupGunTick);
+		Ui::Looped(weapons, "weapon.perfectpeltgun", "Perfect Pelt Gun", PerfectPeltTick);
+		Ui::Looped(weapons, "weapon.forcegun", "Force Gun", ForceGunTick);
+		Ui::Looped(weapons, "weapon.freezegun", "Freeze Gun", FreezeGunTick);
+		Ui::Looped(weapons, "weapon.driveitgun", "Drive it Gun", DriveItTick);
+		Ui::Looped(weapons, "weapon.bleedoutgun", "Bleed Out Gun", BleedOutTick);
+		Ui::Looped(weapons, "weapon.weaponlaser", "Weapon Laser", LaserTick);
+		Ui::Looped(weapons, "weapon.deletegun", "Delete Gun", DeleteGunTick);
+		Ui::Looped(weapons, "weapon.revivegun", "Revive Gun", ReviveGunTick);
+		Ui::Looped(weapons, "weapon.discolantern", "Disco Lantern", DiscoLanternTick);
 	}
 }
