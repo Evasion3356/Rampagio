@@ -39,6 +39,7 @@
 #include <functional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Ui
@@ -92,6 +93,15 @@ namespace Ui
 	Rampagio::FloatCommand* Number(MenuBase* menu, const std::string& id, const std::string& caption, float* value, float min, float max, float step, std::function<void()> onChange = nullptr, bool applyOnSelect = false);
 	Rampagio::ListCommand* Choice(MenuBase* menu, const std::string& id, const std::string& caption, std::vector<std::string> options, int* index, std::function<void(int)> onChange = nullptr);
 	Rampagio::StringCommand* Text(MenuBase* menu, const std::string& id, const std::string& caption, std::string* value, std::function<void()> onChange = nullptr);
+
+	// An id for a row built in a loop over a fixed table: prefix + "." +
+	// caption lowercased, keeping a-z and 0-9 ("player.proof", "Bullets" ->
+	// "player.proof.bullets"). A repeat gets "2", "3", ... appended, so the
+	// table's order decides those.
+	std::string Id(std::string_view prefix, std::string_view caption);
+	// Marks every command row in `menu` as not saved: for menus whose rows
+	// show the game's own state, re-read when the menu opens.
+	void Transient(MenuBase* menu);
 
 	// Switches every toggle off through its onChange (online kill switch).
 	void DisableAllToggles();

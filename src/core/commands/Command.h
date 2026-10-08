@@ -29,6 +29,7 @@ namespace Rampagio
 		std::uint32_t m_Hash;
 		bool m_Hotkeyable = true;
 		bool m_Registered = false;
+		bool m_Transient = false;
 
 	protected:
 		virtual void OnCall() = 0;
@@ -71,6 +72,16 @@ namespace Rampagio
 			m_Hotkeyable = hotkeyable;
 			return this;
 		}
+
+		// Not saved: for states that are runs or mirrors of the game (a
+		// drive task, the backup inventory flag), not settings.
+		Command* SetTransient()
+		{
+			m_Transient = true;
+			return this;
+		}
+		// Whether Rampagio.json holds this command's state.
+		bool IsSaved() const { return HasState() && !m_Transient && m_Registered; }
 
 		// "settings." commands restore their state even when
 		// settings.restoretoggles is off.

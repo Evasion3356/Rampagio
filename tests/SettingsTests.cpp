@@ -253,6 +253,20 @@ namespace
 		Check(HotkeySystem::GetBindings().size() == 3, "Reload reads the saved bindings back");
 	}
 
+	void Transient()
+	{
+		auto* t = new BoolCommand("test.transient", "Transient");
+		t->SetTransient();
+		const std::wstring path = FilePath("transient.json");
+		WriteText(path, R"({"commands":{"test.transient":true}})");
+		Settings::Initialize(path);
+		Commands::ApplyLoaded(true);
+		Check(!t->GetState(), "transient command ignores its saved state");
+		Settings::Flush();
+		t->SetState(true);
+		Check(!Commands::IsDirty(), "transient command doesn't mark dirty");
+	}
+
 	void Throttle()
 	{
 		auto* i = new IntCommand("test.throttle.int", "Int", "", 0, 100, 1, 0);
@@ -285,6 +299,7 @@ int main()
 	Suspend();
 	RestoreOff();
 	Hotkeys();
+	Transient();
 	Throttle();
 
 	std::error_code ec;

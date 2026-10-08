@@ -1,6 +1,7 @@
 #include "Menu.h"
 #include "GameUtil.h"
 #include "Log.h"
+#include "core\commands\Commands.h"
 
 #include <algorithm>
 #include <cassert>
@@ -356,6 +357,31 @@ namespace Ui
 		command->SetHotkeyable(false);
 		menu->AddItem(new CommandTextItem(command));
 		return command;
+	}
+
+	std::string Id(std::string_view prefix, std::string_view caption)
+	{
+		std::string slug;
+		bool color = false;
+		for (char c : caption)
+		{
+			if (c == '~')
+				color = !color; // skip ~COLOR_...~ codes
+			else if (!color && std::isalnum(static_cast<unsigned char>(c)))
+				slug.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+		}
+		const std::string base = std::string(prefix) + "." + slug;
+		std::string id = base;
+		for (int n = 2; Rampagio::Commands::GetCommand(id); ++n)
+			id = base + std::to_string(n);
+		return id;
+	}
+
+	void Transient(MenuBase* menu)
+	{
+		for (MenuItemBase* item : menu->GetItems())
+			if (Rampagio::Command* command = item->GetCommand())
+				command->SetTransient();
 	}
 
 	void DisableAllToggles()
