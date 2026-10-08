@@ -317,8 +317,8 @@ namespace
 					[i](int v) { WithPed([&](Ped p) { PED::SET_PED_COMBAT_ATTRIBUTES(p, i, v != 0); }); });
 			}
 		});
-		Ui::Do(combat, "Clear Combat Style", [] { WithPed([](Ped p) { PED::_CLEAR_PED_COMBAT_STYLE(p, 1); }); });
-		Ui::Do(combat, "Clear Combat Mods", []
+		Ui::Do(combat, "pededitor.clearcombatstyle", "Clear Combat Style", [] { WithPed([](Ped p) { PED::_CLEAR_PED_COMBAT_STYLE(p, 1); }); });
+		Ui::Do(combat, "pededitor.clearcombatmods", "Clear Combat Mods", []
 		{
 			WithPed([](Ped p) {
 				for (const char* mod : kCombatStyleMods)
@@ -327,45 +327,45 @@ namespace
 		});
 		Ui::Section(combat, "Combat Styles");
 		for (const char* style : kCombatStyles)
-			Ui::Do(combat, style, [style] { WithPed([&](Ped p) { PED::_SET_PED_COMBAT_STYLE(p, GameUtil::Joaat(style), 1, -1.0f); }); });
+			Ui::Do(combat, Ui::Id("pededitor.combatstyle", style), style, [style] { WithPed([&](Ped p) { PED::_SET_PED_COMBAT_STYLE(p, GameUtil::Joaat(style), 1, -1.0f); }); });
 		Ui::Section(combat, "Combat Mods");
 		for (const char* mod : kCombatStyleMods)
-			Ui::Do(combat, mod, [mod] { WithPed([&](Ped p) { PED::_SET_PED_COMBAT_STYLE_MOD(p, GameUtil::Joaat(mod), -1.0f); }); });
+			Ui::Do(combat, Ui::Id("pededitor.combatmod", mod), mod, [mod] { WithPed([&](Ped p) { PED::_SET_PED_COMBAT_STYLE_MOD(p, GameUtil::Joaat(mod), -1.0f); }); });
 	}
 
 	void BuildGeneral(MenuBase* editor)
 	{
 		MenuBase* general = Ui::Submenu(editor, "General");
 		std::vector<std::string> groups(std::begin(kRelGroups), std::end(kRelGroups));
-		Ui::Choice(general, "Relationship", groups, &g_relationship,
+		Ui::Choice(general, "pededitor.relationship", "Relationship", groups, &g_relationship,
 			[](int i) { WithPed([&](Ped p) { PED::SET_PED_RELATIONSHIP_GROUP_HASH(p, GameUtil::Joaat(kRelGroups[i])); }); });
-		Ui::Do(general, "Make Interactable", [] { WithPed(MakeInteractable); });
-		Ui::Action(general, "Rename", []() -> std::string
+		Ui::Do(general, "pededitor.makeinteractable", "Make Interactable", [] { WithPed(MakeInteractable); });
+		Ui::Action(general, "pededitor.rename", "Rename", []() -> std::string
 		{
 			std::string name = Valid() ? Label(g_ped) : "";
 			if (!Valid() || !GameUtil::PromptText("Name:", name) || name.empty())
 				return "";
 			g_labels[g_ped] = name;
 			return "Renamed";
-		});
-		Ui::Action(general, "Set Prompt", []() -> std::string
+		})->SetHotkeyable(false);
+		Ui::Action(general, "pededitor.setprompt", "Set Prompt", []() -> std::string
 		{
 			std::string name;
 			if (!Valid() || !GameUtil::PromptText("Prompt Name:", name) || name.empty())
 				return "";
 			PED::_SET_PED_PROMPT_NAME(g_ped, name.c_str());
 			return "";
-		});
-		Ui::Action(general, "Set Flag", [] { return Valid() ? SetFlag(g_ped) : std::string(); });
+		})->SetHotkeyable(false);
+		Ui::Action(general, "pededitor.setflag", "Set Flag", [] { return Valid() ? SetFlag(g_ped) : std::string(); });
 		BuildCombatStyle(Ui::Submenu(general, "Combat Style"));
 		EditorToggle(general, "Block Fleeing", [](Ped p, bool on) { PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(p, on); });
 		EditorToggle(general, "Invincibility", [](Ped p, bool on) { ENTITY::SET_ENTITY_INVINCIBLE(p, on); });
-		Ui::Choice(general, "Visibility", { "100%", "80%", "60%", "40%", "20%", "0%" }, &g_alpha,
+		Ui::Choice(general, "pededitor.visibility", "Visibility", { "100%", "80%", "60%", "40%", "20%", "0%" }, &g_alpha,
 			[](int i) { WithPed([&](Ped p) { ENTITY::SET_ENTITY_ALPHA(p, kAlphas[i], FALSE); }); });
 		EditorToggle(general, "Freeze Entity", [](Ped p, bool on) { ENTITY::FREEZE_ENTITY_POSITION(p, on); });
 		EditorToggle(general, "Handcuffs", [](Ped p, bool on) { if (PED::IS_PED_HUMAN(p)) PED::SET_ENABLE_HANDCUFFS(p, on, FALSE); });
-		Ui::Number(general, "Ped Health", &g_health, 0, 10000, 50, [] { WithPed([](Ped p) { ENTITY::SET_ENTITY_HEALTH(p, g_health, 0); }); }, true);
-		Ui::Number(general, "Ped Scale", &g_scale, 0.1f, 10.0f, 0.1f, [] { WithPed([](Ped p) { PED::_SET_PED_SCALE(p, g_scale); }); }, true);
+		Ui::Number(general, "pededitor.pedhealth", "Ped Health", &g_health, 0, 10000, 50, [] { WithPed([](Ped p) { ENTITY::SET_ENTITY_HEALTH(p, g_health, 0); }); }, true);
+		Ui::Number(general, "pededitor.pedscale", "Ped Scale", &g_scale, 0.1f, 10.0f, 0.1f, [] { WithPed([](Ped p) { PED::_SET_PED_SCALE(p, g_scale); }); }, true);
 		EditorToggle(general, "Is Wild", [](Ped p, bool on)
 		{
 			if (PED::IS_PED_HUMAN(p))
@@ -427,8 +427,8 @@ namespace
 	void BuildWeapons(MenuBase* editor)
 	{
 		MenuBase* weapons = Ui::Submenu(editor, "Weapons");
-		Ui::Number(weapons, "Weapon Accuracy", &g_accuracy, 0, 100, 5, [] { WithPed([](Ped p) { PED::SET_PED_ACCURACY(p, g_accuracy); }); });
-		Ui::Choice(weapons, "Remove", { "All Weapons", "Current Weapon" }, &g_removeMode, [](int mode)
+		Ui::Number(weapons, "pededitor.weaponaccuracy", "Weapon Accuracy", &g_accuracy, 0, 100, 5, [] { WithPed([](Ped p) { PED::SET_PED_ACCURACY(p, g_accuracy); }); });
+		Ui::Choice(weapons, "pededitor.remove", "Remove", { "All Weapons", "Current Weapon" }, &g_removeMode, [](int mode)
 		{
 			WithPed([mode](Ped p) {
 				if (mode == 0)
@@ -444,20 +444,20 @@ namespace
 				}
 			});
 		});
-		Ui::Do(weapons, "Drop Weapon", [] { WithPed([](Ped p) { WEAPON::MAKE_PED_DROP_WEAPON(p, TRUE, 0, TRUE, FALSE); }); });
-		Ui::Do(weapons, "Give Default Weapons", []
+		Ui::Do(weapons, "pededitor.dropweapon", "Drop Weapon", [] { WithPed([](Ped p) { WEAPON::MAKE_PED_DROP_WEAPON(p, TRUE, 0, TRUE, FALSE); }); });
+		Ui::Do(weapons, "pededitor.givedefaultweapons", "Give Default Weapons", []
 		{
 			WithPed([](Ped p) { WEAPON::_GIVE_WEAPON_COLLECTION_TO_PED(p, WEAPON::_GET_DEFAULT_PED_WEAPON_COLLECTION(ENTITY::GET_ENTITY_MODEL(p))); });
 		});
-		Ui::Action(weapons, "Give Custom", []() -> std::string
+		Ui::Action(weapons, "pededitor.givecustom", "Give Custom", []() -> std::string
 		{
 			std::string name;
 			if (!Valid() || !GameUtil::PromptText("Weapon Name:", name) || name.empty())
 				return "";
 			GiveWeapon(g_ped, GameUtil::ParseHash(name));
 			return "";
-		});
-		Ui::Do(weapons, "Fill Ammo", []
+		})->SetHotkeyable(false);
+		Ui::Do(weapons, "pededitor.fillammo", "Fill Ammo", []
 		{
 			WithPed([](Ped p) {
 				Hash current = 0;
@@ -466,7 +466,7 @@ namespace
 			});
 		});
 		EditorToggle(weapons, "Weapon Scale", [](Ped p, bool on) { if (on) ApplyWeaponScale(p); else RemoveScaledWeapon(p); });
-		Ui::Number(weapons, "Weapon Scale Size", &g_weaponScale, 0.1f, 10.0f, 0.1f, [] { WithPed([](Ped p) { if (g_scaledWeapon) ApplyWeaponScale(p); }); });
+		Ui::Number(weapons, "pededitor.weaponscalesize", "Weapon Scale Size", &g_weaponScale, 0.1f, 10.0f, 0.1f, [] { WithPed([](Ped p) { if (g_scaledWeapon) ApplyWeaponScale(p); }); });
 		Ui::NameList(weapons, "Give Weapon", Menus::WeaponNames(), [](const std::string& name)
 		{
 			WithPed([&](Ped p) { GiveWeapon(p, GameUtil::Joaat(name)); });
@@ -495,11 +495,11 @@ namespace
 		Ui::Link(wardrobe, "Meta Ped Tags", s.metaTags);
 		Ui::Link(wardrobe, "Meta Ped Expressions", s.metaExpressions);
 		Ui::Link(wardrobe, "Outfits", s.outfits);
-		Ui::Do(wardrobe, "Clone Outfit to Me", [] { WithPed([](Ped p) { PED::CLONE_PED_TO_TARGET(p, Me()); }); });
-		Ui::Number(wardrobe, "Outfit Preset", &g_outfitPreset, 0, 200, 1,
+		Ui::Do(wardrobe, "pededitor.cloneoutfittome", "Clone Outfit to Me", [] { WithPed([](Ped p) { PED::CLONE_PED_TO_TARGET(p, Me()); }); });
+		Ui::Number(wardrobe, "pededitor.outfitpreset", "Outfit Preset", &g_outfitPreset, 0, 200, 1,
 			[] { WithPed([](Ped p) { PED::_EQUIP_META_PED_OUTFIT_PRESET(p, g_outfitPreset, FALSE); }); }, true);
-		Ui::Do(wardrobe, "Random Outfit", [] { WithPed([](Ped p) { PED::_SET_RANDOM_OUTFIT_VARIATION(p, TRUE); }); });
-		Ui::Do(wardrobe, "Remove all Components", []
+		Ui::Do(wardrobe, "pededitor.randomoutfit", "Random Outfit", [] { WithPed([](Ped p) { PED::_SET_RANDOM_OUTFIT_VARIATION(p, TRUE); }); });
+		Ui::Do(wardrobe, "pededitor.removeallcomponents", "Remove all Components", []
 		{
 			WithPed([](Ped p) {
 				for (int i = PED::_GET_NUM_COMPONENTS_IN_PED(p) - 1; i >= 0; i--)
@@ -508,10 +508,10 @@ namespace
 				PED::_UPDATE_PED_VARIATION(p, FALSE, TRUE, TRUE, TRUE, FALSE);
 			});
 		});
-		Ui::Do(wardrobe, "Drop Hat", [] { WithPed([](Ped p) { PED::KNOCK_OFF_PED_PROP(p, FALSE, FALSE, FALSE, TRUE); }); });
+		Ui::Do(wardrobe, "pededitor.drophat", "Drop Hat", [] { WithPed([](Ped p) { PED::KNOCK_OFF_PED_PROP(p, FALSE, FALSE, FALSE, TRUE); }); });
 		Ui::Link(wardrobe, "Components", s.components);
 		Ui::Section(wardrobe, "Custom");
-		Ui::Action(wardrobe, "Enable Ped Component", []() -> std::string
+		Ui::Action(wardrobe, "pededitor.enablepedcomponent", "Enable Ped Component", []() -> std::string
 		{
 			Hash h = 0;
 			if (!Valid() || !PromptHash("Component Hash:", h).empty())
@@ -520,7 +520,7 @@ namespace
 			PED::_UPDATE_PED_VARIATION(g_ped, FALSE, TRUE, TRUE, TRUE, FALSE);
 			return "";
 		});
-		Ui::Action(wardrobe, "Disable Ped Component", []() -> std::string
+		Ui::Action(wardrobe, "pededitor.disablepedcomponent", "Disable Ped Component", []() -> std::string
 		{
 			Hash h = 0;
 			if (!Valid() || !PromptHash("Category Hash:", h).empty())
@@ -529,7 +529,7 @@ namespace
 			PED::_UPDATE_PED_VARIATION(g_ped, FALSE, TRUE, TRUE, TRUE, FALSE);
 			return "";
 		});
-		Ui::Action(wardrobe, "Set Body Component", []() -> std::string
+		Ui::Action(wardrobe, "pededitor.setbodycomponent", "Set Body Component", []() -> std::string
 		{
 			Hash h = 0;
 			if (!Valid() || !PromptHash("Body Component Hash:", h).empty())
@@ -704,27 +704,27 @@ namespace Menus
 			Ui::ListMenu(e, "Positioning", BuildPositioning);
 			EditorToggle(e, "Spectate", [](Ped, bool on) { if (!on) StopSpectating(); }, SpectateTick);
 			EditorToggle(e, "Bodyguard", SetBodyguard);
-			Ui::Do(e, "Set as Enemy", [] { WithPed(SetAsEnemy); });
-			Ui::Do(e, "Mount / Dismount my Horse", [] { WithPed(MountMyHorse); });
-			Ui::Do(e, "Teleport to Me", [] { WithPed([](Ped p) { Teleport(p, Me()); }); });
-			Ui::Do(e, "Teleport to Ped", [] { WithPed([](Ped p) { Teleport(Me(), p); }); });
-			Ui::Do(e, "Add Blip", [] { WithPed(AddBlip); });
-			Ui::Do(e, "Restore Loot", [] { WithPed([](Ped p) { ENTITY::_SET_ENTITY_FULLY_LOOTED(p, FALSE); }); });
-			Ui::Do(e, "Ragdoll", [] { WithPed([](Ped p) { PED::SET_PED_TO_RAGDOLL(p, 2000, 2000, 0, TRUE, TRUE, "DraggedByCart"); }); });
-			Ui::Do(e, "Revive", [] { WithPed(Revive); });
-			Ui::Do(e, "Clean", [] { WithPed(Clean); });
-			Ui::Do(e, "Bleed out", [] { WithPed([](Ped p) { TASK::_TASK_ANIMAL_BLEED_OUT(p, 0, FALSE, 0, 0, 0); }); });
-			Ui::Do(e, "Kill", [] { WithPed([](Ped p) { ENTITY::SET_ENTITY_HEALTH(p, 0, 0); }); });
-			Ui::Do(e, "Delete", [] { WithPed(Delete); });
-			Ui::Action(e, "Duel", [] { return Valid() ? Duel(g_ped) : std::string(); });
+			Ui::Do(e, "pededitor.setasenemy", "Set as Enemy", [] { WithPed(SetAsEnemy); });
+			Ui::Do(e, "pededitor.mountdismountmyhorse", "Mount / Dismount my Horse", [] { WithPed(MountMyHorse); });
+			Ui::Do(e, "pededitor.teleporttome", "Teleport to Me", [] { WithPed([](Ped p) { Teleport(p, Me()); }); });
+			Ui::Do(e, "pededitor.teleporttoped", "Teleport to Ped", [] { WithPed([](Ped p) { Teleport(Me(), p); }); });
+			Ui::Do(e, "pededitor.addblip", "Add Blip", [] { WithPed(AddBlip); });
+			Ui::Do(e, "pededitor.restoreloot", "Restore Loot", [] { WithPed([](Ped p) { ENTITY::_SET_ENTITY_FULLY_LOOTED(p, FALSE); }); });
+			Ui::Do(e, "pededitor.ragdoll", "Ragdoll", [] { WithPed([](Ped p) { PED::SET_PED_TO_RAGDOLL(p, 2000, 2000, 0, TRUE, TRUE, "DraggedByCart"); }); });
+			Ui::Do(e, "pededitor.revive", "Revive", [] { WithPed(Revive); });
+			Ui::Do(e, "pededitor.clean", "Clean", [] { WithPed(Clean); });
+			Ui::Do(e, "pededitor.bleedout", "Bleed out", [] { WithPed([](Ped p) { TASK::_TASK_ANIMAL_BLEED_OUT(p, 0, FALSE, 0, 0, 0); }); });
+			Ui::Do(e, "pededitor.kill", "Kill", [] { WithPed([](Ped p) { ENTITY::SET_ENTITY_HEALTH(p, 0, 0); }); });
+			Ui::Do(e, "pededitor.delete", "Delete", [] { WithPed(Delete); });
+			Ui::Action(e, "pededitor.duel", "Duel", [] { return Valid() ? Duel(g_ped) : std::string(); });
 			Ui::ListMenu(e, "Attach To Something", BuildAttach);
-			Ui::Do(e, "Detach", []
+			Ui::Do(e, "pededitor.detach", "Detach", []
 			{
 				WithPed([](Ped p) { ENTITY::DETACH_ENTITY(p, FALSE, TRUE); });
 				g_attachedTo = 0;
 			});
-			Ui::Action(e, "Make Copy", [] { return Valid() ? MakeCopy(g_ped) : std::string(); });
-			Ui::Do(e, "Force Name", [] { WithPed([](Ped p) { g_labels[p] = ModelName(ENTITY::GET_ENTITY_MODEL(p)); }); });
+			Ui::Action(e, "pededitor.makecopy", "Make Copy", [] { return Valid() ? MakeCopy(g_ped) : std::string(); });
+			Ui::Do(e, "pededitor.forcename", "Force Name", [] { WithPed([](Ped p) { g_labels[p] = ModelName(ENTITY::GET_ENTITY_MODEL(p)); }); });
 		}
 
 		void Open(Ped ped)
