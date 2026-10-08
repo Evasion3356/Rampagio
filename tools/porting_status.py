@@ -120,8 +120,20 @@ STATUS = {
  'SubEditVolume':('Done','Miscellaneous > Volume Editor: edits volumes created there (ours); relationship groups from the game scripts'),
  'SubFriendlist':('Dropped','Online only (Social Club friends)'),
  'SubStatEditor':('Done','Miscellaneous > Stat Editor'),
+ 'SubSettings':('Partial','Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Plugins and Language have no Rampagio counterpart'),
+ 'SubSettingsCore':('Partial','Settings > Core: Gamepad Controls, Menu Sounds, Show Controller Screen; Mouse Controls still to come (CLAUDE.md UI direction); welcome/ToS/update/landing rows dropped'),
+ 'SubSettingsLoadSave':('Done','Settings > Load / Save: Rampagio_Settings.ini and Rampagio_Toggles.ini'),
+ 'SubSettingsColor':('Partial','Settings > Theme: eight colors, menu position and Max Display Options; no font choice or menu title text'),
+ 'SubSettingsPremadeThemes':('Done','Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own)'),
+ 'SubSettingsCustomThemes':('Done','Settings > Theme > Custom Themes: Rampagio_Themes.ini'),
+ 'SubSettingsXUI':('Partial','Settings > Theme > Max Display Options; teleport map, spawner previews, ink rendering, inverted colors and centered title not ported'),
+ 'SubWindowManager':('Tabled','ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay'),
+ 'SubOverlaySettings':('Done','Settings > Overlay Settings'),
+ 'SubCreatorSettings':('Done','Spawner > Object Spawner > Cam Settings'),
+ 'SubLanguageManager':('Dropped','The label translation files of Rampage; Rampagio has no translated labels'),
+ 'SubAbout':('Done','Settings > About Rampagio (our own credits)'),
 }
-out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only). Nothing is live-tested yet.','']
+out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.','']
 by=collections.defaultdict(list)
 for s in sorted(set(area)): by[area[s]].append(s)
 tot=collections.Counter()

@@ -44,6 +44,8 @@ namespace
 	Cam g_cam = 0;
 	float g_camFov = 50.0f;
 	float g_camSpeed = 0.5f;
+	bool g_camTakePlayer = true; // Rampage's Creator Settings
+	bool g_camClearSpace = false;
 
 	void CreatorCamTick()
 	{
@@ -56,7 +58,7 @@ namespace
 			CAMERA::SET_CAM_ROT(g_cam, 0.0f, 0.0f, ENTITY::GET_ENTITY_HEADING(ped), 2);
 			CAMERA::SET_CAM_ACTIVE(g_cam, TRUE);
 			CAMERA::RENDER_SCRIPT_CAMS(TRUE, FALSE, 3000, TRUE, FALSE, 0);
-			ENTITY::SET_ENTITY_VISIBLE(ped, FALSE);
+			ENTITY::SET_ENTITY_VISIBLE(ped, !g_camTakePlayer);
 		}
 		CAMERA::SET_CAM_FOV(g_cam, g_camFov);
 		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
@@ -77,9 +79,15 @@ namespace
 		p.y += fy * forward - fx * right;
 		p.z += fz * forward;
 		CAMERA::SET_CAM_COORD(g_cam, p.x, p.y, p.z);
-		// Keep the player (and the streaming focus) under the camera.
-		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(ped, p.x, p.y, p.z, TRUE, TRUE, TRUE);
-		ENTITY::SET_ENTITY_HEADING(ped, rot.z);
+		// Keep the player (and the streaming focus) under the camera, or
+		// just the focus when the player stays behind.
+		if (g_camTakePlayer)
+		{
+			ENTITY::SET_ENTITY_COORDS_NO_OFFSET(ped, p.x, p.y, p.z, TRUE, g_camClearSpace, TRUE);
+			ENTITY::SET_ENTITY_HEADING(ped, rot.z);
+		}
+		else
+			STREAMING::SET_FOCUS_POS_AND_VEL(p.x, p.y, p.z, 0.0f, 0.0f, 0.0f);
 	}
 
 	void CreatorCamOff()
@@ -89,7 +97,9 @@ namespace
 		if (CAMERA::DOES_CAM_EXIST(g_cam))
 		{
 			const Vector3 p = CAMERA::GET_CAM_COORD(g_cam);
-			GameUtil::TeleportToGround(ped, p.x, p.y);
+			if (g_camTakePlayer)
+				GameUtil::TeleportToGround(ped, p.x, p.y);
+			STREAMING::CLEAR_FOCUS();
 			CAMERA::SET_CAM_ACTIVE(g_cam, FALSE);
 			CAMERA::DESTROY_CAM(g_cam, FALSE);
 			CAMERA::RENDER_SCRIPT_CAMS(FALSE, FALSE, 3000, TRUE, FALSE, 0);
@@ -343,6 +353,8 @@ namespace Menus
 		MenuBase* cam = Ui::Submenu(objects, "Cam Settings");
 		Ui::Number(cam, "FOV", &g_camFov, 10.0f, 120.0f, 5.0f);
 		Ui::Number(cam, "Speed", &g_camSpeed, 0.05f, 5.0f, 0.05f);
+		Ui::Toggle(cam, "Take Player With Cam", [](bool on) { g_camTakePlayer = on; })->SetState(true);
+		Ui::Toggle(cam, "Clear Space for Player", [](bool on) { g_camClearSpace = on; });
 		Ui::Toggle(objects, "Creator Cam", [](bool on) { if (!on) CreatorCamOff(); }, CreatorCamTick);
 
 		g_objectMenu = Ui::DetachedListMenu("Object", BuildSelectedObject);

@@ -66,4 +66,11 @@ namespace Ui
 
 	// Switches every toggle off through its onChange (online kill switch).
 	void DisableAllToggles();
+
+	// Every toggle that exists right now (Settings saves them by Key).
+	const std::vector<MenuItemToggle*>& AllToggles();
+	// "Menu Title > Caption": how Settings names a row in its saved files.
+	std::string Key(MenuItemBase* item);
+	// A row of a built menu by Key, or nullptr.
+	MenuItemBase* Find(const std::string& key);
 }

@@ -1,9 +1,9 @@
 # Porting status
 
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
-"Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only). Nothing is live-tested yet.
+"Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 86 done, 19 partial, 52 pending, 9 tabled, 1 dropped.
+Submenus: 92 done, 23 partial, 40 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -154,18 +154,18 @@ Submenus: 86 done, 19 partial, 52 pending, 9 tabled, 1 dropped.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubAbout | 12 | Pending |  |
-| SubCreatorSettings | 2 | Pending |  |
-| SubLanguageManager | 2 | Pending |  |
-| SubOverlaySettings | 17 | Pending |  |
-| SubSettings | 1 | Pending |  |
-| SubSettingsColor | 12 | Pending |  |
-| SubSettingsCore | 10 | Pending |  |
-| SubSettingsCustomThemes | 2 | Pending |  |
-| SubSettingsLoadSave | 7 | Pending |  |
-| SubSettingsPremadeThemes | 26 | Pending |  |
-| SubSettingsXUI | 6 | Pending |  |
-| SubWindowManager | 7 | Pending |  |
+| SubAbout | 12 | Done | Settings > About Rampagio (our own credits) |
+| SubCreatorSettings | 2 | Done | Spawner > Object Spawner > Cam Settings |
+| SubLanguageManager | 2 | Dropped | The label translation files of Rampage; Rampagio has no translated labels |
+| SubOverlaySettings | 17 | Done | Settings > Overlay Settings |
+| SubSettings | 1 | Partial | Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Plugins and Language have no Rampagio counterpart |
+| SubSettingsColor | 12 | Partial | Settings > Theme: eight colors, menu position and Max Display Options; no font choice or menu title text |
+| SubSettingsCore | 10 | Partial | Settings > Core: Gamepad Controls, Menu Sounds, Show Controller Screen; Mouse Controls still to come (CLAUDE.md UI direction); welcome/ToS/update/landing rows dropped |
+| SubSettingsCustomThemes | 2 | Done | Settings > Theme > Custom Themes: Rampagio_Themes.ini |
+| SubSettingsLoadSave | 7 | Done | Settings > Load / Save: Rampagio_Settings.ini and Rampagio_Toggles.ini |
+| SubSettingsPremadeThemes | 26 | Done | Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own) |
+| SubSettingsXUI | 6 | Partial | Settings > Theme > Max Display Options; teleport map, spawner previews, ink rendering, inverted colors and centered title not ported |
+| SubWindowManager | 7 | Tabled | ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay |
 
 ## Spawners
 

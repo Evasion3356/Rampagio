@@ -41,7 +41,9 @@ instead of restarting. `GenerateDefaultIni` writes
 Menu key: **F5** by default (`[General] MenuKey` in `Rampagio.ini`), the
 same key Rampage uses, at the user's request. Don't load Rampage and
 Rampagio together with default keys. Controls: NUMPAD 8/2 to move,
-NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
+NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back; on a gamepad RB +
+Left opens it and the d-pad, A and B navigate. F11 on a row binds a
+hotkey (Settings > Hotkey Manager).
 
 ## Layout
 
@@ -66,7 +68,13 @@ NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back.
 - `src/scriptmenu.{h,cpp}`: the SDK NativeTrainer menu framework, same as
   the siblings', plus ChallengeCheat's item types and this repo's
   additions: `MenuItemToggle`, `MenuItemNumber<T>`, `MenuItemChoice`,
-  `MenuItemSection`, NUMPAD 4/6 left/right input, and `MenuBase::SetOnOpen`.
+  `MenuItemSection`, NUMPAD 4/6 left/right input, `MenuBase::SetOnOpen`,
+  gamepad input, and `MenuStyle` (`Style()`: colors, position, rows per
+  page, sounds), which items read at draw time.
+- `src/menus/Settings.cpp`: Settings, plus the per-frame hotkeys,
+  overlays and toggle auto-save (`Menus::TickSettings`). Saves
+  `Rampagio_Settings.ini`, `Rampagio_Toggles.ini` (toggles by
+  `Ui::Key`, "Menu Title > Caption") and `Rampagio_Themes.ini`.
 - `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, `PlayerMount`,
   `PlayerHorse`, `TeleportToGround`, entity pools, script globals,
   model/anim loading, `PromptText` on-screen keyboard, `Joaat`).

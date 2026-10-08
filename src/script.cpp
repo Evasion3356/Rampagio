@@ -32,6 +32,7 @@ namespace
 		Menus::BuildWorld(root);
 		Menus::BuildRecovery(root);
 		Menus::BuildMiscellaneous(root);
+		Menus::BuildSettings(root);
 	}
 }
 
@@ -40,6 +41,7 @@ void ScriptMain()
 	Log::Write("Rampagio started");
 
 	BuildMenu();
+	Menus::LoadSettings();
 
 	bool wasOnline = false;
 	while (true)
@@ -59,6 +61,7 @@ void ScriptMain()
 				menus.PushMenu(Ui::Root());
 
 			menus.Update();
+			Menus::TickSettings();
 		}
 
 		WAIT(0);

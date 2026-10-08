@@ -40,6 +40,12 @@
 #include "scriptmenu.h"
 #include <climits>
 
+MenuStyle& Style()
+{
+	static MenuStyle style;
+	return style;
+}
+
 // Wraps `str` in the Scaleform rich-text tags UIDEBUG::_BG_DISPLAY_TEXT
 // needs to actually render it -- see this file's own header comment.
 // Ported from DominoCheat/BlackjackCheat/PokerCheat's identical BgText()
@@ -101,14 +107,14 @@ constexpr float kMenuFontSizeScale = 500.0f;
 void MenuItemBase::OnDraw(float lineTop, float lineLeft, bool active)
 {
 	// rect: plain grey behind every item, selected or not
-	ColorRgba rectColor = active ? m_colorRectActive : m_colorRect;
+	ColorRgba rectColor = active ? GetColorRectActive() : GetColorRect();
 	DrawRect(lineLeft, lineTop, m_lineWidth, m_lineHeight, rectColor.r, rectColor.g, rectColor.b, rectColor.a);
 	// red border: only around the active item
+	const ColorRgba border = Style().border;
 	if (active)
-		DrawRectBorder(lineLeft, lineTop, m_lineWidth, m_lineHeight, MenuBase_activeBorderThickness,
-			MenuBase_activeBorderColor.r, MenuBase_activeBorderColor.g, MenuBase_activeBorderColor.b, MenuBase_activeBorderColor.a);
+		DrawRectBorder(lineLeft, lineTop, m_lineWidth, m_lineHeight, MenuBase_activeBorderThickness, border.r, border.g, border.b, border.a);
 	// text
-	ColorRgba textColor = active ? m_colorTextActive : m_colorText;
+	ColorRgba textColor = active ? GetColorTextActive() : GetColorText();
 	int fontSize = static_cast<int>(m_lineHeight * kMenuFontSizeScale);
 	DrawTextAt(lineLeft + m_textLeft, lineTop + m_lineHeight / 4.5f, GetCaption().c_str(), fontSize, textColor);
 }
@@ -245,7 +251,7 @@ void MenuItemParagraph::OnDraw(float lineTop, float lineLeft, bool active)
 	DrawRect(lineLeft, lineTop, width, height, rect.r, rect.g, rect.b, rect.a);
 	if (active)
 		DrawRectBorder(lineLeft, lineTop, width, height, MenuBase_activeBorderThickness,
-			MenuBase_activeBorderColor.r, MenuBase_activeBorderColor.g, MenuBase_activeBorderColor.b, MenuBase_activeBorderColor.a);
+			Style().border.r, Style().border.g, Style().border.b, Style().border.a);
 
 	const ColorRgba color = active ? GetColorTextActive() : GetColorText();
 	for (size_t line = 0; line < m_lines.size(); line++)
@@ -315,12 +321,13 @@ void MenuItemSection::OnDraw(float lineTop, float lineLeft, bool active)
 {
 	const float lineWidth = GetLineWidth();
 	const float lineHeight = GetLineHeight();
-	DrawRect(lineLeft, lineTop, lineWidth, lineHeight, 20, 20, 20, 200);
+	const MenuStyle& style = Style();
+	DrawRect(lineLeft, lineTop, lineWidth, lineHeight, style.sectionRect.r, style.sectionRect.g, style.sectionRect.b, style.sectionRect.a);
 	if (active)
 		DrawRectBorder(lineLeft, lineTop, lineWidth, lineHeight, MenuBase_activeBorderThickness,
-			MenuBase_activeBorderColor.r, MenuBase_activeBorderColor.g, MenuBase_activeBorderColor.b, MenuBase_activeBorderColor.a);
+			style.border.r, style.border.g, style.border.b, style.border.a);
 	DrawTextAt(lineLeft + MenuItemDefault_textLeft, lineTop + lineHeight / 4.5f, GetCaption().c_str(),
-		static_cast<int>(lineHeight * kMenuFontSizeScale * 0.85f), ColorRgba{ 200, 160, 90, 255 });
+		static_cast<int>(lineHeight * kMenuFontSizeScale * 0.85f), style.sectionText);
 }
 
 void MenuItemMenu::OnSelect()
@@ -335,20 +342,22 @@ void MenuItemMenu::OnSelect()
 
 void MenuBase::OnDraw()
 {
-	float lineTop = MenuBase_menuTop;
-	float lineLeft = MenuBase_menuLeft;
+	float lineTop = Style().top;
+	float lineLeft = Style().left;
+	const int lines = Style().linesPerScreen > 0 ? Style().linesPerScreen : 1;
+	const int first = m_activeIndex / lines * lines;
 	if (m_itemTitle->GetClass() == eMenuItemClass::ListTitle)
 		reinterpret_cast<MenuItemListTitle *>(m_itemTitle)->
 			SetCurrentItemInfo(GetActiveItemIndex() + 1, static_cast<int>(m_items.size()));
 	m_itemTitle->OnDraw(lineTop, lineLeft, false);
 	lineTop += m_itemTitle->GetLineHeight();
-	for (int i = 0; i < MenuBase_linesPerScreen; i++)
+	for (int i = 0; i < lines; i++)
 	{
-		int itemIndex = m_activeScreenIndex * MenuBase_linesPerScreen + i;
-		if (itemIndex == m_items.size())
+		int itemIndex = first + i;
+		if (itemIndex >= static_cast<int>(m_items.size()))
 			break;
 		MenuItemBase *item = m_items[itemIndex];
-		item->OnDraw(lineTop, lineLeft, m_activeLineIndex == i);
+		item->OnDraw(lineTop, lineLeft, itemIndex == m_activeIndex);
 		lineTop += item->GetLineHeight() - item->GetLineHeight() * MenuBase_lineOverlap;
 	}
 }
@@ -356,9 +365,8 @@ void MenuBase::OnDraw()
 int MenuBase::OnInput()
 {
 	const int itemCount = static_cast<int>(m_items.size());
-	const int itemsLeft = itemCount % MenuBase_linesPerScreen;
-	const int screenCount = itemCount / MenuBase_linesPerScreen + (itemsLeft ? 1 : 0);
-	const int lineCountLastScreen = itemsLeft ? itemsLeft : MenuBase_linesPerScreen;
+	if (m_activeIndex >= itemCount)
+		m_activeIndex = itemCount ? itemCount - 1 : 0;
 
 	auto buttons = MenuInput::GetButtonState();
 
@@ -393,30 +401,11 @@ int MenuBase::OnInput()
 	} else
 	if (buttons.up)
 	{
-		if (m_activeLineIndex-- == 0)
-		{
-			if (m_activeScreenIndex == 0)
-			{
-				m_activeScreenIndex = screenCount - 1;
-				m_activeLineIndex = lineCountLastScreen - 1;
-			} else
-			{
-				m_activeScreenIndex--;
-				m_activeLineIndex = MenuBase_linesPerScreen - 1;
-			}
-		}
+		m_activeIndex = (m_activeIndex + itemCount - 1) % itemCount;
 	} else
 	if (buttons.down)
 	{
-		m_activeLineIndex++;
-		if (m_activeLineIndex == ((m_activeScreenIndex == (screenCount - 1)) ? lineCountLastScreen : MenuBase_linesPerScreen))
-		{
-			if (m_activeScreenIndex == screenCount - 1)
-				m_activeScreenIndex = 0;
-			else
-				m_activeScreenIndex++;
-			m_activeLineIndex = 0;
-		}
+		m_activeIndex = (m_activeIndex + 1) % itemCount;
 	}
 
 	return waitTime;

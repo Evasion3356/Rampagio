@@ -31,6 +31,29 @@ struct ColorRgba
 	unsigned char	r, g, b, a;
 };
 
+// Rampagio addition: the menu's look and input options, edited live in
+// Settings and saved by it. Items read their colors from here at draw
+// time (MenuItemBase::GetColor*), so a change shows at once.
+struct MenuStyle
+{
+	ColorRgba titleRect { 0, 0, 0, 230 };
+	ColorRgba titleText { 255, 255, 255, 255 };
+	ColorRgba itemRect { 50, 50, 50, 180 };
+	ColorRgba itemText { 255, 255, 255, 200 };
+	ColorRgba itemTextActive { 255, 255, 255, 255 };
+	ColorRgba border { 204, 0, 0, 255 };       // around the selected row
+	ColorRgba sectionRect { 20, 20, 20, 200 };
+	ColorRgba sectionText { 200, 160, 90, 255 };
+	float left = 0.39f;                         // menu's left edge, 0..1
+	float top = 0.05f;
+	int linesPerScreen = 11;
+	bool sounds = true;
+	bool gamepad = true;                        // navigate with the d-pad, A and B
+	int gamepadOpen = 1;                        // index into MenuInput::kGamepadOpenNames
+};
+
+MenuStyle& Style();
+
 enum eMenuItemClass
 {
 	Base,
@@ -77,11 +100,13 @@ public:
 	float GetLineWidth()  { return m_lineWidth;  }
 	virtual float GetLineHeight() { return m_lineHeight; }
 
-	ColorRgba GetColorRect() { return m_colorRect; }
-	ColorRgba GetColorText() { return m_colorText; }
+	// Rampagio: from Style(), title rows vs. everything else.
+	bool IsTitle() { return GetClass() == eMenuItemClass::Title || GetClass() == eMenuItemClass::ListTitle; }
+	ColorRgba GetColorRect() { return IsTitle() ? Style().titleRect : Style().itemRect; }
+	ColorRgba GetColorText() { return IsTitle() ? Style().titleText : Style().itemText; }
 
-	ColorRgba GetColorRectActive() { return m_colorRectActive; }
-	ColorRgba GetColorTextActive() { return m_colorTextActive; }
+	ColorRgba GetColorRectActive() { return IsTitle() ? Style().titleRect : Style().itemRect; }
+	ColorRgba GetColorTextActive() { return IsTitle() ? Style().titleText : Style().itemTextActive; }
 
 	void SetMenu(MenuBase *menu) { m_menu = menu; };
 	MenuBase *GetMenu() { return m_menu; };
@@ -281,6 +306,15 @@ public:
 		if (GetState() && m_onTick)
 			m_onTick();
 	}
+	// Rampagio: turns it on through onChange (Settings > Load Toggles).
+	void SetOn()
+	{
+		if (GetState())
+			return;
+		SetState(true);
+		if (m_onChange)
+			m_onChange(true);
+	}
 	void SetOff()
 	{
 		if (!GetState())
@@ -359,12 +393,7 @@ public:
 	virtual void OnDraw(float lineTop, float lineLeft, bool active) override;
 };
 
-const int
-	MenuBase_linesPerScreen = 11;
-
 const float
-	MenuBase_menuTop  = 0.05f,
-	MenuBase_menuLeft = 0.5f - MenuItemDefault_lineWidth / 2.0f,
 	MenuBase_lineOverlap = 1.0f / 40.0f,
 	// Thickness of the red border MenuItemBase::OnDraw adds around
 	// whichever item is currently active, in the same 0..1 normalized
@@ -374,23 +403,21 @@ const float
 	// red only on the selected one's edge.
 	MenuBase_activeBorderThickness = 0.0025f;
 
-const ColorRgba
-	MenuBase_activeBorderColor { 204, 0, 0, 255 };
-
 class MenuBase
 {
 	MenuItemTitle *				m_itemTitle;
 	vector<MenuItemBase *>		m_items;
 
-	int		m_activeLineIndex;
-	int		m_activeScreenIndex;
+	// Rampagio: one absolute index; the page comes from Style().linesPerScreen
+	// at draw time, so changing it in Settings can't strand the selection.
+	int		m_activeIndex;
 
 	MenuController *			m_controller;
 	std::function<void(MenuBase*)>	m_onOpen; // Rampagio addition
 public:
 	MenuBase(MenuItemTitle *itemTitle)
 		: m_itemTitle(itemTitle),
-		  m_activeLineIndex(0), m_activeScreenIndex(0) {}
+		  m_activeIndex(0) {}
 	~MenuBase()
 	{
 		ClearItems();
@@ -407,19 +434,21 @@ public:
 		const int index = GetActiveItemIndex();
 		Open();
 		const int last = static_cast<int>(m_items.size()) - 1;
-		const int keep = index > last ? (last < 0 ? 0 : last) : index;
-		m_activeScreenIndex = keep / MenuBase_linesPerScreen;
-		m_activeLineIndex = keep % MenuBase_linesPerScreen;
+		m_activeIndex = index > last ? (last < 0 ? 0 : last) : index;
 	}
 	void ClearItems()
 	{
 		for (auto item : m_items)
 			delete item;
 		m_items.clear();
-		m_activeLineIndex = m_activeScreenIndex = 0;
+		m_activeIndex = 0;
 	}
 	size_t GetItemCount() const { return m_items.size(); }
-	int GetActiveItemIndex() { return m_activeScreenIndex * MenuBase_linesPerScreen + m_activeLineIndex; }
+	int GetActiveItemIndex() { return m_activeIndex; }
+	// Rampagio additions, for Settings > Search and the hotkeys.
+	MenuItemTitle* GetTitle() { return m_itemTitle; }
+	const vector<MenuItemBase *>& GetItems() const { return m_items; }
+	void SetActiveItemIndex(int index) { if (index >= 0 && index < static_cast<int>(m_items.size())) m_activeIndex = index; }
 	void OnDraw();
 	int OnInput();
 	void OnFrame()
@@ -439,25 +468,61 @@ struct MenuInputButtonState
 class MenuInput
 {
 public:
+	// Frontend (control group 2) inputs for gamepad navigation; RDR2's
+	// control hashes are joaat of the input names.
+	static constexpr Hash INPUT_FRONTEND_UP = 0x6319DB71;
+	static constexpr Hash INPUT_FRONTEND_DOWN = 0x05CA7C52;
+	static constexpr Hash INPUT_FRONTEND_LEFT = 0xA65EBAB4;
+	static constexpr Hash INPUT_FRONTEND_RIGHT = 0xDEB34313;
+	static constexpr Hash INPUT_FRONTEND_ACCEPT = 0xC7B5340A;
+	static constexpr Hash INPUT_FRONTEND_CANCEL = 0x156F7119;
+	static constexpr Hash INPUT_FRONTEND_RB = 0x17BEC168;
+	static constexpr Hash INPUT_FRONTEND_LB = 0xE885EF16;
+	static constexpr Hash INPUT_FRONTEND_X = 0x6DB8C62F;
+
+	// Gamepad combos that open the menu (Settings > Gamepad Open Key).
+	static constexpr const char* kGamepadOpenNames[] = { "None", "RB + Left", "LB + RB", "RB + X" };
+
+	static bool Pad(Hash input) { return PAD::IS_DISABLED_CONTROL_PRESSED(2, input) != 0; }
+	static bool GamepadOpenPressed()
+	{
+		static bool wasDown = false;
+		bool down = false;
+		switch (Style().gamepadOpen)
+		{
+		case 1: down = Pad(INPUT_FRONTEND_RB) && Pad(INPUT_FRONTEND_LEFT); break;
+		case 2: down = Pad(INPUT_FRONTEND_LB) && Pad(INPUT_FRONTEND_RB); break;
+		case 3: down = Pad(INPUT_FRONTEND_RB) && Pad(INPUT_FRONTEND_X); break;
+		}
+		const bool pressed = down && !wasDown;
+		wasDown = down;
+		return pressed && !PAD::IS_USING_KEYBOARD_AND_MOUSE(2);
+	}
 	// Toggle key comes from Rampagio.ini's [General] MenuKey (default F5,
-	// see Config.h).
+	// see Config.h), or a gamepad combo.
 	static bool MenuSwitchPressed()
 	{
-		return IsKeyJustUp(Config::Get().MenuKey);
+		return IsKeyJustUp(Config::Get().MenuKey) || GamepadOpenPressed();
 	}
 	static MenuInputButtonState GetButtonState()
 	{
+		const bool pad = Style().gamepad && !PAD::IS_USING_KEYBOARD_AND_MOUSE(2);
+		if (pad)
+			for (Hash input : { INPUT_FRONTEND_UP, INPUT_FRONTEND_DOWN, INPUT_FRONTEND_LEFT, INPUT_FRONTEND_RIGHT, INPUT_FRONTEND_ACCEPT, INPUT_FRONTEND_CANCEL })
+				PAD::DISABLE_CONTROL_ACTION(2, input, TRUE);
 		return {
-			IsKeyDown(VK_NUMPAD5) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_RETURN)),
-			IsKeyDown(VK_NUMPAD0) || MenuSwitchPressed() || IsKeyDown(VK_BACK),
-			IsKeyDown(VK_NUMPAD8) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_UP)),
-			IsKeyDown(VK_NUMPAD2) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_DOWN)),
-			IsKeyDown(VK_NUMPAD4) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_LEFT)),
-			IsKeyDown(VK_NUMPAD6) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_RIGHT))
+			IsKeyDown(VK_NUMPAD5) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_RETURN)) || (pad && Pad(INPUT_FRONTEND_ACCEPT)),
+			IsKeyDown(VK_NUMPAD0) || MenuSwitchPressed() || IsKeyDown(VK_BACK) || (pad && Pad(INPUT_FRONTEND_CANCEL)),
+			IsKeyDown(VK_NUMPAD8) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_UP)) || (pad && Pad(INPUT_FRONTEND_UP)),
+			IsKeyDown(VK_NUMPAD2) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_DOWN)) || (pad && Pad(INPUT_FRONTEND_DOWN)),
+			IsKeyDown(VK_NUMPAD4) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_LEFT)) || (pad && Pad(INPUT_FRONTEND_LEFT)),
+			IsKeyDown(VK_NUMPAD6) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_RIGHT)) || (pad && Pad(INPUT_FRONTEND_RIGHT))
 		};
 	}
 	static void MenuInputBeep()
 	{
+		if (!Style().sounds)
+			return;
 		AUDIO::_STOP_SOUND_WITH_NAME("NAV_RIGHT", "HUD_SHOP_SOUNDSET");
 		AUDIO::PLAY_SOUND_FRONTEND(const_cast<char*>("NAV_RIGHT"), const_cast<char*>("HUD_SHOP_SOUNDSET"), 1, 0);
 	}
@@ -488,6 +553,9 @@ public:
 			delete menu;
 	}
 	bool HasActiveMenu()			{	return m_menuStack.size() > 0; }
+	// Rampagio additions, for Settings > Search and the hotkeys.
+	const vector<MenuBase *>& GetMenus() const { return m_menuList; }
+	MenuBase *GetTopMenu()			{	return GetActiveMenu(); }
 	void PushMenu(MenuBase *menu)	{	if (IsMenuRegistered(menu)) m_menuStack.push_back(menu); }
 	void PopMenu()					{   if (m_menuStack.size()) m_menuStack.pop_back(); }
 	void SetStatusText(string text, int ms) { m_statusText = text, m_statusTextMaxTicks = GetTickCount() + ms; }
