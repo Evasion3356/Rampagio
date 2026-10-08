@@ -31,7 +31,7 @@ namespace
 	Ped Horse() { return GameUtil::PlayerHorse(); }
 
 	constexpr Hash INPUT_SPRINT = 0x8FFC75D6;
-	constexpr Hash INPUT_HORSE_SPRINT = 0xE4D2CE1D;
+	constexpr Hash INPUT_HORSE_JUMP = 0xE4D2CE1D;
 	constexpr Hash INPUT_MOVE_UP_ONLY = 0x8FD015D8;
 	constexpr Hash INPUT_MOVE_LEFT_ONLY = 0x7065027D;
 	constexpr Hash INPUT_MOVE_DOWN_ONLY = 0xD27782E3;
@@ -93,7 +93,7 @@ namespace
 	float g_superSpeed = 35.0f;
 	void SuperSpeedTick()
 	{
-		PAD::DISABLE_CONTROL_ACTION(0, INPUT_HORSE_SPRINT, TRUE);
+		PAD::DISABLE_CONTROL_ACTION(0, INPUT_HORSE_JUMP, TRUE);
 		PED::SET_PED_CAN_RAGDOLL(Me(), FALSE);
 		const Ped m = Mount();
 		if (!m)
