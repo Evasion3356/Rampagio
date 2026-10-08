@@ -336,7 +336,7 @@ namespace
 		return true;
 	}
 
-	MenuItemToggle* g_travelWaypoint = nullptr;
+	Rampagio::BoolCommand* g_travelWaypoint = nullptr;
 
 	void TravelToWaypoint(bool on)
 	{
@@ -348,7 +348,7 @@ namespace
 		if (!WaypointGround(to) || !PED::IS_PED_SITTING_IN_ANY_VEHICLE(ped))
 		{
 			Ui::Controller().SetStatusText(PED::IS_PED_SITTING_IN_ANY_VEHICLE(ped) ? "Waypoint not active" : "Not in a vehicle", 2500);
-			g_travelWaypoint->SetState(false);
+			g_travelWaypoint->Sync(false);
 			return;
 		}
 		DriveSequence(ped, PED::GET_VEHICLE_PED_IS_IN(ped, FALSE), to, g_aiSpeed);
@@ -563,37 +563,39 @@ namespace Menus
 		MenuBase* vehicle = Ui::Submenu(root, "Vehicle");
 
 		MenuBase* blip = Ui::Submenu(vehicle, "Blip");
-		Ui::Action(blip, "Add Blip", AddBlip);
-		Ui::Action(blip, "Teleport to", TeleportToBlipVehicle);
-		Ui::Action(blip, "Teleport to Me", BlipVehicleToMe);
-		Ui::Action(blip, "Drive to Me", DriveBlipVehicleToMe);
+		Ui::Action(blip, "vehicle.addblip", "Add Blip", AddBlip);
+		Ui::Action(blip, "vehicle.teleportto", "Teleport to", TeleportToBlipVehicle);
+		Ui::Action(blip, "vehicle.teleporttome", "Teleport to Me", BlipVehicleToMe);
+		Ui::Action(blip, "vehicle.drivetome", "Drive to Me", DriveBlipVehicleToMe);
 
 		MenuBase* ai = Ui::Submenu(vehicle, "Vehicle AI");
-		Ui::Number(ai, "Speed", &g_aiSpeed, 3.0f, 14.0f, 1.0f, [] { TASK::SET_DRIVE_TASK_CRUISE_SPEED(Me(), g_aiSpeed); });
-		g_travelWaypoint = Ui::Toggle(ai, "Travel to Waypoint", TravelToWaypoint);
-		Ui::Toggle(ai, "Travel Around", TravelAround);
+		Ui::Number(ai, "vehicle.vehicleai.speed", "Speed", &g_aiSpeed, 3.0f, 14.0f, 1.0f, [] { TASK::SET_DRIVE_TASK_CRUISE_SPEED(Me(), g_aiSpeed); });
+		// Drives (task sequences), not settings: not saved.
+		g_travelWaypoint = Ui::Toggle(ai, "vehicle.traveltowaypoint", "Travel to Waypoint", TravelToWaypoint);
+		g_travelWaypoint->SetTransient();
+		Ui::Toggle(ai, "vehicle.travelaround", "Travel Around", TravelAround)->SetTransient();
 
 		MenuBase* chauffeur = Ui::Submenu(vehicle, "Chauffeur");
-		Ui::Number(chauffeur, "Speed", &g_chauffeurSpeed, 3.0f, 14.0f, 1.0f, [] {
+		Ui::Number(chauffeur, "vehicle.chauffeur.speed", "Speed", &g_chauffeurSpeed, 3.0f, 14.0f, 1.0f, [] {
 			if (g_chauffeur && ENTITY::DOES_ENTITY_EXIST(g_chauffeur))
 				TASK::SET_DRIVE_TASK_CRUISE_SPEED(g_chauffeur, g_chauffeurSpeed);
 		});
-		Ui::Action(chauffeur, "Spawn Chauffeur", [] { return SpawnChauffeur("stagecoach001x"); });
-		Ui::Action(chauffeur, "Custom Input", [] {
+		Ui::Action(chauffeur, "vehicle.spawnchauffeur", "Spawn Chauffeur", [] { return SpawnChauffeur("stagecoach001x"); });
+		Ui::Action(chauffeur, "vehicle.custominput", "Custom Input", [] {
 			std::string name;
 			if (!GameUtil::PromptText("Enter Vehicle Model:", name) || name.empty())
 				return std::string();
 			return SpawnChauffeur(name);
-		});
-		Ui::Action(chauffeur, "Drive to Location", DriveToWaypoint);
-		Ui::Do(chauffeur, "Delete Chauffeur", DeleteChauffeur);
+		})->SetHotkeyable(false);
+		Ui::Action(chauffeur, "vehicle.drivetolocation", "Drive to Location", DriveToWaypoint);
+		Ui::Do(chauffeur, "vehicle.deletechauffeur", "Delete Chauffeur", DeleteChauffeur);
 
 		MenuBase* paint = Ui::Submenu(vehicle, "Paint Options");
-		Ui::Number(paint, "Tint", &g_tint, 0, 255, 1, [] {
+		Ui::Number(paint, "vehicle.tint", "Tint", &g_tint, 0, 255, 1, [] {
 			if (const Vehicle v = CurrentVehicle())
 				VEHICLE::_SET_VEHICLE_TINT(v, g_tint);
 		});
-		Ui::Number(paint, "Livery", &g_livery, 0, 255, 1, [] {
+		Ui::Number(paint, "vehicle.livery", "Livery", &g_livery, 0, 255, 1, [] {
 			if (const Vehicle v = CurrentVehicle())
 				VEHICLE::_SET_VEHICLE_LIVERY(v, g_livery);
 		});
@@ -605,14 +607,14 @@ namespace Menus
 		std::vector<std::string> configs;
 		for (const TrainConfig& c : kTrainConfigs)
 			configs.push_back(*c.name ? c.name : std::format("Config 0x{:08X}", c.hash));
-		Ui::Choice(train, "Configuration", configs, &g_trainConfig);
+		Ui::Choice(train, "vehicle.configuration", "Configuration", configs, &g_trainConfig);
 		train->AddItem(new MenuItemLabel([] { return "Cars: " + TrainConfigLabel(kTrainConfigs[g_trainConfig]); }));
-		Ui::Choice(train, "Direction", { "Forward", "Backward" }, &g_trainDirection);
-		Ui::Toggle(train, "Train Passengers", [](bool on) { g_trainPassengers = on; });
-		Ui::Toggle(train, "AI Controlled", [](bool on) { g_trainAi = on; })->SetState(g_trainAi);
-		Ui::Action(train, "Spawn", SpawnTrain);
-		Ui::Action(train, "Rotate", RotateTrain);
-		Ui::Do(train, "Delete", [] {
+		Ui::Choice(train, "vehicle.direction", "Direction", { "Forward", "Backward" }, &g_trainDirection);
+		Ui::Toggle(train, "vehicle.trainpassengers", "Train Passengers", [](bool on) { g_trainPassengers = on; });
+		Ui::Toggle(train, "vehicle.aicontrolled", "AI Controlled", [](bool on) { g_trainAi = on; })->SetDefault(g_trainAi);
+		Ui::Action(train, "vehicle.spawn", "Spawn", SpawnTrain);
+		Ui::Action(train, "vehicle.rotate", "Rotate", RotateTrain);
+		Ui::Do(train, "vehicle.delete", "Delete", [] {
 			if (TrainExists())
 				VEHICLE::DELETE_MISSION_TRAIN(&g_train);
 			g_train = 0;
@@ -624,37 +626,37 @@ namespace Menus
 		for (auto& w : kWhistles)
 		{
 			const char* seq = w[1];
-			Ui::Do(whistle, w[0], [seq] { Whistle(seq); });
+			Ui::Do(whistle, Ui::Id("vehicle.whistle", w[0]), w[0], [seq] { Whistle(seq); });
 		}
 		Ui::ListMenu(train, "Extras", BuildTrainExtras);
 
 		Ui::Section(vehicle, "Toggles");
-		Ui::Toggle(vehicle, "Invincible Vehicle", [](bool on) { if (!on) InvincibleOff(); }, InvincibleTick);
-		Ui::Toggle(vehicle, "Invisible Vehicle", [](bool on) {
+		Ui::Toggle(vehicle, "vehicle.invinciblevehicle", "Invincible Vehicle", [](bool on) { if (!on) InvincibleOff(); }, InvincibleTick);
+		Ui::Toggle(vehicle, "vehicle.invisiblevehicle", "Invisible Vehicle", [](bool on) {
 			if (const Vehicle v = PED::GET_VEHICLE_PED_IS_IN(Me(), FALSE))
 				ENTITY::SET_ENTITY_VISIBLE(v, !on);
 		});
-		Ui::Toggle(vehicle, "Invisible Draft Peds", [](bool on) { ForEachDraftPed([on](Ped p) { ENTITY::SET_ENTITY_VISIBLE(p, !on); }); });
-		Ui::Choice(vehicle, "Vehicle Opacity", { "0%", "25%", "50%", "75%", "100%" }, &g_vehicleOpacity, [](int i) {
+		Ui::Toggle(vehicle, "vehicle.invisibledraftpeds", "Invisible Draft Peds", [](bool on) { ForEachDraftPed([on](Ped p) { ENTITY::SET_ENTITY_VISIBLE(p, !on); }); });
+		Ui::Choice(vehicle, "vehicle.vehicleopacity", "Vehicle Opacity", { "0%", "25%", "50%", "75%", "100%" }, &g_vehicleOpacity, [](int i) {
 			if (const Vehicle v = PED::GET_VEHICLE_PED_IS_IN(Me(), FALSE))
 				ENTITY::SET_ENTITY_ALPHA(v, kAlpha[i], FALSE);
 		});
-		Ui::Choice(vehicle, "Draft Peds Opacity", { "0%", "25%", "50%", "75%", "100%" }, &g_draftOpacity, [](int i) {
+		Ui::Choice(vehicle, "vehicle.draftpedsopacity", "Draft Peds Opacity", { "0%", "25%", "50%", "75%", "100%" }, &g_draftOpacity, [](int i) {
 			ForEachDraftPed([i](Ped p) { ENTITY::SET_ENTITY_ALPHA(p, kAlpha[i], FALSE); });
 		});
-		Ui::Looped(vehicle, "Vehicle Fly Mode", FlyTick);
-		Ui::Number(vehicle, "Fly Speed", &g_flySpeed, 1.0f, 8.0f, 1.0f);
-		Ui::Looped(vehicle, "Drive On Water", DriveOnWaterTick, DriveOnWaterOff);
-		Ui::Looped(vehicle, "Speed Boost", [] { BoostTick(false); });
-		Ui::Looped(vehicle, "Train Boost", [] { BoostTick(true); });
-		Ui::Looped(vehicle, "Stick to Ground", StickToGroundTick);
-		Ui::Number(vehicle, "Ground Force", &g_groundForce, 0.1f, 5.0f, 0.1f);
-		Ui::Toggle(vehicle, "Draft Peds Flaming Hooves", SetFlamingHooves);
+		Ui::Looped(vehicle, "vehicle.vehicleflymode", "Vehicle Fly Mode", FlyTick);
+		Ui::Number(vehicle, "vehicle.flyspeed", "Fly Speed", &g_flySpeed, 1.0f, 8.0f, 1.0f);
+		Ui::Looped(vehicle, "vehicle.driveonwater", "Drive On Water", DriveOnWaterTick, DriveOnWaterOff);
+		Ui::Looped(vehicle, "vehicle.speedboost", "Speed Boost", [] { BoostTick(false); });
+		Ui::Looped(vehicle, "vehicle.trainboost", "Train Boost", [] { BoostTick(true); });
+		Ui::Looped(vehicle, "vehicle.sticktoground", "Stick to Ground", StickToGroundTick);
+		Ui::Number(vehicle, "vehicle.groundforce", "Ground Force", &g_groundForce, 0.1f, 5.0f, 0.1f);
+		Ui::Toggle(vehicle, "vehicle.draftpedsflaminghooves", "Draft Peds Flaming Hooves", SetFlamingHooves);
 
 		Ui::Section(vehicle, "Actions");
-		Ui::Action(vehicle, "Shuffle Seat", [] { return Sitting([](Vehicle v) { TASK::TASK_SHUFFLE_TO_NEXT_VEHICLE_SEAT(Me(), v); }); });
-		Ui::Action(vehicle, "Repair", [] { return Sitting([](Vehicle v) { VEHICLE::SET_VEHICLE_FIXED(v); }); });
-		Ui::Action(vehicle, "Clean", [] {
+		Ui::Action(vehicle, "vehicle.shuffleseat", "Shuffle Seat", [] { return Sitting([](Vehicle v) { TASK::TASK_SHUFFLE_TO_NEXT_VEHICLE_SEAT(Me(), v); }); });
+		Ui::Action(vehicle, "vehicle.repair", "Repair", [] { return Sitting([](Vehicle v) { VEHICLE::SET_VEHICLE_FIXED(v); }); });
+		Ui::Action(vehicle, "vehicle.clean", "Clean", [] {
 			return Sitting([](Vehicle v) {
 				VEHICLE::SET_VEHICLE_DIRT_LEVEL(v, 0.0f);
 				VEHICLE::_SET_VEHICLE_MUD_LEVEL(v, 0.0f);
@@ -662,9 +664,9 @@ namespace Menus
 				VEHICLE::_SET_VEHICLE_WET_LEVEL(v, 0.0f);
 			});
 		});
-		Ui::Action(vehicle, "Flip", Flip);
-		Ui::Action(vehicle, "Stop", [] { return Sitting([](Vehicle v) { VEHICLE::BRING_VEHICLE_TO_HALT(v, 10.5f, -1, FALSE); }); });
-		Ui::Action(vehicle, "Detach Wheels", [] {
+		Ui::Action(vehicle, "vehicle.flip", "Flip", Flip);
+		Ui::Action(vehicle, "vehicle.stop", "Stop", [] { return Sitting([](Vehicle v) { VEHICLE::BRING_VEHICLE_TO_HALT(v, 10.5f, -1, FALSE); }); });
+		Ui::Action(vehicle, "vehicle.detachwheels", "Detach Wheels", [] {
 			const Vehicle v = PED::GET_VEHICLE_PED_IS_IN(Me(), FALSE);
 			if (!v)
 				return std::string("Not in a vehicle");
@@ -672,6 +674,6 @@ namespace Menus
 				VEHICLE::_BREAK_OFF_VEHICLE_WHEEL(v, wheel);
 			return std::string();
 		});
-		Ui::Action(vehicle, "Delete Vehicle", DeleteVehicle);
+		Ui::Action(vehicle, "vehicle.deletevehicle", "Delete Vehicle", DeleteVehicle);
 	}
 }
