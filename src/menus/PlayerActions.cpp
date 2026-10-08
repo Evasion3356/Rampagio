@@ -11,7 +11,7 @@
 	eScriptedAnimFlags / eIkControlFlags as listed in Halen84's
 	RDR3-Native-Flags-And-Enums (linked from alloc8or's TASK_PLAY_ANIM).
 	Rampage's own preset tables (effects, regular speeches) aren't copied.
-	Lists the user drops next to Rampagio.ini extend the built-in ones:
+	Lists the user drops next to Rampagio.json extend the built-in ones:
 	Rampagio_PedAnimList.txt ("dict anim" per line) and
 	Rampagio_Speech{FlowGreets,Vignettes,List}.txt (one line name per line),
 	the same formats as Rampage's PedAnimList.txt and Speech*.txt.
@@ -329,7 +329,7 @@ namespace
 			Ui::Section(m, lines.empty() ? "List is empty" : "No lines for this voice (try Display All)");
 	}
 
-	// A list the user supplies as a text file next to Rampagio.ini.
+	// A list the user supplies as a text file next to Rampagio.json.
 	void FileSpeechList(MenuBase* parent, const std::string& title, const std::wstring& file, const std::string& fileName)
 	{
 		Ui::ListMenu(parent, title, [file, fileName](MenuBase* m)

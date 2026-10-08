@@ -7,18 +7,20 @@
 	("Overlay Textures"). The Model Changer is in ModelChanger.cpp.
 
 	The clothing list is user-supplied, like the other lists:
-	Rampagio_ClothingDb.xml next to Rampagio.ini, in the same format as
+	Rampagio_ClothingDb.xml next to Rampagio.json, in the same format as
 	Rampage's Lists\ClothingDb.xml (<Component> entries with IsMP, PedType,
 	Category and Hash). Without it, the Custom rows still take any hash.
 	Category names are the game's metaped category names; the expression
 	names come from alloc8or's MetaPedExpression list
-	(tools/extract_expressions.py). Saved outfits go in Rampagio_Outfits.ini
+	(tools/extract_expressions.py). Saved outfits go in Rampagio_Outfits.json
 	(ours; Rampage writes one XML per outfit).
 */
 
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <format>
@@ -467,7 +469,7 @@ namespace
 
 	// --- outfits ---------------------------------------------------------
 
-	const wchar_t* kOutfitsFile = L"Rampagio_Outfits.ini";
+	const wchar_t* kOutfitsFile = L"Rampagio_Outfits.json";
 	bool g_removeAllOnLoad = true;
 
 	struct MetaTag
@@ -495,12 +497,8 @@ namespace
 		if (!GameUtil::PromptText("Outfit name", name, 40) || name.empty())
 			return {};
 		const Ped ped = Me();
-		DataFile::Ini ini = DataFile::Load(kOutfitsFile);
-		ini.sections.erase(name);
-		auto& section = ini.sections[name];
-		section["model"] = Hex(ENTITY::GET_ENTITY_MODEL(ped));
-		section["removeAll"] = g_removeAllOnLoad ? "1" : "0";
-		std::string components;
+		nlohmann::json outfit = { { "model", ENTITY::GET_ENTITY_MODEL(ped) }, { "removeAll", g_removeAllOnLoad } };
+		nlohmann::json components = nlohmann::json::array();
 		const int count = PED::_GET_NUM_COMPONENTS_IN_PED(ped);
 		for (int i = 0; i < count; i++)
 		{
@@ -508,63 +506,54 @@ namespace
 			Hash state = 0;
 			const Hash item = PED::_GET_SHOP_ITEM_COMPONENT_AT_INDEX(ped, i, TRUE, &status, &state);
 			if (item)
-				components += (components.empty() ? "" : ",") + Hex(item);
+				components.push_back(item);
 		}
-		section["components"] = components;
+		outfit["components"] = std::move(components);
 		if (completeModel)
+		{
+			nlohmann::json tags = nlohmann::json::array();
 			for (int i = 0; i < count; i++)
 			{
 				const MetaTag t = ReadMetaTag(ped, i);
-				section[std::format("tag{}", i)] = std::format("{},{},{},{},{},{},{},{}", Hex(t.drawable), Hex(t.albedo),
-					Hex(t.normal), Hex(t.material), Hex(t.palette), t.tint0, t.tint1, t.tint2);
+				tags.push_back({ t.drawable, t.albedo, t.normal, t.material, t.palette, t.tint0, t.tint1, t.tint2 });
 			}
-		return DataFile::Save(kOutfitsFile, ini) ? "Saved " + name : "Couldn't save";
-	}
-
-	std::vector<std::string> Split(const std::string& s)
-	{
-		std::vector<std::string> out;
-		size_t start = 0;
-		while (start <= s.size())
-		{
-			const size_t comma = s.find(',', start);
-			out.push_back(s.substr(start, comma == std::string::npos ? std::string::npos : comma - start));
-			if (comma == std::string::npos)
-				break;
-			start = comma + 1;
+			outfit["tags"] = std::move(tags);
 		}
-		return out;
+		nlohmann::json file = DataFile::LoadJson(kOutfitsFile);
+		file[name] = std::move(outfit);
+		return DataFile::SaveJson(kOutfitsFile, file) ? "Saved " + name : "Couldn't save";
 	}
 
 	std::string LoadOutfit(const std::string& name)
 	{
-		DataFile::Ini ini = DataFile::Load(kOutfitsFile);
-		auto it = ini.sections.find(name);
-		if (it == ini.sections.end())
+		const nlohmann::json file = DataFile::LoadJson(kOutfitsFile);
+		auto it = file.find(name);
+		if (it == file.end() || !it->is_object())
 			return "No outfit named " + name;
-		auto& section = it->second;
-		const Ped ped = Me();
-		const bool mp = IsMpModel(ped);
-		if (section["removeAll"] == "1")
-			RemoveAllComponents();
-		for (const std::string& h : Split(section["components"]))
-			if (!h.empty())
-				PED::_APPLY_SHOP_ITEM_TO_PED(ped, GameUtil::ParseHash(h), FALSE, mp, FALSE);
-		Refresh(ped, mp);
-		WaitReady(ped);
-		for (int i = 0; ; i++)
+		const nlohmann::json& outfit = *it;
+		try
 		{
-			auto tag = section.find(std::format("tag{}", i));
-			if (tag == section.end())
-				break;
-			const auto v = Split(tag->second);
-			if (v.size() != 8)
-				continue;
-			ApplyMetaTag(ped, { GameUtil::ParseHash(v[0]), GameUtil::ParseHash(v[1]), GameUtil::ParseHash(v[2]),
-				GameUtil::ParseHash(v[3]), GameUtil::ParseHash(v[4]), std::atoi(v[5].c_str()), std::atoi(v[6].c_str()),
-				std::atoi(v[7].c_str()) });
+			const Ped ped = Me();
+			const bool mp = IsMpModel(ped);
+			if (outfit.value("removeAll", false))
+				RemoveAllComponents();
+			for (const nlohmann::json& item : outfit.value("components", nlohmann::json::array()))
+				PED::_APPLY_SHOP_ITEM_TO_PED(ped, item.get<Hash>(), FALSE, mp, FALSE);
+			Refresh(ped, mp);
+			WaitReady(ped);
+			for (const nlohmann::json& t : outfit.value("tags", nlohmann::json::array()))
+			{
+				if (!t.is_array() || t.size() != 8)
+					continue;
+				ApplyMetaTag(ped, { t[0].get<Hash>(), t[1].get<Hash>(), t[2].get<Hash>(), t[3].get<Hash>(), t[4].get<Hash>(),
+					t[5].get<int>(), t[6].get<int>(), t[7].get<int>() });
+			}
+			PED::_UPDATE_PED_VARIATION(ped, FALSE, TRUE, TRUE, TRUE, FALSE);
 		}
-		PED::_UPDATE_PED_VARIATION(ped, FALSE, TRUE, TRUE, TRUE, FALSE);
+		catch (const nlohmann::json::exception&)
+		{
+			return "Outfit " + name + " is damaged";
+		}
 		return {};
 	}
 
@@ -581,24 +570,24 @@ namespace
 		Ui::Toggle(m, "Remove All On Load", [](bool on) { g_removeAllOnLoad = on; })->SetState(g_removeAllOnLoad);
 		Ui::Action(m, "Save", [] { return SaveOutfit(false); });
 		Ui::Action(m, "Save Complete Model", [] { return SaveOutfit(true); });
-		DataFile::Ini ini = DataFile::Load(kOutfitsFile);
-		if (!ini.sections.empty())
+		const nlohmann::json saved = DataFile::LoadJson(kOutfitsFile);
+		if (!saved.empty())
 			Ui::Section(m, "Saved Outfits");
-		for (auto& [name, section] : ini.sections)
+		for (const auto& [name, outfit] : saved.items())
 		{
 			const std::string n = name;
 			Ui::Action(m, n, [n] { return LoadOutfit(n); });
 		}
-		if (!ini.sections.empty())
+		if (!saved.empty())
 		{
 			Ui::Section(m, "Delete");
-			for (auto& [name, section] : ini.sections)
+			for (const auto& [name, outfit] : saved.items())
 			{
 				const std::string n = name;
 				Ui::Action(m, "Delete " + n, [n] {
-					DataFile::Ini file = DataFile::Load(kOutfitsFile);
-					file.sections.erase(n);
-					DataFile::Save(kOutfitsFile, file);
+					nlohmann::json file = DataFile::LoadJson(kOutfitsFile);
+					file.erase(n);
+					DataFile::SaveJson(kOutfitsFile, file);
 					Ui::Controller().ReopenActiveLater();
 					return "Deleted " + n;
 				});

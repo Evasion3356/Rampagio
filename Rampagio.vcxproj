@@ -46,7 +46,6 @@
     <ClInclude Include="external\ScriptHookSDK\inc\types.h" />
     <ClInclude Include="src\keyboard.h" />
     <ClInclude Include="src\KeyNames.h" />
-    <ClInclude Include="external\inipp\inipp\inipp.h" />
     <ClInclude Include="src\script.h" />
     <ClInclude Include="src\scriptmenu.h" />
     <ClInclude Include="src\Log.h" />

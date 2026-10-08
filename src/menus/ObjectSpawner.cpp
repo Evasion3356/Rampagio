@@ -6,7 +6,7 @@
 	All Objects also reads a user-supplied Rampagio_ObjectList.txt (same
 	format as Rampage's Lists\ObjectList.txt).
 
-	Saved sets go in Rampagio_Spooner.ini (ours); Rampage reads and writes
+	Saved sets go in Rampagio_Spooner.json (ours); Rampage reads and writes
 	its own spooner XML files. The Object Editor (moving and rotating a
 	selected object) is tabled with the rest of that area.
 */
@@ -14,6 +14,8 @@
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -265,9 +267,9 @@ namespace
 		return {};
 	}
 
-	// --- save / load (ours: Rampagio_Spooner.ini) --------------------------------------
+	// --- save / load (ours: Rampagio_Spooner.json)--------------------------------------
 
-	const wchar_t* kSpoonerFile = L"Rampagio_Spooner.ini";
+	const wchar_t* kSpoonerFile = L"Rampagio_Spooner.json";
 	bool g_addToDatabase = true;
 
 	std::string SaveSet()
@@ -275,48 +277,49 @@ namespace
 		std::string name;
 		if (!GameUtil::PromptText("Set name", name, 40) || name.empty())
 			return {};
-		DataFile::Ini ini = DataFile::Load(kSpoonerFile);
-		ini.sections.erase(name);
-		auto& section = ini.sections[name];
-		int i = 0;
+		nlohmann::json objects = nlohmann::json::array();
 		for (const SpawnedObject& s : g_objects)
 		{
 			if (!ENTITY::DOES_ENTITY_EXIST(s.object))
 				continue;
 			const Vector3 p = ENTITY::GET_ENTITY_COORDS(s.object, FALSE, FALSE);
 			const Vector3 r = ENTITY::GET_ENTITY_ROTATION(s.object, 2);
-			section[std::format("object{}", i++)] = std::format("{},{:.3f},{:.3f},{:.3f},{:.2f},{:.2f},{:.2f}",
-				s.model, p.x, p.y, p.z, r.x, r.y, r.z);
+			objects.push_back({ { "model", s.model }, { "x", p.x }, { "y", p.y }, { "z", p.z }, { "rx", r.x }, { "ry", r.y }, { "rz", r.z } });
 		}
-		return DataFile::Save(kSpoonerFile, ini) ? std::format("Saved {} objects", i) : "Couldn't save";
+		const size_t count = objects.size();
+		nlohmann::json file = DataFile::LoadJson(kSpoonerFile);
+		file[name] = std::move(objects);
+		return DataFile::SaveJson(kSpoonerFile, file) ? std::format("Saved {} objects", count) : "Couldn't save";
 	}
 
 	std::string LoadSet(const std::string& name)
 	{
-		DataFile::Ini ini = DataFile::Load(kSpoonerFile);
-		auto it = ini.sections.find(name);
-		if (it == ini.sections.end())
+		const nlohmann::json file = DataFile::LoadJson(kSpoonerFile);
+		auto it = file.find(name);
+		if (it == file.end() || !it->is_array())
 			return "Not found";
 		int count = 0;
-		for (auto& [key, value] : it->second)
+		for (const nlohmann::json& saved : *it)
 		{
-			std::vector<std::string> v;
-			size_t start = 0;
-			for (size_t comma; (comma = value.find(',', start)) != std::string::npos; start = comma + 1)
-				v.push_back(value.substr(start, comma - start));
-			v.push_back(value.substr(start));
-			if (v.size() != 7)
-				continue;
-			const Hash model = GameUtil::ParseHash(v[0]);
-			if (!GameUtil::LoadModel(model))
-				continue;
-			const Object o = OBJECT::CREATE_OBJECT(model, std::stof(v[1]), std::stof(v[2]), std::stof(v[3]), FALSE, FALSE, TRUE, FALSE, FALSE);
-			ENTITY::SET_ENTITY_ROTATION(o, std::stof(v[4]), std::stof(v[5]), std::stof(v[6]), 2, TRUE);
-			ENTITY::FREEZE_ENTITY_POSITION(o, TRUE);
-			if (g_addToDatabase)
-				g_objects.push_back({ o, v[0] });
-			STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
-			count++;
+			try
+			{
+				const std::string modelName = saved.at("model").get<std::string>();
+				const Hash model = GameUtil::ParseHash(modelName);
+				if (!GameUtil::LoadModel(model))
+					continue;
+				const Object o = OBJECT::CREATE_OBJECT(model, saved.at("x").get<float>(), saved.at("y").get<float>(), saved.at("z").get<float>(),
+					FALSE, FALSE, TRUE, FALSE, FALSE);
+				ENTITY::SET_ENTITY_ROTATION(o, saved.at("rx").get<float>(), saved.at("ry").get<float>(), saved.at("rz").get<float>(), 2, TRUE);
+				ENTITY::FREEZE_ENTITY_POSITION(o, TRUE);
+				if (g_addToDatabase)
+					g_objects.push_back({ o, modelName });
+				STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+				count++;
+			}
+			catch (const nlohmann::json::exception&)
+			{
+				// a damaged entry; load the rest
+			}
 		}
 		return std::format("Loaded {} objects", count);
 	}
@@ -325,10 +328,10 @@ namespace
 	{
 		Ui::Toggle(m, "Add Entities to Database", [](bool on) { g_addToDatabase = on; })->SetState(g_addToDatabase);
 		Ui::Action(m, "Save Database", SaveSet);
-		DataFile::Ini ini = DataFile::Load(kSpoonerFile);
-		if (ini.sections.empty())
+		const nlohmann::json saved = DataFile::LoadJson(kSpoonerFile);
+		if (saved.empty())
 			m->AddItem(new MenuItemLabel([] { return std::string("No files found"); }));
-		for (auto& [name, section] : ini.sections)
+		for (const auto& [name, set] : saved.items())
 		{
 			const std::string n = name;
 			Ui::Action(m, n, [n] { return LoadSet(n); });

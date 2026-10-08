@@ -4,9 +4,6 @@
 [submodule "external/ScriptHookSDK"]
 	path = external/ScriptHookSDK
 	url = https://github.com/Evasion3356/ScriptHookRDR2-SDK.git
-[submodule "external/inipp"]
-	path = external/inipp
-	url = https://github.com/mcmtroffaes/inipp.git
 [submodule "external/minhook"]
 	path = external/minhook
 	url = https://github.com/TsudaKageyu/minhook.git

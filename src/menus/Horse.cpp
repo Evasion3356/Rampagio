@@ -4,7 +4,7 @@
 	the rest; we use GameUtil::PlayerHorse() (mount, else last mount, else
 	saddle horse) for both.
 
-	Also SubHorseBlip, SubHorseLoader (ours: Rampagio_Horses.ini), SubHorseStats,
+	Also SubHorseBlip, SubHorseLoader (ours: Rampagio_Horses.json), SubHorseStats,
 	SubMobileStable / SubMobileStableComponent (tack from the game scripts,
 	tools/extract_peds.py) and the horse's Meta Ped Tags / Expressions, which
 	open the Player's menus bound to the horse (Menus::Target).
@@ -14,6 +14,8 @@
 #include "..\GameUtil.h"
 #include "..\keyboard.h"
 #include "..\DataFile.h"
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -362,9 +364,9 @@ namespace
 		return "";
 	}
 
-	// --- loader (SubHorseLoader; ours: Rampagio_Horses.ini) ------------------------
+	// --- loader (SubHorseLoader; ours: Rampagio_Horses.json)------------------------
 
-	const wchar_t* kHorsesFile = L"Rampagio_Horses.ini";
+	const wchar_t* kHorsesFile = L"Rampagio_Horses.json";
 	constexpr int kGenderExpression = 0xA28B; // 1.0 male, 0.0 female (Rampage's Gender row)
 
 	std::string SaveHorse()
@@ -375,11 +377,8 @@ namespace
 		std::string name;
 		if (!GameUtil::PromptText("Horse name", name, 40) || name.empty())
 			return "";
-		DataFile::Ini ini = DataFile::Load(kHorsesFile);
-		ini.sections.erase(name);
-		auto& sec = ini.sections[name];
-		sec["model"] = std::format("0x{:08X}", ENTITY::GET_ENTITY_MODEL(horse));
-		sec["gender"] = std::format("{:.2f}", PED::_GET_CHAR_EXPRESSION(horse, kGenderExpression));
+		nlohmann::json saved = { { "model", ENTITY::GET_ENTITY_MODEL(horse) }, { "gender", PED::_GET_CHAR_EXPRESSION(horse, kGenderExpression) } };
+		nlohmann::json tags = nlohmann::json::array();
 		const int count = PED::_GET_NUM_COMPONENTS_IN_PED(horse);
 		for (int i = 0; i < count; i++)
 		{
@@ -387,20 +386,23 @@ namespace
 			int t0 = 0, t1 = 0, t2 = 0;
 			PED::GET_META_PED_ASSET_GUIDS(horse, i, &d, &a, &n, &m);
 			PED::GET_META_PED_ASSET_TINT(horse, i, &palette, &t0, &t1, &t2);
-			sec[std::format("tag{}", i)] = std::format("0x{:X},0x{:X},0x{:X},0x{:X},0x{:X},{},{},{}", d, a, n, m, palette, t0, t1, t2);
+			tags.push_back({ d, a, n, m, palette, t0, t1, t2 });
 		}
+		saved["tags"] = std::move(tags);
+		nlohmann::json file = DataFile::LoadJson(kHorsesFile);
+		file[name] = std::move(saved);
 		Ui::Controller().ReopenActiveLater();
-		return DataFile::Save(kHorsesFile, ini) ? "Saved " + name : "Couldn't save";
+		return DataFile::SaveJson(kHorsesFile, file) ? "Saved " + name : "Couldn't save";
 	}
 
 	std::string LoadHorse(const std::string& name)
 	{
-		DataFile::Ini ini = DataFile::Load(kHorsesFile);
-		auto it = ini.sections.find(name);
-		if (it == ini.sections.end())
+		const nlohmann::json file = DataFile::LoadJson(kHorsesFile);
+		auto it = file.find(name);
+		if (it == file.end() || !it->is_object() || !it->contains("model") || !it->at("model").is_number())
 			return "No horse named " + name;
-		auto& sec = it->second;
-		const Hash model = GameUtil::ParseHash(sec["model"]);
+		const nlohmann::json& saved = *it;
+		const Hash model = saved["model"].get<Hash>();
 		if (!GameUtil::LoadModel(model))
 			return "Couldn't load the model";
 		const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
@@ -412,21 +414,15 @@ namespace
 		for (int i = PED::_GET_NUM_COMPONENTS_IN_PED(horse) - 1; i >= 0; i--)
 			if (const Hash category = PED::_GET_PED_COMPONENT_CATEGORY_BY_INDEX(horse, i))
 				PED::REMOVE_TAG_FROM_META_PED(horse, category, 0);
-		for (int i = 0; ; i++)
+		for (const nlohmann::json& t : saved.value("tags", nlohmann::json::array()))
 		{
-			auto tag = sec.find(std::format("tag{}", i));
-			if (tag == sec.end())
-				break;
-			Hash h[5] = {};
-			int t[3] = {};
-			char buf[5][16] = {};
-			if (sscanf_s(tag->second.c_str(), "%15[^,],%15[^,],%15[^,],%15[^,],%15[^,],%d,%d,%d", buf[0], 16, buf[1], 16, buf[2], 16, buf[3], 16, buf[4], 16, &t[0], &t[1], &t[2]) != 8)
+			if (!t.is_array() || t.size() != 8 || !std::all_of(t.begin(), t.end(), [](const nlohmann::json& v) { return v.is_number(); }))
 				continue;
-			for (int k = 0; k < 5; k++)
-				h[k] = GameUtil::ParseHash(buf[k]);
-			PED::_SET_META_PED_TAG(horse, h[0], h[1], h[2], h[3], h[4], t[0], t[1], t[2]);
+			PED::_SET_META_PED_TAG(horse, t[0].get<Hash>(), t[1].get<Hash>(), t[2].get<Hash>(), t[3].get<Hash>(), t[4].get<Hash>(),
+				t[5].get<int>(), t[6].get<int>(), t[7].get<int>());
 		}
-		PED::_SET_CHAR_EXPRESSION(horse, kGenderExpression, std::strtof(sec["gender"].c_str(), nullptr));
+		const auto gender = saved.find("gender");
+		PED::_SET_CHAR_EXPRESSION(horse, kGenderExpression, gender != saved.end() && gender->is_number() ? gender->get<float>() : 0.0f);
 		PED::_UPDATE_PED_VARIATION(horse, FALSE, TRUE, TRUE, TRUE, FALSE);
 		return "";
 	}
@@ -435,20 +431,20 @@ namespace
 	{
 		Ui::Action(m, "Save Current", SaveHorse);
 		Ui::Section(m, "Load Horse");
-		DataFile::Ini ini = DataFile::Load(kHorsesFile);
-		if (ini.sections.empty())
+		const nlohmann::json saved = DataFile::LoadJson(kHorsesFile);
+		if (saved.empty())
 			Ui::Section(m, "No saved horses");
-		for (const auto& [name, sec] : ini.sections)
+		for (const auto& [name, horse] : saved.items())
 			Ui::Action(m, name, [name] { return LoadHorse(name); });
-		if (!ini.sections.empty())
+		if (!saved.empty())
 		{
 			Ui::Section(m, "Delete");
-			for (const auto& [name, sec] : ini.sections)
+			for (const auto& [name, horse] : saved.items())
 				Ui::Action(m, "Delete " + name, [name]
 				{
-					DataFile::Ini file = DataFile::Load(kHorsesFile);
-					file.sections.erase(name);
-					DataFile::Save(kHorsesFile, file);
+					nlohmann::json file = DataFile::LoadJson(kHorsesFile);
+					file.erase(name);
+					DataFile::SaveJson(kHorsesFile, file);
 					Ui::Controller().ReopenActiveLater();
 					return "Deleted " + name;
 				});

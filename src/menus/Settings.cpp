@@ -581,7 +581,6 @@ namespace
 		Ui::Section(about, "Libraries used");
 		Ui::Action(about, "MinHook", [] { return std::string("Hooking library (Tsuda Kageyu)"); });
 		Ui::Action(about, "nlohmann/json", [] { return std::string("JSON for Modern C++ (Niels Lohmann)"); });
-		Ui::Action(about, "inipp", [] { return std::string("INI parsing (Matthias C. M. Troffaes)"); });
 		Ui::Action(about, "spdlog", [] { return std::string("Logging (Gabi Melman)"); });
 	}
 

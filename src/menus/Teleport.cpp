@@ -2,11 +2,13 @@
 	Teleport menu: ports Rampage's Submenus::SubTeleport rows. The town list
 	is our own (approximate centres; the ground probe finds the height), not
 	Rampage's location tables. Custom locations are saved to
-	Rampagio_Teleports.ini.
+	Rampagio_Teleports.json.
 */
 
 #include "Menus.h"
 #include "..\DataFile.h"
+
+#include <nlohmann/json.hpp>
 #include "..\GameUtil.h"
 #include "..\Log.h"
 
@@ -102,7 +104,7 @@ namespace
 
 	// --- custom locations ---------------------------------------------
 
-	const wchar_t* kTeleportsFile = L"Rampagio_Teleports.ini";
+	const wchar_t* kTeleportsFile = L"Rampagio_Teleports.json";
 
 	std::string SaveCurrent()
 	{
@@ -110,13 +112,9 @@ namespace
 		if (!GameUtil::PromptText("Location name", name, 40) || name.empty())
 			return {};
 		const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
-		DataFile::Ini ini = DataFile::Load(kTeleportsFile);
-		auto& section = ini.sections[name];
-		section["x"] = std::format("{:.3f}", p.x);
-		section["y"] = std::format("{:.3f}", p.y);
-		section["z"] = std::format("{:.3f}", p.z);
-		section["heading"] = std::format("{:.1f}", ENTITY::GET_ENTITY_HEADING(Me()));
-		return DataFile::Save(kTeleportsFile, ini) ? "Saved " + name : "Couldn't save";
+		nlohmann::json file = DataFile::LoadJson(kTeleportsFile);
+		file[name] = { { "x", p.x }, { "y", p.y }, { "z", p.z }, { "heading", ENTITY::GET_ENTITY_HEADING(Me()) } };
+		return DataFile::SaveJson(kTeleportsFile, file) ? "Saved " + name : "Couldn't save";
 	}
 
 	bool ParseFloat(const std::string& s, float& out)
@@ -178,13 +176,27 @@ namespace
 			Ui::Section(menu, "Add lines \"Name, x, y, z\" to Rampagio_Shops.txt");
 	}
 
+	// A saved location's coordinates; false if a field is missing.
+	bool ReadPlace(const nlohmann::json& place, float& x, float& y, float& z)
+	{
+		auto number = [&place](const char* key, float& out)
+		{
+			auto it = place.find(key);
+			if (it == place.end() || !it->is_number())
+				return false;
+			out = it->get<float>();
+			return true;
+		};
+		return place.is_object() && number("x", x) && number("y", y) && number("z", z);
+	}
+
 	void BuildCustomList(MenuBase* menu)
 	{
-		DataFile::Ini ini = DataFile::Load(kTeleportsFile);
-		for (auto& [name, section] : ini.sections)
+		const nlohmann::json file = DataFile::LoadJson(kTeleportsFile);
+		for (const auto& [name, place] : file.items())
 		{
 			float x, y, z;
-			if (!ParseFloat(section["x"], x) || !ParseFloat(section["y"], y) || !ParseFloat(section["z"], z))
+			if (!ReadPlace(place, x, y, z))
 				continue;
 			Ui::Do(menu, name, [x, y, z]
 			{
@@ -197,15 +209,15 @@ namespace
 
 	void BuildDeleteList(MenuBase* menu)
 	{
-		DataFile::Ini ini = DataFile::Load(kTeleportsFile);
-		for (auto& [name, section] : ini.sections)
+		const nlohmann::json saved = DataFile::LoadJson(kTeleportsFile);
+		for (const auto& [name, place] : saved.items())
 		{
 			const std::string key = name;
 			Ui::Action(menu, name, [key]
 			{
-				DataFile::Ini file = DataFile::Load(kTeleportsFile);
-				file.sections.erase(key);
-				return DataFile::Save(kTeleportsFile, file) ? "Deleted " + key : std::string("Couldn't save");
+				nlohmann::json file = DataFile::LoadJson(kTeleportsFile);
+				file.erase(key);
+				return DataFile::SaveJson(kTeleportsFile, file) ? "Deleted " + key : std::string("Couldn't save");
 			});
 		}
 		if (menu->GetItemCount() == 0)
