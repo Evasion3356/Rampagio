@@ -44,15 +44,15 @@ namespace
 	bool g_copyModelOnly = false;
 	int g_savedRanks[3] = {};
 
-	MenuItemToggle* g_birdControls = nullptr;
-	MenuItemToggle* g_attackControls = nullptr;
-	MenuItemToggle* g_reloadControls = nullptr;
+	Rampagio::LoopedCommand* g_birdControls = nullptr;
+	Rampagio::LoopedCommand* g_attackControls = nullptr;
+	Rampagio::LoopedCommand* g_reloadControls = nullptr;
 
 	void SetControlToggles(bool bird, bool attack, bool reload)
 	{
-		g_birdControls->SetState(bird);
-		g_attackControls->SetState(attack);
-		g_reloadControls->SetState(reload);
+		g_birdControls->Sync(bird);
+		g_attackControls->Sync(attack);
+		g_reloadControls->Sync(reload);
 	}
 
 	void RefillCores()
@@ -191,12 +191,15 @@ namespace Menus
 	void BuildModelChanger(MenuBase* wardrobe)
 	{
 		MenuBase* changer = Ui::Submenu(wardrobe, "Model Changer");
-		Ui::Do(changer, "Reset", ResetModel);
-		Ui::Looped(changer, "Auto-Reset", AutoResetTick);
-		Ui::Toggle(changer, "Copy Model Only", [](bool on) { g_copyModelOnly = on; });
-		g_birdControls = Ui::Looped(changer, "Enable Bird Controls", BirdControlsTick);
-		g_attackControls = Ui::Looped(changer, "Enable Attack Controls", AttackControlsTick);
-		g_reloadControls = Ui::Looped(changer, "Enable Reload Controls", ReloadControlsTick);
+		Ui::Do(changer, "modelchanger.reset", "Reset", ResetModel);
+		Ui::Looped(changer, "modelchanger.autoreset", "Auto-Reset", AutoResetTick);
+		Ui::Toggle(changer, "modelchanger.copymodelonly", "Copy Model Only", [](bool on) { g_copyModelOnly = on; });
+		g_birdControls = Ui::Looped(changer, "modelchanger.enablebirdcontrols", "Enable Bird Controls", BirdControlsTick);
+		g_attackControls = Ui::Looped(changer, "modelchanger.enableattackcontrols", "Enable Attack Controls", AttackControlsTick);
+		g_reloadControls = Ui::Looped(changer, "modelchanger.enablereloadcontrols", "Enable Reload Controls", ReloadControlsTick);
+		// Set from the model on every change, so not saved.
+		for (Rampagio::Command* command : { g_birdControls, g_attackControls, g_reloadControls })
+			command->SetTransient();
 
 		Ui::Section(changer, "Models");
 		MenuBase* humans = Ui::Submenu(changer, "Humans");
@@ -236,11 +239,11 @@ namespace Menus
 				if (match(name))
 					AddModelRow(m, name);
 		});
-		Ui::Action(changer, "Custom Input", [] {
+		Ui::Action(changer, "modelchanger.custominput", "Custom Input", [] {
 			std::string text;
 			if (!GameUtil::PromptText("Enter Model Name or Hash:", text) || text.empty())
 				return std::string();
 			return ChangeModel(GameUtil::ParseHash(text));
-		});
+		})->SetHotkeyable(false);
 	}
 }
