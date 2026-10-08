@@ -154,9 +154,9 @@ namespace Menus
 		// SubSelfScenarios ("Reload List" reads Rampage's Scenarios.txt; ours
 		// has the script list built in and Custom Input for anything else).
 		Shared().scenarios = Ui::NameList(self, "Scenarios", Names(kScenarios), PlayScenario, [](MenuBase* m) {
-			Ui::Do(m, "Stop Playing", [] { TASK::CLEAR_PED_TASKS(Me(), TRUE, TRUE); });
-			Ui::Do(m, "Stop Playing Immediately", [] { TASK::CLEAR_PED_TASKS_IMMEDIATELY(Me(), TRUE, TRUE); });
-			Ui::Do(m, "Use Nearest", UseNearestScenario);
+			Ui::Do(m, "player.scenarios.stop", "Stop Playing", [] { TASK::CLEAR_PED_TASKS(Me(), TRUE, TRUE); });
+			Ui::Do(m, "player.scenarios.stopimmediately", "Stop Playing Immediately", [] { TASK::CLEAR_PED_TASKS_IMMEDIATELY(Me(), TRUE, TRUE); });
+			Ui::Do(m, "player.scenarios.usenearest", "Use Nearest", UseNearestScenario);
 		});
 
 		BuildPlayerAnimations(self); // PlayerActions.cpp
@@ -165,11 +165,11 @@ namespace Menus
 		MenuBase* wardrobe = Ui::Submenu(self, "Wardrobe");
 		BuildWardrobeTop(wardrobe);
 		Shared().walkStyles = Ui::NameList(wardrobe, "Walk Styles", Names(kWalkStyles), SetWalkStyle, [](MenuBase* m) {
-			Ui::Do(m, "Reset", [] { PED::_CLEAR_PED_DESIRED_LOCO_MOTION_TYPE(Me()); });
+			Ui::Do(m, "player.walkstyles.reset", "Reset", [] { PED::_CLEAR_PED_DESIRED_LOCO_MOTION_TYPE(Me()); });
 		});
 		Shared().damagePacks = Ui::NameList(wardrobe, "Apply Damage Packs", Names(kDamagePacks),
 			[](const std::string& pack) { PED::APPLY_PED_DAMAGE_PACK(Me(), pack.c_str(), 1.0f, 1.0f); },
-			[](MenuBase* m) { Ui::Do(m, "Clear all", ClearDamage); });
+			[](MenuBase* m) { Ui::Do(m, "player.damagepacks.clearall", "Clear all", ClearDamage); });
 		BuildWardrobe(wardrobe);
 
 		// Vision: SubTimecycleMod and SubAnimPostFx.
@@ -177,13 +177,13 @@ namespace Menus
 		Ui::NameList(vision, "Timecycle Modifiers", Names(kTimecycles),
 			[](const std::string& name) { GRAPHICS::SET_TRANSITION_TIMECYCLE_MODIFIER(name.c_str(), 0.0f); },
 			[](MenuBase* m) {
-				Ui::Do(m, "Clear all", [] { GRAPHICS::CLEAR_TIMECYCLE_MODIFIER(); });
-				Ui::Number(m, "Strength", &g_timecycleStrength, 0.0f, 1.0f, 0.05f,
+				Ui::Do(m, "player.timecycle.clearall", "Clear all", [] { GRAPHICS::CLEAR_TIMECYCLE_MODIFIER(); });
+				Ui::Number(m, "player.timecycle.strength", "Strength", &g_timecycleStrength, 0.0f, 1.0f, 0.05f,
 					[] { GRAPHICS::SET_TIMECYCLE_MODIFIER_STRENGTH(g_timecycleStrength); });
 			});
 		Ui::NameList(vision, "Screen Effects", Names(kPostFx),
 			[](const std::string& name) { GRAPHICS::ANIMPOSTFX_PLAY(name.c_str()); },
-			[](MenuBase* m) { Ui::Do(m, "Clear all", [] { GRAPHICS::ANIMPOSTFX_STOP_ALL(); }); });
+			[](MenuBase* m) { Ui::Do(m, "player.screeneffects.clearall", "Clear all", [] { GRAPHICS::ANIMPOSTFX_STOP_ALL(); }); });
 
 		BuildPlayerEffects(self);
 		BuildPlayerEmotes(self);
@@ -192,40 +192,41 @@ namespace Menus
 		// SubMoods: facial idle overrides from the ped's own facial dictionary.
 		Shared().moods = Ui::NameList(self, "Moods", Names(kMoods),
 			[](const std::string& mood) { PED::SET_FACIAL_IDLE_ANIM_OVERRIDE(Me(), mood.c_str(), nullptr); },
-			[](MenuBase* m) { Ui::Do(m, "Reset", [] { PED::CLEAR_FACIAL_IDLE_ANIM_OVERRIDE(Me()); }); });
+			[](MenuBase* m) { Ui::Do(m, "player.moods.reset", "Reset", [] { PED::CLEAR_FACIAL_IDLE_ANIM_OVERRIDE(Me()); }); });
 
 		// SubAbilities. Ours: the recharge toggles restore 1.0 when switched off.
 		MenuBase* abilities = Ui::Submenu(self, "Abilities");
-		Ui::Toggle(abilities, "Health Recharge",
+		Ui::Toggle(abilities, "player.healthrecharge", "Health Recharge",
 			[](bool on) { if (!on) PLAYER::SET_PLAYER_HEALTH_RECHARGE_MULTIPLIER(MyPlayer(), 1.0f); }, HealthRechargeTick);
-		Ui::Number(abilities, "Health Recharge Rate", &g_healthRecharge, 0.0f, 100.0f, 0.5f);
-		Ui::Toggle(abilities, "Stamina Recharge",
+		Ui::Number(abilities, "player.healthrechargerate", "Health Recharge Rate", &g_healthRecharge, 0.0f, 100.0f, 0.5f);
+		Ui::Toggle(abilities, "player.staminarecharge", "Stamina Recharge",
 			[](bool on) { if (!on) PLAYER::SET_PLAYER_STAMINA_RECHARGE_MULTIPLIER(MyPlayer(), 1.0f); }, StaminaRechargeTick);
-		Ui::Number(abilities, "Stamina Recharge Rate", &g_staminaRecharge, 0.0f, 100.0f, 0.5f);
+		Ui::Number(abilities, "player.staminarechargerate", "Stamina Recharge Rate", &g_staminaRecharge, 0.0f, 100.0f, 0.5f);
 		Ui::Section(abilities, "Dead Eye");
-		Ui::Toggle(abilities, "Disable Dead Eye", [](bool on) { PLAYER::_ENABLE_CUSTOM_DEADEYE_ABILITY(MyPlayer(), !on); });
-		Ui::Looped(abilities, "Unlimited Dead Eye", [] { PLAYER::_SPECIAL_ABILITY_START_RESTORE(MyPlayer(), -1, TRUE); });
-		Ui::Number(abilities, "Dead Eye Level", &g_deadEyeLevel, 0, 5, 1, SetDeadEyeLevel, true);
+		Ui::Toggle(abilities, "player.disabledeadeye", "Disable Dead Eye", [](bool on) { PLAYER::_ENABLE_CUSTOM_DEADEYE_ABILITY(MyPlayer(), !on); });
+		Ui::Looped(abilities, "player.unlimiteddeadeye", "Unlimited Dead Eye", [] { PLAYER::_SPECIAL_ABILITY_START_RESTORE(MyPlayer(), -1, TRUE); });
+		Ui::Number(abilities, "player.deadeyelevel", "Dead Eye Level", &g_deadEyeLevel, 0, 5, 1, SetDeadEyeLevel, true);
 		Ui::Section(abilities, "Eagle Eye");
-		Ui::Toggle(abilities, "Disable Eagle Eye", [](bool on) { PLAYER::_ENABLE_EAGLEEYE(MyPlayer(), !on); });
-		Ui::Toggle(abilities, "Unlimited Eagle Eye", SetUnlimitedEagleEye);
-		Ui::Toggle(abilities, "Eagle Eye Plus", [](bool on) { PLAYER::_EAGLE_EYE_SET_PLUS_FLAG_DISABLED(MyPlayer(), !on); });
-		Ui::Choice(abilities, "Eagle Eye Mode", { "Default", "Trail Vision" }, &g_eagleEyeMode, SetEagleEyeMode);
+		Ui::Toggle(abilities, "player.disableeagleeye", "Disable Eagle Eye", [](bool on) { PLAYER::_ENABLE_EAGLEEYE(MyPlayer(), !on); });
+		Ui::Toggle(abilities, "player.unlimitedeagleeye", "Unlimited Eagle Eye", SetUnlimitedEagleEye);
+		Ui::Toggle(abilities, "player.eagleeyeplus", "Eagle Eye Plus", [](bool on) { PLAYER::_EAGLE_EYE_SET_PLUS_FLAG_DISABLED(MyPlayer(), !on); });
+		Ui::Choice(abilities, "player.eagleeyemode", "Eagle Eye Mode", { "Default", "Trail Vision" }, &g_eagleEyeMode, SetEagleEyeMode);
 
 		// SubPlayerProofs. Ours: the bits are re-applied every frame while any
 		// is on, so they survive death and model changes.
 		MenuBase* proofs = Ui::Submenu(self, "Player Proofs");
 		const char* const kProofs[] = { "Bullets", "Flame", "Explosion", "Collision", "Melee", "Steam", "Smoke", "Headshots", "Projectiles" };
 		for (int bit = 0; bit < 9; bit++)
-			Ui::Toggle(proofs, kProofs[bit], [bit](bool on) { SetProof(bit, on); }, ApplyProofs);
+			Ui::Toggle(proofs, Ui::Id("player.proof", kProofs[bit]), kProofs[bit], [bit](bool on) { SetProof(bit, on); }, ApplyProofs);
 
 		// SubPlayerConfigFlags. Rampage picks the flag from a named list; ours
 		// takes the number (the game has no flag names to source).
 		MenuBase* flags = Ui::Submenu(self, "Config Flags");
-		Ui::Number(flags, "Flag", &g_configFlag, 0, 700, 1, ReadConfigFlag);
-		Ui::Choice(flags, "Status", { "Disabled", "Enabled" }, &g_configStatus,
+		Ui::Number(flags, "player.flag", "Flag", &g_configFlag, 0, 700, 1, ReadConfigFlag);
+		Ui::Choice(flags, "player.status", "Status", { "Disabled", "Enabled" }, &g_configStatus,
 			[](int status) { PED::SET_PED_CONFIG_FLAG(Me(), g_configFlag, status != 0); });
 		flags->SetOnOpen([](MenuBase*) { ReadConfigFlag(); });
+		Ui::Transient(flags);
 
 		BuildPlayerPosse(self);
 	}
