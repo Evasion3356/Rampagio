@@ -20,6 +20,8 @@
 #include "..\NativeHooks.h"
 
 #include <format>
+#include <unordered_set>
+#include <vector>
 
 namespace
 {
@@ -441,9 +443,29 @@ namespace
 
 	// ---- SubMapDiscoverables ----
 
-	const NamedHash kMapDiscoveries[] = {
+	// Rampage's list first (it includes the animal and fish map entries), then
+	// any the game scripts name that it lacks.
+	const NamedHash kRampageMapDiscoveries[] = {
+#include "..\data\RampageMapDiscoveries.inc"
+	};
+	const NamedHash kScriptMapDiscoveries[] = {
 #include "..\data\MapDiscoveries.inc"
 	};
+
+	const std::vector<NamedHash>& MapDiscoveries()
+	{
+		static const std::vector<NamedHash> list = [] {
+			std::vector<NamedHash> out(std::begin(kRampageMapDiscoveries), std::end(kRampageMapDiscoveries));
+			std::unordered_set<Hash> seen;
+			for (const NamedHash& entry : out)
+				seen.insert(HashOf(entry));
+			for (const NamedHash& entry : kScriptMapDiscoveries)
+				if (seen.insert(HashOf(entry)).second)
+					out.push_back(entry);
+			return out;
+		}();
+		return list;
+	}
 
 	// "Active" means discovered. alloc8or's _MAP_DISCOVERY_SET_ENABLED is
 	// what Rampage (and the scripts) call to undiscover one.
@@ -462,17 +484,17 @@ namespace
 	void BuildMapDiscoverables(MenuBase* menu)
 	{
 		Ui::Action(menu, "Enable All", [] {
-			for (const NamedHash& entry : kMapDiscoveries)
+			for (const NamedHash& entry : MapDiscoveries())
 				SetDiscovered(HashOf(entry), true);
 			return std::string("All discovered");
 		});
 		Ui::Action(menu, "Disable All", [] {
-			for (const NamedHash& entry : kMapDiscoveries)
+			for (const NamedHash& entry : MapDiscoveries())
 				SetDiscovered(HashOf(entry), false);
 			return std::string("All undiscovered");
 		});
 		Ui::Section(menu, "Discoveries");
-		for (const NamedHash& entry : kMapDiscoveries)
+		for (const NamedHash& entry : MapDiscoveries())
 		{
 			const Hash discovery = HashOf(entry);
 			StateToggle(menu, GameUtil::ItemName(discovery, entry.label), IsDiscovered(discovery),

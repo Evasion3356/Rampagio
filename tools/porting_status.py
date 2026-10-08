@@ -104,7 +104,7 @@ STATUS = {
  'SubCollectiblesDinoBones':('Done','Recovery > Collectibles > Dino Bones: read from the dino_bones collectable category with _COLLECTABLE_GET_PLACEMENT_LOCATION; locations in a Locations list'),
  'SubCollectiblesDreamcatchers':('Done','Recovery > Collectibles > Dreamcatchers: coordinates from discoverable_generic_location (tools/extract_collectibles.py), found state from Global_40.f_8863.f_148'),
  'SubCollectiblesRockCarvings':('Done','Recovery > Collectibles > Rock Carvings: read from the rock_carvings collectable category; locations in a Locations list'),
- 'SubMapDiscoverables':('Partial','Recovery > Unlocks > Map Discoverables: 79 discoveries the scripts name; Rampage lists 284 (incl. animal/fish map discoverables)'),
+ 'SubMapDiscoverables':('Done','Recovery > Unlocks > Map Discoverables: the 284 of Rampage discoveries (data/RampageMapDiscoveries.inc) plus any more the scripts name'),
  'SubWorldWeather':('Done','World > Weather'),
  'SubWeapons':('Done','Weapon: Rope Gun pulls toward the impact and Portal Gun uses markers (ours)'),
  'SubWeaponsManage':('Done','Weapon > Manage Weapons: Upgrade Weapon tries the COMPONENT_ names from the game scripts'),
