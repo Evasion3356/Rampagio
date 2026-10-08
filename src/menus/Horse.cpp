@@ -539,11 +539,11 @@ namespace
 				if (group == t.group)
 				{
 					const Hash item = GameUtil::Joaat(t.name);
-					Ui::Do(sub, std::format("{} {}", ++n, t.name + std::strlen("HORSE_EQUIPMENT_")), [item] { ApplyTack(item); });
+					Ui::Do(sub, Ui::Id("horse.tack", t.name + std::strlen("HORSE_EQUIPMENT_")), std::format("{} {}", ++n, t.name + std::strlen("HORSE_EQUIPMENT_")), [item] { ApplyTack(item); });
 				}
 		}
 		Ui::Section(stable, "Custom");
-		Ui::Action(stable, "Add Component", []() -> std::string
+		Ui::Action(stable, "horse.addcomponent", "Add Component", []() -> std::string
 		{
 			std::string text;
 			if (!GameUtil::PromptText("Tack item name or hash:", text) || text.empty())
@@ -553,16 +553,16 @@ namespace
 				return "Not an item the game knows";
 			ApplyTack(item);
 			return "";
-		});
-		Ui::Action(stable, "Remove Component", []() -> std::string
+		})->SetHotkeyable(false);
+		Ui::Action(stable, "horse.removecomponent", "Remove Component", []() -> std::string
 		{
 			std::string text;
 			if (!GameUtil::PromptText("Category name or hash:", text) || text.empty())
 				return "";
 			RemoveTack(GameUtil::ParseHash(text));
 			return "";
-		});
-		Ui::Do(stable, "Remove All", [] {
+		})->SetHotkeyable(false);
+		Ui::Do(stable, "horse.removeall", "Remove All", [] {
 			for (const char* category : kTackCategories)
 				RemoveTack(GameUtil::Joaat(category));
 		});
@@ -578,32 +578,32 @@ namespace Menus
 		Target::Bind(horse, [] { return GameUtil::PlayerHorse(); });
 
 		MenuBase* blip = Ui::Submenu(horse, "Blip");
-		Ui::Action(blip, "Add Blip", AddHorseBlip);
-		Ui::Action(blip, "Teleport to", TeleportToBlipHorse);
-		Ui::Action(blip, "Teleport to Me", BlipHorseToMe);
+		Ui::Action(blip, "horse.addblip", "Add Blip", AddHorseBlip);
+		Ui::Action(blip, "horse.teleportto", "Teleport to", TeleportToBlipHorse);
+		Ui::Action(blip, "horse.teleporttome", "Teleport to Me", BlipHorseToMe);
 		Ui::ListMenu(horse, "Horse Loader", BuildLoader);
 		Ui::Link(horse, "Meta Ped Tags", Shared().metaTags);
 		Ui::Link(horse, "Meta Ped Expressions", Shared().metaExpressions);
 
 		MenuBase* stats = Ui::Submenu(horse, "Horse Stats");
-		Ui::Choice(stats, "Gender", { "Female", "Male" }, &g_gender, [](int g) {
+		Ui::Choice(stats, "horse.gender", "Gender", { "Female", "Male" }, &g_gender, [](int g) {
 			OnMount([g](Ped m) {
 				PED::_SET_CHAR_EXPRESSION(m, kGenderExpression, g == 1 ? 1.0f : 0.0f);
 				PED::_UPDATE_PED_VARIATION(m, FALSE, TRUE, TRUE, TRUE, FALSE);
 			});
 		});
-		Ui::Do(stats, "Max Horse Cores", [] {
+		Ui::Do(stats, "horse.maxhorsecores", "Max Horse Cores", [] {
 			OnMount([](Ped m) {
 				ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, 0, ATTRIBUTE::GET_MAX_ATTRIBUTE_RANK(m, 0));
 				ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, 1, ATTRIBUTE::GET_MAX_ATTRIBUTE_RANK(m, 1));
 			});
 		});
-		Ui::Action(stats, "Max Horse Bonding", MaxBonding);
+		Ui::Action(stats, "horse.maxhorsebonding", "Max Horse Bonding", MaxBonding);
 		Ui::Section(stats, "Custom");
 		for (HorseStat& s : g_stats)
 		{
 			HorseStat* stat = &s;
-			Ui::Number(stats, s.name, &s.value, 0, 10, 1,
+			Ui::Number(stats, Ui::Id("horse.stat", s.name), s.name, &s.value, 0, 10, 1,
 				[stat] { OnMount([stat](Ped m) { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, stat->attribute, stat->value); }); }, true);
 		}
 		stats->SetOnOpen([](MenuBase*) {
@@ -617,42 +617,42 @@ namespace Menus
 		BuildMobileStable(horse);
 
 		Ui::Section(horse, "Toggles");
-		Ui::Looped(horse, "Invincible", [] { g_invincible.Tick(SetInvincible); }, [] { g_invincible.Off(SetInvincible); });
-		Ui::Looped(horse, "Invisible", [] { g_invisible.Tick(SetInvisible); }, [] { g_invisible.Off(SetInvisible); });
-		Ui::Looped(horse, "Stamina Never Drain", [] { OnMount([](Ped m) { PED::_RESTORE_PED_STAMINA(m, 100.0f); }); });
-		Ui::Looped(horse, "Never Ragdoll", [] { g_noRagdoll.Tick(SetNoRagdoll); }, [] { g_noRagdoll.Off(SetNoRagdoll); });
-		Ui::Number(horse, "Horse Scale", &g_scale, 0.1f, 10.0f, 0.05f, ApplyScale);
-		Ui::Looped(horse, "Super Speed", SuperSpeedTick, SuperSpeedOff);
-		Ui::Number(horse, "Super Speed Force", &g_superSpeed, 5.0f, 200.0f, 5.0f);
-		Ui::Looped(horse, "Horse Fly Mode", FlyTick);
-		Ui::Number(horse, "Fly Speed", &g_flySpeed, 0.1f, 10.0f, 0.1f);
-		Ui::Looped(horse, "Horse Cores Never Drain", [] { OnMount(FillCores); });
-		Ui::Looped(horse, "Horse Always Calm", [] { g_calm.Tick(SetCalm); }, [] { g_calm.Off(SetCalm); });
-		Ui::Looped(horse, "Flaming Hooves", [] { g_hooves.Tick(SetFlamingHooves); }, [] { g_hooves.Off(SetFlamingHooves); });
-		Ui::Toggle(horse, "Mount Cover", [](bool on) { PED::SET_PED_CONFIG_FLAG(Me(), 560, on); });
-		Ui::Looped(horse, "Side Saddle Riding", SideSaddleTick, SideSaddleOff);
-		Ui::Looped(horse, "Always Clean", [] { OnMount([](Ped m) { PED::CLEAR_PED_ENV_DIRT(m); }); });
-		Ui::Looped(horse, "Horse Teleport Whistle", WhistleTick);
+		Ui::Looped(horse, "horse.invincible", "Invincible", [] { g_invincible.Tick(SetInvincible); }, [] { g_invincible.Off(SetInvincible); });
+		Ui::Looped(horse, "horse.invisible", "Invisible", [] { g_invisible.Tick(SetInvisible); }, [] { g_invisible.Off(SetInvisible); });
+		Ui::Looped(horse, "horse.staminaneverdrain", "Stamina Never Drain", [] { OnMount([](Ped m) { PED::_RESTORE_PED_STAMINA(m, 100.0f); }); });
+		Ui::Looped(horse, "horse.neverragdoll", "Never Ragdoll", [] { g_noRagdoll.Tick(SetNoRagdoll); }, [] { g_noRagdoll.Off(SetNoRagdoll); });
+		Ui::Number(horse, "horse.horsescale", "Horse Scale", &g_scale, 0.1f, 10.0f, 0.05f, ApplyScale);
+		Ui::Looped(horse, "horse.superspeed", "Super Speed", SuperSpeedTick, SuperSpeedOff);
+		Ui::Number(horse, "horse.superspeedforce", "Super Speed Force", &g_superSpeed, 5.0f, 200.0f, 5.0f);
+		Ui::Looped(horse, "horse.horseflymode", "Horse Fly Mode", FlyTick);
+		Ui::Number(horse, "horse.flyspeed", "Fly Speed", &g_flySpeed, 0.1f, 10.0f, 0.1f);
+		Ui::Looped(horse, "horse.horsecoresneverdrain", "Horse Cores Never Drain", [] { OnMount(FillCores); });
+		Ui::Looped(horse, "horse.horsealwayscalm", "Horse Always Calm", [] { g_calm.Tick(SetCalm); }, [] { g_calm.Off(SetCalm); });
+		Ui::Looped(horse, "horse.flaminghooves", "Flaming Hooves", [] { g_hooves.Tick(SetFlamingHooves); }, [] { g_hooves.Off(SetFlamingHooves); });
+		Ui::Toggle(horse, "horse.mountcover", "Mount Cover", [](bool on) { PED::SET_PED_CONFIG_FLAG(Me(), 560, on); });
+		Ui::Looped(horse, "horse.sidesaddleriding", "Side Saddle Riding", SideSaddleTick, SideSaddleOff);
+		Ui::Looped(horse, "horse.alwaysclean", "Always Clean", [] { OnMount([](Ped m) { PED::CLEAR_PED_ENV_DIRT(m); }); });
+		Ui::Looped(horse, "horse.horseteleportwhistle", "Horse Teleport Whistle", WhistleTick);
 
 		Ui::Section(horse, "Actions");
-		Ui::Do(horse, "Fill Horse Cores", [] { OnMount(FillHorseCores); });
-		Ui::Action(horse, "Cores Overpower", CoresOverpower);
-		Ui::Do(horse, "Quick Boost", [] { PLAYER::BOOST_PLAYER_HORSE_SPEED_FOR_TIME(PLAYER::PLAYER_ID(), 10000.0f, 10000); });
-		Ui::Do(horse, "Quick Stop", [] { OnMount([](Ped m) { TASK::TASK_HORSE_ACTION(m, 3, 0, 0); }); });
-		Ui::Do(horse, "Heal", [] { OnMount(HealHorse); });
-		Ui::Do(horse, "Clean", [] { OnMount([](Ped m) { PED::CLEAR_PED_ENV_DIRT(m); }); });
-		Ui::Do(horse, "Clone", [] { OnMount([](Ped m) { PED::CLONE_PED(m, TRUE, TRUE, TRUE); }); });
-		Ui::Action(horse, "Rename", Rename);
-		Ui::Do(horse, "Ragdoll", Ragdoll);
-		Ui::Action(horse, "Set As Primary Horse", SetAsPrimary);
-		Ui::Do(horse, "Remove Pelts", [] { OnMount(RemovePelts); });
-		Ui::Do(horse, "Kill", [] { OnMount([](Ped m) { ENTITY::SET_ENTITY_HEALTH(m, 0, 0); }); });
-		Ui::Do(horse, "Delete", [] { OnMount(DeleteHorse); });
-		Ui::Action(horse, "Teleport Horse to Me", TeleportHorseToMe);
-		Ui::Action(horse, "Teleport to Horse", TeleportToHorse);
-		Ui::Action(horse, "Play Shitting Animation", [] { return PlayAnim("creatures_mammal@horse@normal@idle@idle_variation@shitting", "idle_transition"); });
-		Ui::Action(horse, "Play Injured Animation", [] { return PlayAnim("creatures_mammal@horse@injured_critical@canter@slope@right", "stop_l"); });
-		Ui::Action(horse, "Revive Horse", Revive);
-		Ui::Do(horse, "View Horse Cargo", [] { UIAPPS::LAUNCH_UIAPP_BY_HASH(0xFFC21415); });
+		Ui::Do(horse, "horse.fillhorsecores", "Fill Horse Cores", [] { OnMount(FillHorseCores); });
+		Ui::Action(horse, "horse.coresoverpower", "Cores Overpower", CoresOverpower);
+		Ui::Do(horse, "horse.quickboost", "Quick Boost", [] { PLAYER::BOOST_PLAYER_HORSE_SPEED_FOR_TIME(PLAYER::PLAYER_ID(), 10000.0f, 10000); });
+		Ui::Do(horse, "horse.quickstop", "Quick Stop", [] { OnMount([](Ped m) { TASK::TASK_HORSE_ACTION(m, 3, 0, 0); }); });
+		Ui::Do(horse, "horse.heal", "Heal", [] { OnMount(HealHorse); });
+		Ui::Do(horse, "horse.clean", "Clean", [] { OnMount([](Ped m) { PED::CLEAR_PED_ENV_DIRT(m); }); });
+		Ui::Do(horse, "horse.clone", "Clone", [] { OnMount([](Ped m) { PED::CLONE_PED(m, TRUE, TRUE, TRUE); }); });
+		Ui::Action(horse, "horse.rename", "Rename", Rename)->SetHotkeyable(false);
+		Ui::Do(horse, "horse.ragdoll", "Ragdoll", Ragdoll);
+		Ui::Action(horse, "horse.setasprimaryhorse", "Set As Primary Horse", SetAsPrimary);
+		Ui::Do(horse, "horse.removepelts", "Remove Pelts", [] { OnMount(RemovePelts); });
+		Ui::Do(horse, "horse.kill", "Kill", [] { OnMount([](Ped m) { ENTITY::SET_ENTITY_HEALTH(m, 0, 0); }); });
+		Ui::Do(horse, "horse.delete", "Delete", [] { OnMount(DeleteHorse); });
+		Ui::Action(horse, "horse.teleporthorsetome", "Teleport Horse to Me", TeleportHorseToMe);
+		Ui::Action(horse, "horse.teleporttohorse", "Teleport to Horse", TeleportToHorse);
+		Ui::Action(horse, "horse.playshittinganimation", "Play Shitting Animation", [] { return PlayAnim("creatures_mammal@horse@normal@idle@idle_variation@shitting", "idle_transition"); });
+		Ui::Action(horse, "horse.playinjuredanimation", "Play Injured Animation", [] { return PlayAnim("creatures_mammal@horse@injured_critical@canter@slope@right", "stop_l"); });
+		Ui::Action(horse, "horse.revivehorse", "Revive Horse", Revive);
+		Ui::Do(horse, "horse.viewhorsecargo", "View Horse Cargo", [] { UIAPPS::LAUNCH_UIAPP_BY_HASH(0xFFC21415); });
 	}
 }
