@@ -25,27 +25,37 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
-		// First: the dominoes advisor's worker must learn about the detach
-		// before anything else here (see DominoCheat::OnProcessDetach).
-		Menus::ShutdownMinigames(lpReserved != nullptr);
+	{
 		// lpReserved is non-null at process exit, null on FreeLibrary
 		// (ScriptHookRDR2's Ctrl+R reload).
-		ScriptUnload(lpReserved != nullptr);
-		// Waits for the render and window threads to leave the overlay's hooks.
-		Overlay::Shutdown();
-		// Game scripts must stop calling into our replacements before the
-		// module goes away.
-		ScriptVM::Shutdown();
-		NativeHooks::Shutdown();
-		YEEAHSM::StowWeaponsHook::Remove();
-		Menus::ShutdownChallenges();
-		// Last, after every MinHook user has removed its hooks.
-		MH_Uninitialize();
-		// Put the game's code back the way we found it.
-		BytePatch::RestoreAll();
+		const bool processExit = lpReserved != nullptr;
+		// First: the dominoes advisor's worker must learn about the detach
+		// before anything else here (see DominoCheat::OnProcessDetach).
+		Menus::ShutdownMinigames(processExit);
+		ScriptUnload(processExit);
+		// At process exit every other thread is already gone, possibly
+		// while holding one of our mutexes or MinHook's lock, so unhooking
+		// could hang the exit; the hooks and patches die with the process.
+		// Same as the siblings' own DllMains.
+		if (!processExit)
+		{
+			// Waits for the render and window threads to leave the overlay's hooks.
+			Overlay::Shutdown();
+			// Game scripts must stop calling into our replacements before the
+			// module goes away.
+			ScriptVM::Shutdown();
+			NativeHooks::Shutdown();
+			YEEAHSM::StowWeaponsHook::Remove();
+			Menus::ShutdownChallenges();
+			// Last, after every MinHook user has removed its hooks.
+			MH_Uninitialize();
+			// Put the game's code back the way we found it.
+			BytePatch::RestoreAll();
+		}
 		scriptUnregister(hInstance);
 		keyboardHandlerUnregister(OnKeyboardMessage);
 		break;
+	}
 	}
 	return TRUE;
 }
