@@ -15,3 +15,12 @@ status rampagio_music mode
 seek rampagio_music to start
 pause rampagio_music
 resume rampagio_music
+Scenario
+Flags
+Interactable
+Outfit
+Map
+Creator
+Placement
+Texture
+Dynamic

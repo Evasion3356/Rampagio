@@ -1,4 +1,6 @@
 // es-MX: { English, translation }, sorted by English. Written by hand; tools/lang_sync.py checks it.
+{ "Add Entities to Database", "Agregar entidades a la base de datos" },
+{ "Added to the database", "Agregado a la base de datos" },
 { "All Members will stay in place.", "Todos los miembros se quedan en su lugar." },
 { "Change ped way of movement.", "Cambia la forma de caminar del NPC." },
 { "Change the clothing, model and walk style.", "Cambia la ropa, el modelo y la forma de caminar." },
