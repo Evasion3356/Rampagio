@@ -245,7 +245,6 @@ namespace NativeHooks
 		g_programs.clear();
 		g_hooks.clear();
 		g_initialized = false;
-		// Nothing else uses MinHook yet; whoever does next shares this.
-		MH_Uninitialize();
+		// MinHook is shared (Keep Weapons on Dismount); DllMain uninitializes it.
 	}
 }

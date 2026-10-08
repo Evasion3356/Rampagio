@@ -92,6 +92,9 @@
     <ProjectReference Include="external\FishingFix\FishingFixLib.vcxproj">
       <Project>{5B2E8C4A-3D71-4F96-A0B8-6C1D9E2F7A35}</Project>
     </ProjectReference>
+    <ProjectReference Include="external\YEEAHSM\YEEAHSMLib.vcxproj">
+      <Project>{8D3F6A21-7C4B-4E59-B1A2-9E0C5D7F3B48}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{825A6BD4-A1A2-4AF7-A181-49E34539782C}</ProjectGuid>

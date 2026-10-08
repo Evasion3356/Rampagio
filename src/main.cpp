@@ -10,6 +10,8 @@
 #include "keyboard.h"
 #include "NativeHooks.h"
 #include "BytePatch.h"
+#include "..\external\minhook\include\MinHook.h"
+#include "..\external\YEEAHSM\src\StowWeaponsHook.h"
 
 BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 {
@@ -26,6 +28,9 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		// Game scripts must stop calling into our replacements before the
 		// module goes away.
 		NativeHooks::Shutdown();
+		YEEAHSM::StowWeaponsHook::Remove();
+		// Last, after every MinHook user has removed its hooks.
+		MH_Uninitialize();
 		// Put the game's code back the way we found it.
 		BytePatch::RestoreAll();
 		scriptUnregister(hInstance);

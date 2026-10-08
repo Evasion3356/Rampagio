@@ -3,11 +3,21 @@
 	SubWeaponsAmmunition, SubWeaponsGive and SubWeaponModifiers rows. The
 	weapon and ammo lists are the game's item names (filtered through
 	IS_WEAPON_VALID at runtime), not Rampage's tables.
+
+	Keep Weapons on Dismount is ours: the YEEAHSM submodule
+	(external/YEEAHSM, YEEAHSMLib.vcxproj; its README and JOURNEY.md have
+	the investigation). Dismounting and walking into camp both stow
+	weapons on the horse through one engine function, which its hook
+	discards.
 */
 
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\keyboard.h"
+#include "..\Log.h"
+#include "..\..\external\YEEAHSM\src\StowWeaponsHook.h"
+#include "..\..\external\YEEAHSM\src\YEEAHSMLog.h"
+#include "..\..\external\minhook\include\MinHook.h"
 
 #include <cmath>
 
@@ -24,6 +34,28 @@ namespace
 	constexpr Hash INPUT_SNIPER_ZOOM_OUT = 0x9DA42644;
 	constexpr int ARMED_ANY_GUN = 4;   // IS_PED_ARMED flag: guns only
 	constexpr int ARMED_ANY = 7;
+
+	// Installs YEEAHSM's hook once; the pattern scan is too slow to retry
+	// every frame. MinHook is shared with NativeHooks; DllMain tears it down.
+	bool g_stowTried = false;
+	void KeepWeaponsTick()
+	{
+		if (g_stowTried)
+			return;
+		g_stowTried = true;
+		YEEAHSM::Log::SetSink([](const char* line) { Log::Write("[YEEAHSM] {}", line); });
+		const MH_STATUS init = MH_Initialize();
+		if (init != MH_OK && init != MH_ERROR_ALREADY_INITIALIZED)
+			Log::Write("Keep Weapons on Dismount: MH_Initialize failed ({})", MH_StatusToString(init));
+		else
+			YEEAHSM::StowWeaponsHook::Install();
+	}
+
+	void KeepWeaponsOff()
+	{
+		YEEAHSM::StowWeaponsHook::Remove();
+		g_stowTried = false;
+	}
 
 	const char* const kWeapons[] = {
 		"WEAPON_REVOLVER_CATTLEMAN", "WEAPON_REVOLVER_CATTLEMAN_JOHN", "WEAPON_REVOLVER_CATTLEMAN_MEXICAN",
@@ -609,6 +641,8 @@ namespace Menus
 		BuildWeaponSubmenus(weapons); // Visuals, Aimbot, Bullets
 		BuildWeaponExtras(weapons, manage, ammo, mods);
 		Ui::Toggle(weapons, "weapon.disabledualwield", "Disable Dual Wield", [](bool on) { WEAPON::_SET_ALLOW_DUAL_WIELD(Me(), !on); });
+		// On by default, as the standalone YEEAHSM is.
+		Ui::Looped(weapons, "weapon.keepweaponsondismount", "Keep Weapons on Dismount", KeepWeaponsTick, KeepWeaponsOff)->SetDefault(true);
 		Ui::Section(weapons, "Weapon Mods");
 		Ui::Looped(weapons, "weapon.slowmotiononaiming", "Slow Motion on Aiming", SlowMoAimTick, [] { MISC::SET_TIME_SCALE(1.0f); });
 		Ui::Looped(weapons, "weapon.firstpersononaim", "First Person on Aim", FirstPersonAimTick);
