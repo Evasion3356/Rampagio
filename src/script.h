@@ -11,3 +11,7 @@
 #include "..\external\ScriptHookSDK\inc\main.h"
 
 void ScriptMain();
+// From DllMain detach. On an eject (ScriptHookRDR2's Ctrl+R reload), undoes
+// every feature first if it's safe to call natives there (see script.cpp);
+// then writes unsaved settings.
+void ScriptUnload(bool processExit);

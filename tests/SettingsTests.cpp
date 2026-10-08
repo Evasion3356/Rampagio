@@ -211,10 +211,30 @@ namespace
 		Check(plainValue == 6, "restore off: plain value loads");
 		Check(setting->GetState(), "restore off: settings. commands still load");
 
+		Settings::Flush();
+		nlohmann::json saved = ReadJson(path)["commands"];
+		Check(saved["test.restore.bool"] == true && saved["test.restore.live"] == 5, "restore off: the file keeps the unapplied saved values");
+		b->SetState(false); // no change: still kept
+		Settings::Flush();
+		Check(ReadJson(path)["commands"]["test.restore.bool"] == true, "restore off: kept until the state changes");
+
 		Settings::Reload();
 		Commands::ApplyLoaded(true);
 		Check(b->GetState() && hook, "restore on: bool restored through its hook");
 		Check(liveValue == 5 && changes == 1, "restore on: value applied through onChange");
+
+		// Changing a kept value replaces it in the file.
+		Settings::Reload();
+		Commands::ResetToDefaults();
+		Settings::Flush();
+		saved = ReadJson(path)["commands"];
+		Check(saved["test.restore.bool"] == false && saved["test.restore.live"] == 1, "ResetToDefaults saves the defaults");
+		WriteText(path, R"({"commands":{"test.restore.live":5}})");
+		Settings::Initialize(path);
+		Commands::ApplyLoaded(false);
+		live->SetState(3);
+		Settings::Flush();
+		Check(ReadJson(path)["commands"]["test.restore.live"] == 3, "restore off: a changed value replaces the kept one");
 	}
 
 	void Hotkeys()
@@ -282,6 +302,21 @@ namespace
 		Check(ReadJson(path)["commands"]["test.throttle.int"] == 1, "Tick writes once the interval passed");
 		Settings::SetWriteInterval(1000);
 	}
+
+	void TryFlushSnapshot()
+	{
+		auto* i = new IntCommand("test.tryflush.int", "Int", "", 0, 100, 1, 0);
+		const std::wstring path = FilePath("tryflush.json");
+		Settings::SetWriteInterval(60000);
+		Settings::Initialize(path);
+		Settings::Flush();
+		i->SetState(1);
+		Settings::Tick(); // inside the interval: snapshot only
+		i->SetState(2); // not snapshotted yet
+		Check(Settings::TryFlush(), "TryFlush writes");
+		Check(ReadJson(path)["commands"]["test.tryflush.int"] == 1, "TryFlush writes the last Tick's snapshot, not live state");
+		Settings::SetWriteInterval(1000);
+	}
 }
 
 int main()
@@ -301,6 +336,7 @@ int main()
 	Hotkeys();
 	Transient();
 	Throttle();
+	TryFlushSnapshot();
 
 	std::error_code ec;
 	fs::remove_all(g_dir, ec);

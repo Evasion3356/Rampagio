@@ -85,14 +85,25 @@ namespace Rampagio
 			m_Saved.reset();
 			// Values with a change hook act on the game: restoring them is a
 			// feature state. Plain values are parameters and always load.
-			if ((m_OnChange && !restoreFeatures) || saved == Ref())
+			if (m_OnChange && !restoreFeatures)
+			{
+				if (!(saved == Ref()))
+					this->KeepSavedValue();
+				return;
+			}
+			this->DropSavedValue();
+			if (saved == Ref())
 				return;
 			Ref() = std::move(saved);
 			if (m_OnChange)
 				m_OnChange();
 		}
 
-		void ResetToDefault() override { SetState(m_Default); }
+		void ResetToDefault() override
+		{
+			SetState(m_Default);
+			MarkDirty();
+		}
 	};
 
 	template <typename T>

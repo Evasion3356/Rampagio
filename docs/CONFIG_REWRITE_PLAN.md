@@ -327,6 +327,12 @@ This phase is separable from the rest; do it last.
      file's modified time).
    - Corrupt `Rampagio.json` (truncate it) → defaults, logged, no crash.
    - Menu key change takes effect without restart.
+   - Eject (Ctrl+R with `ScriptHookRDR2.dev`) with Godmode and a looped
+     feature on: `Rampagio.log` says "every feature switched off" (else
+     which guard failed), the game doesn't crash, and both are off in
+     game. Re-inject with `restoretoggles` on brings them back.
+   - `restoretoggles` off: a toggle saved as on stays `true` in the file
+     after a restart, and Load Settings turns it on.
 
 ## Implementation notes
 
@@ -353,7 +359,22 @@ from the plan above:
   file is kept as `<file>.bad`. Startup writes the file once after
   loading, so it always exists with every value.
 - **DllMain detach** calls `Settings::TryFlush` (a try-lock), since a
-  thread killed at process exit could have died holding the lock.
+  thread killed at process exit could have died holding the lock. It only
+  writes the JSON `Tick` snapshots every frame (the file write is what's
+  throttled), so no component state is read from the detach thread.
+- **Eject undoes features** (HorseMenu's `Commands::Shutdown`, which runs
+  on its own unload path). ScriptHookRDR2 has no unload callback, so
+  `ScriptUnload` runs `Commands::Suspend` and `Ui::DisableAllToggles`
+  from `DllMain` detach, only on FreeLibrary (not process exit), only on
+  the OS thread `ScriptMain` ran on, and only while
+  `CurrentScriptThread` is set (ScriptHookRDR2 runs its scripts, and so
+  presumably the reload, from a `GtaThread::Run` hook). It's wrapped in
+  SEH. Whether the guard passes in practice is the live test's job.
+- **Restore off keeps saved values.** A toggle or hooked value not
+  restored on start keeps its saved value in the file
+  (`Command::KeepSavedValue`) until it's changed or reset, so turning
+  `restoretoggles` on later still brings it back. Load Settings
+  restores everything regardless of `restoretoggles`.
 - **Style toggles.** "Gamepad Controls", "Menu Sounds", "Gamepad Open
   Key", the position rows and the color editor edit `MenuStyle` directly
   and mark the `style` component dirty; they aren't commands. The

@@ -44,10 +44,11 @@ namespace Menus
 	// Settings.cpp. RegisterSettings creates the "general", "style",
 	// "themes" and "hotkeys" parts of Rampagio.json (before
 	// Settings::Initialize); ApplyLoadedSettings applies the loaded command
-	// states, honouring settings.restoretoggles; TickSettings runs hotkeys
-	// and overlays every frame.
+	// states, honouring settings.restoretoggles unless restoreAll (Load
+	// Settings restores everything); TickSettings runs hotkeys and overlays
+	// every frame.
 	void RegisterSettings();
-	void ApplyLoadedSettings();
+	void ApplyLoadedSettings(bool restoreAll = false);
 	void TickSettings();
 
 	// The player's posse (Posse.cpp), shared with the spawners.

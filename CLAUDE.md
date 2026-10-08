@@ -52,11 +52,17 @@ Manager lists and removes them).
   `Rampagio.json` and runs the main loop (looped commands, hotkeys, the
   throttled settings writer), including the online kill switch
   (`Commands::Suspend`, which undoes features without saving).
+  `ScriptUnload` (from `DllMain` detach) does the same on eject, but only
+  on the script's own OS thread while a game script thread is active
+  (`GamePointers::Cached()->CurrentScriptThread`); otherwise it logs that
+  features stay applied. Untested.
 - `src/core/`: HorseMenu's settings and command system, adapted
   (`docs/CONFIG_REWRITE_PLAN.md` has the design and its decisions).
   `settings/Settings` keeps `Rampagio.json` as `IStateSerializer`
   components (`general`, `style`, `themes`, `commands`, `hotkeys`),
-  writing at most once a second and on eject. `commands/` holds
+  writing at most once a second and on eject. `Tick` snapshots dirty
+  components into the JSON every frame; `TryFlush` (detach) only writes
+  that snapshot and never runs component code. `commands/` holds
   `Command` (stable dotted id, label, `std::function` hooks),
   `Commands` (registry, the `commands` component, `ApplyLoaded`,
   `Suspend`), `BoolCommand`/`LoopedCommand`, `ValueCommands.h`
@@ -90,8 +96,9 @@ Manager lists and removes them).
   keep runs and mirrors of game state out of the file, and
   `SetHotkeyable(false)` marks actions that open the keyboard. Toggles and
   values with a change hook only come back on start when
-  `settings.restoretoggles` is on; plain values (parameters) and
-  `settings.*` always do.
+  `settings.restoretoggles` is on (the file keeps their saved values until
+  they're changed); plain values (parameters) and `settings.*` always do.
+  Load / Save > Load Settings restores everything.
   `ListMenu` rebuilds its rows each time it opens. Don't nest a `ListMenu`
   or `Submenu` inside a `ListMenu`'s build (each rebuild would register a
   new menu); use one `DetachedListMenu` built once and open it with

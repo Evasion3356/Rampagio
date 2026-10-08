@@ -30,10 +30,18 @@ namespace Rampagio
 		bool m_Hotkeyable = true;
 		bool m_Registered = false;
 		bool m_Transient = false;
+		bool m_KeepSaved = false;
 
 	protected:
 		virtual void OnCall() = 0;
+		// Marks the state for saving. A kept saved value (KeepSavedValue) is
+		// dropped: the user changed the state, so the file follows it again.
 		void MarkDirty();
+		// ApplyLoaded didn't apply the saved value (settings.restoretoggles
+		// off): leave it in the file instead of overwriting it with the
+		// default, until the state is changed.
+		void KeepSavedValue() { m_KeepSaved = true; }
+		void DropSavedValue() { m_KeepSaved = false; }
 
 	public:
 		Command(std::string name, std::string label, std::string description = {});
@@ -51,9 +59,12 @@ namespace Rampagio
 		// Applies what LoadState read. restoreFeatures is
 		// settings.restoretoggles (always true for "settings." commands):
 		// when false, toggles and values with a change hook keep their
-		// defaults; plain values (parameters for an action) still load.
+		// defaults, and the file keeps the saved value so turning
+		// restoretoggles on later still brings it back; plain values
+		// (parameters for an action) still load.
 		virtual void ApplyLoaded(bool restoreFeatures) {}
-		// Back to the value it was built with, through its hooks.
+		// Back to the value it was built with, through its hooks, and saved
+		// (a kept saved value is dropped).
 		virtual void ResetToDefault() {}
 		// Online kill switch: undo the feature without changing or saving
 		// the state, and stop ticking. Resume re-applies it.
@@ -82,6 +93,8 @@ namespace Rampagio
 		}
 		// Whether Rampagio.json holds this command's state.
 		bool IsSaved() const { return HasState() && !m_Transient && m_Registered; }
+		// Whether saving leaves the file's value alone (see KeepSavedValue).
+		bool KeepsSavedValue() const { return m_KeepSaved; }
 
 		// "settings." commands restore their state even when
 		// settings.restoretoggles is off.

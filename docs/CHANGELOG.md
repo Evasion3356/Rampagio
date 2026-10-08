@@ -11,7 +11,10 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Rampagio_Settings.ini, Rampagio_Toggles.ini and Rampagio_Themes.ini).
   Number, choice and text values are saved too. Settings > Load / Save >
   "Restore Toggles on Start" brings saved toggles back on start (off by
-  default).
+  default); with it off, the saved toggles stay in the file for later.
+  "Load Settings" brings everything back, toggles included.
+- Ejecting Rampagio (ScriptHookRDR2's Ctrl+R reload) switches its
+  features off first, where the game allows it.
 - Hotkeys can be key combinations (F11 on a row, hold the keys, let go)
   and work for rows in menus that were never opened.
 - The menu key is set in Settings > Core > Menu Key.

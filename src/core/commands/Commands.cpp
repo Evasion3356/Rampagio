@@ -24,6 +24,7 @@ namespace Rampagio
 
 	void Command::MarkDirty()
 	{
+		m_KeepSaved = false;
 		if (IsSaved())
 			Commands::MarkDirty();
 	}
@@ -130,7 +131,7 @@ namespace Rampagio
 	void Commands::SaveStateImpl(nlohmann::json& state)
 	{
 		for (Command* command : m_Ordered)
-			if (command->IsSaved())
+			if (command->IsSaved() && !(command->KeepsSavedValue() && state.contains(command->GetName())))
 				command->SaveState(state[command->GetName()]);
 	}
 

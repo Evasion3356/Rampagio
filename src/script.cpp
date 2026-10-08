@@ -17,12 +17,15 @@
 #include "Log.h"
 #include "LogFallback.h"
 #include "GameUtil.h"
+#include "GamePointers.h"
 #include "menus/Menus.h"
 #include "core/settings/Settings.h"
 #include "core/commands/Commands.h"
 
 namespace
 {
+	DWORD g_scriptThreadId = 0; // the OS thread ScriptMain's fiber runs on
+
 	void BuildMenu()
 	{
 		MenuBase* root = Ui::Root();
@@ -52,14 +55,70 @@ namespace
 		Menus::ApplyLoadedSettings();
 		Rampagio::Settings::Flush(); // creates the file, with every value
 	}
+
+	// Natives are only safe from DllMain when ScriptHookRDR2 unloads us on
+	// the game thread our script ran on, while a game script thread is
+	// active (it runs its scripts, and so its reload, from inside a
+	// GtaThread::Run hook). Anywhere else, a native that needs the active
+	// script thread would crash.
+	bool CanCallNatives()
+	{
+		if (g_scriptThreadId == 0 || GetCurrentThreadId() != g_scriptThreadId)
+			return false;
+		const GamePointers::Pointers* pointers = GamePointers::Cached();
+		return pointers && *pointers->CurrentScriptThread;
+	}
+
+	void UndoFeatures()
+	{
+		// Same as the online kill switch: the saved states stay as they are.
+		Rampagio::Commands::Suspend();
+		Ui::DisableAllToggles();
+	}
+
+	// No C++ objects here, so it can use SEH: a hook that faults during
+	// unload is logged instead of taking the game down.
+	bool UndoFeaturesGuarded()
+	{
+		__try
+		{
+			UndoFeatures();
+			return true;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return false;
+		}
+	}
+}
+
+void ScriptUnload(bool processExit)
+{
+	// At process exit the game state goes away anyway.
+	if (!processExit && g_scriptThreadId != 0)
+	{
+		if (!CanCallNatives())
+			Log::Write("Ejected outside a game script thread, so features stay applied until the game restarts");
+		else if (UndoFeaturesGuarded())
+			Log::Write("Ejected: every feature switched off");
+		else
+			Log::Write("Ejected: a feature faulted while switching off; the rest may stay applied");
+	}
+	// Writes what the 1 s throttle hasn't yet: only the JSON the script
+	// thread built, so no feature state is read from here.
+	Rampagio::Settings::TryFlush();
 }
 
 void ScriptMain()
 {
 	Log::Write("Rampagio started");
+	g_scriptThreadId = GetCurrentThreadId();
 
 	BuildMenu();
 	LoadSettings();
+	// Resolved now so an eject can check for an active script thread
+	// (ScriptUnload); features resolve them on first use anyway.
+	GamePointers::Get();
 
 	bool wasOnline = false;
 	while (true)

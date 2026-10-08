@@ -623,7 +623,7 @@ namespace Menus
 		Ui::Action(io, "Load Settings", []
 		{
 			Rampagio::Settings::Reload();
-			ApplyLoadedSettings();
+			ApplyLoadedSettings(true); // asked for, so toggles too
 			return std::string("Settings loaded");
 		});
 		Ui::Action(io, "Restore Defaults", []
@@ -650,12 +650,12 @@ namespace Menus
 		Commands::GetInstance();
 	}
 
-	void ApplyLoadedSettings()
+	void ApplyLoadedSettings(bool restoreAll)
 	{
 		// restoretoggles is a settings. command, so it always loads; it then
-		// decides whether the other feature states do.
+		// decides whether the other feature states do on start.
 		g_restoreToggles->ApplyLoaded(true);
-		Commands::ApplyLoaded(g_restoreToggles->GetState());
+		Commands::ApplyLoaded(restoreAll || g_restoreToggles->GetState());
 	}
 
 	void TickSettings()

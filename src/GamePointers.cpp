@@ -48,21 +48,30 @@ namespace
 
 namespace GamePointers
 {
+	namespace
+	{
+		Pointers g_pointers;
+		bool g_resolved = false;
+	}
+
 	const Pointers* Get()
 	{
-		static Pointers pointers;
-		static bool resolved = false;
 		static ULONGLONG nextAttemptMs = 0;
-		if (resolved)
-			return &pointers;
+		if (g_resolved)
+			return &g_pointers;
 
 		const ULONGLONG nowMs = GetTickCount64();
 		if (nowMs < nextAttemptMs)
 			return nullptr;
 		nextAttemptMs = nowMs + 5000;
 
-		resolved = Resolve(pointers);
-		return resolved ? &pointers : nullptr;
+		g_resolved = Resolve(g_pointers);
+		return g_resolved ? &g_pointers : nullptr;
+	}
+
+	const Pointers* Cached()
+	{
+		return g_resolved ? &g_pointers : nullptr;
 	}
 
 	rage::scrThread* FindScriptThread(rage::joaat_t scriptHash)

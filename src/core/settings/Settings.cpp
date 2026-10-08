@@ -81,11 +81,18 @@ namespace Rampagio
 			LoadComponentImpl(serializer);
 	}
 
-	bool Settings::WriteImpl(bool all)
+	void Settings::SnapshotImpl(bool all)
 	{
 		for (IStateSerializer* serializer : m_StateSerializers)
 			if (all || serializer->IsStateDirty())
+			{
 				serializer->SaveState((*m_Json)[serializer->GetSerializerComponentName()]);
+				m_Unwritten = true;
+			}
+	}
+
+	bool Settings::WriteFileImpl()
+	{
 		m_LastWrite = GetTickCount64();
 		if (m_WritePath.empty())
 			return false;
@@ -107,6 +114,7 @@ namespace Rampagio
 			Log::Write("[Settings] Couldn't replace {} (error {})", LogFallback::ToUtf8(m_WritePath), GetLastError());
 			return false;
 		}
+		m_Unwritten = false;
 		return true;
 	}
 
@@ -120,6 +128,7 @@ namespace Rampagio
 		self.m_LateLoaders.clear();
 		for (IStateSerializer* serializer : self.m_StateSerializers)
 			self.LoadComponentImpl(serializer);
+		self.m_Unwritten = false;
 		self.m_InitialLoadDone = true;
 		Log::Write("[Settings] Loaded {} components from {}", self.m_StateSerializers.size(), LogFallback::ToUtf8(readPath));
 	}
@@ -131,10 +140,11 @@ namespace Rampagio
 		if (!self.m_InitialLoadDone)
 			return;
 		self.LoadLateComponents();
-		if (GetTickCount64() - self.m_LastWrite < self.m_WriteInterval)
-			return;
-		if (std::any_of(self.m_StateSerializers.begin(), self.m_StateSerializers.end(), [](IStateSerializer* s) { return s->IsStateDirty(); }))
-			self.WriteImpl(false);
+		// The snapshot is taken every frame, so TryFlush has it even inside the
+		// write interval.
+		self.SnapshotImpl(false);
+		if (self.m_Unwritten && GetTickCount64() - self.m_LastWrite >= self.m_WriteInterval)
+			self.WriteFileImpl();
 	}
 
 	bool Settings::Flush()
@@ -144,7 +154,8 @@ namespace Rampagio
 		if (!self.m_InitialLoadDone)
 			return false;
 		self.LoadLateComponents();
-		return self.WriteImpl(true);
+		self.SnapshotImpl(true);
+		return self.WriteFileImpl();
 	}
 
 	bool Settings::TryFlush()
@@ -153,8 +164,8 @@ namespace Rampagio
 		std::unique_lock lock(self.m_Mutex, std::try_to_lock);
 		if (!lock.owns_lock() || !self.m_InitialLoadDone)
 			return false;
-		self.LoadLateComponents();
-		return self.WriteImpl(true);
+		// No component code runs here: only the JSON Tick last built is written.
+		return !self.m_Unwritten || self.WriteFileImpl();
 	}
 
 	void Settings::Reload()
@@ -165,6 +176,7 @@ namespace Rampagio
 		self.m_LateLoaders.clear();
 		for (IStateSerializer* serializer : self.m_StateSerializers)
 			self.LoadComponentImpl(serializer);
+		self.m_Unwritten = false;
 		self.m_InitialLoadDone = true;
 	}
 

@@ -13,7 +13,8 @@
 	  AddComponent, which runs inside IStateSerializer's constructor.
 	- Tick writes at most once per WriteInterval (default 1 s), so holding
 	  NUMPAD 6 on a number doesn't rewrite the file every frame. Flush
-	  writes now; it calls no natives, so DllMain detach can call it.
+	  writes now. TryFlush (DllMain detach) only writes the JSON Tick last
+	  built, so it doesn't read component state from another thread.
 	- Unknown keys (from a newer build, or removed commands) stay in the
 	  file: components write into the loaded object instead of replacing it.
 	- The file is written to "<file>.tmp" and then moved over the old one.
@@ -40,6 +41,7 @@ namespace Rampagio
 		std::vector<IStateSerializer*> m_LateLoaders;
 		std::unique_ptr<nlohmann::json> m_Json;
 		bool m_InitialLoadDone = false;
+		bool m_Unwritten = false; // m_Json has changes the file doesn't
 		unsigned long long m_LastWrite = 0;
 		unsigned long long m_WriteInterval = 1000;
 		std::recursive_mutex m_Mutex;
@@ -50,7 +52,10 @@ namespace Rampagio
 		void ReadFile(const std::wstring& path);
 		void LoadComponentImpl(IStateSerializer* serializer);
 		void LoadLateComponents();
-		bool WriteImpl(bool all);
+		// Saves the dirty (or all) components into m_Json.
+		void SnapshotImpl(bool all);
+		// Writes m_Json to the file.
+		bool WriteFileImpl();
 
 	public:
 		static Settings& GetInstance();
@@ -58,14 +63,17 @@ namespace Rampagio
 		// Reads the file and loads every registered component. writePath
 		// empty = same as readPath.
 		static void Initialize(const std::wstring& readPath, const std::wstring& writePath = {});
-		// Saves the dirty components and writes the file, if the last write
-		// was at least WriteInterval ago. Call every frame.
+		// Saves the dirty components into the JSON, and writes the file if the
+		// last write was at least WriteInterval ago. Call every frame, from
+		// the thread that changes the components' state.
 		static void Tick();
 		// Saves every component and writes the file now. False if the file
 		// couldn't be written.
 		static bool Flush();
-		// Flush, unless another thread holds the lock (DllMain detach: a
-		// thread killed at process exit may have died holding it).
+		// Writes the JSON the last Tick or Flush built, if the file doesn't
+		// have it yet. Runs no component code, so it never reads feature state
+		// from another thread (DllMain detach); gives up if another thread
+		// holds the lock (one killed at process exit may have died holding it).
 		static bool TryFlush();
 		// Re-reads the file (from the write path once it exists) and loads
 		// every component again.

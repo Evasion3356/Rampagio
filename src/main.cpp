@@ -9,7 +9,6 @@
 #include "script.h"
 #include "keyboard.h"
 #include "NativeHooks.h"
-#include "core/settings/Settings.h"
 
 BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 {
@@ -20,9 +19,9 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		keyboardHandlerRegister(OnKeyboardMessage);
 		break;
 	case DLL_PROCESS_DETACH:
-		// Writes changes the 1 s throttle hasn't yet. Only file I/O, no
-		// natives, so it's fine under the loader lock.
-		Rampagio::Settings::TryFlush();
+		// lpReserved is non-null at process exit, null on FreeLibrary
+		// (ScriptHookRDR2's Ctrl+R reload).
+		ScriptUnload(lpReserved != nullptr);
 		// Game scripts must stop calling into our replacements before the
 		// module goes away.
 		NativeHooks::Shutdown();

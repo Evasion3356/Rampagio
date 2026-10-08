@@ -52,7 +52,11 @@ namespace Rampagio
 		void SaveState(nlohmann::json& value) override;
 		void LoadState(const nlohmann::json& value) override;
 		void ApplyLoaded(bool restoreFeatures) override;
-		void ResetToDefault() override { SetState(m_Default); }
+		void ResetToDefault() override
+		{
+			SetState(m_Default);
+			MarkDirty();
+		}
 		void Suspend() override;
 		void Resume() override;
 		bool IsSuspended() const { return m_Suspended; }

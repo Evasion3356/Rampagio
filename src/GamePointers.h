@@ -41,6 +41,9 @@ namespace GamePointers
 
 	// All pointers, or nullptr if any signature didn't match (logged).
 	const Pointers* Get();
+	// The pointers if Get already resolved them, else nullptr; never scans
+	// (safe from DllMain).
+	const Pointers* Cached();
 
 	// The running thread / loaded program for a script name hash, or nullptr.
 	rage::scrThread* FindScriptThread(rage::joaat_t scriptHash);

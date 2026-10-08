@@ -103,7 +103,7 @@ namespace Ui
 	// show the game's own state, re-read when the menu opens.
 	void Transient(MenuBase* menu);
 
-	// Online kill switch, for the rows Commands::Suspend doesn't reach:
+	// Online kill switch and eject, for the rows Commands::Suspend doesn't reach:
 	// switches every plain toggle (list and per-ped rows) off through its
 	// onChange and closes the menu.
 	void DisableAllToggles();
