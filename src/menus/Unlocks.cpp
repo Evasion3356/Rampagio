@@ -151,7 +151,7 @@ namespace
 
 	void BuildCheats(MenuBase* cheats)
 	{
-		Ui::Toggle(cheats, "Bypass Cheat Restrictions", SetBypassCheatRestrictions, ClearCheatUsed);
+		Ui::Toggle(cheats, "unlocks.bypasscheatrestrictions", "Bypass Cheat Restrictions", SetBypassCheatRestrictions, ClearCheatUsed);
 		Ui::Section(cheats, "Cheats");
 		for (int id = 0; id < kCheatCount; id++)
 		{
@@ -489,12 +489,12 @@ namespace Menus
 		// Ours: lists the cheats by their in-game names and activates them,
 		// instead of showing each cheat's phrase.
 		BuildCheats(Ui::Submenu(unlocks, "Cheat Codes"));
-		Ui::Action(unlocks, "Reveal Map", RevealMap);
-		Ui::Action(unlocks, "Reset Map", ResetMap);
+		Ui::Action(unlocks, "unlocks.revealmap", "Reveal Map", RevealMap);
+		Ui::Action(unlocks, "unlocks.resetmap", "Reset Map", ResetMap);
 		Ui::ListMenu(unlocks, "Map Discoverables", BuildMapDiscoverables);
-		Ui::Action(unlocks, "Unlock Outfits", UnlockOutfits);
-		Ui::Action(unlocks, "Unlock Weapons", UnlockWeapons);
-		Ui::Action(unlocks, "Unlock Recipes", UnlockRecipes);
+		Ui::Action(unlocks, "unlocks.unlockoutfits", "Unlock Outfits", UnlockOutfits);
+		Ui::Action(unlocks, "unlocks.unlockweapons", "Unlock Weapons", UnlockWeapons);
+		Ui::Action(unlocks, "unlocks.unlockrecipes", "Unlock Recipes", UnlockRecipes);
 		Ui::Section(unlocks, "Compendium");
 		CompendiumRow(unlocks, "Discover Herbs", "herbs", DiscoverHerbs);
 		CompendiumRow(unlocks, "Discover Horses", "horses", DiscoverHorses);
@@ -509,8 +509,8 @@ namespace Menus
 			},
 			DiscoverCigCards));
 		Ui::Section(unlocks, "Journal");
-		Ui::Action(unlocks, "Add Entries", AddJournalEntries);
-		Ui::Action(unlocks, "~COLOR_RED~Reset Journal", [] {
+		Ui::Action(unlocks, "unlocks.addentries", "Add Entries", AddJournalEntries);
+		Ui::Action(unlocks, "unlocks.resetjournal", "~COLOR_RED~Reset Journal", [] {
 			HUD::_JOURNAL_CLEAR_ALL_PROGRESS();
 			return std::string("Journal reset");
 		});
