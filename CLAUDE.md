@@ -373,7 +373,7 @@ dino bones, dreamcatchers, rock carvings) and most Player submenus
 (`src/menus/PlayerSubmenus.cpp`: Scenarios, Walk Styles, Damage Packs,
 Vision, Moods, Abilities, Proofs, Config Flags; `PlayerActions.cpp`:
 Animations, Facial Animations, Effects, Emotes, Play Speech, Voice
-Changer). 38 submenus done, 10 partial, 111 pending, 8 tabled; see
+Changer). 38 submenus done, 10 partial, 110 pending, 9 tabled; see
 `docs/PORTING.md`. Everything builds clean
 (Debug); nothing is live-tested (the user deferred testing until the
 port is further along). Menu key is F5.
@@ -396,10 +396,10 @@ port is further along). Menu key is F5.
    facial hair, customizations, ...; then Player Posse),
    Vehicle, Spawner, the remaining World submenus, Miscellaneous,
    Settings (incl. toggle save/load). Tabled, so skip them until the user
-   brings them back: Rampage's Debug > Scripts tools (the user wants to
-   rework them rather than port them as-is), and the Object Editor and
-   Script Tools areas (tabled 2026-10-07; `TABLED_AREAS` in
-   `tools/porting_status.py`). Leftovers listed in
+   brings them back: the Debug, Object Editor and Script Tools areas
+   (tabled 2026-10-07; `TABLED_AREAS` in `tools/porting_status.py`). For
+   Debug > Scripts the user wants to rework the tools rather than port
+   them as-is. Leftovers listed in
    `docs/PORTING.md` rows marked Partial.
 4. Script-function caller: built (`src/ScriptFunction.h`), untested.
    Its first live test should check the four GamePointers signatures

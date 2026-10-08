@@ -3,13 +3,13 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now). Nothing is live-tested yet.
 
-Submenus: 38 done, 10 partial, 111 pending, 8 tabled.
+Submenus: 38 done, 10 partial, 110 pending, 9 tabled.
 
 ## Debug
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubDebug | 21 | Pending |  |
+| SubDebug | 21 | Tabled |  |
 
 ## Horse
 

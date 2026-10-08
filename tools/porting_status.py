@@ -11,7 +11,7 @@ for r in rows:
     area[r['submenu']]=r['area']
     if r['kind'] in INTER: cnt[r['submenu']]+=1
 # Areas the user has set aside for now; their submenus show as Tabled unless STATUS says otherwise.
-TABLED_AREAS = {'Object Editor','Script Tools'}
+TABLED_AREAS = {'Debug','Object Editor','Script Tools'}
 STATUS = {
  'SubSelf':('Done','Player'),
  'SubSelfHorse':('Done','Horse'),
