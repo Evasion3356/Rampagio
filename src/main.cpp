@@ -10,6 +10,7 @@
 #include "keyboard.h"
 #include "NativeHooks.h"
 #include "BytePatch.h"
+#include "menus\Menus.h"
 #include "..\external\minhook\include\MinHook.h"
 #include "..\external\YEEAHSM\src\StowWeaponsHook.h"
 
@@ -33,6 +34,7 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 		MH_Uninitialize();
 		// Put the game's code back the way we found it.
 		BytePatch::RestoreAll();
+		Menus::ShutdownMinigames();
 		scriptUnregister(hInstance);
 		keyboardHandlerUnregister(OnKeyboardMessage);
 		break;

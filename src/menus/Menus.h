@@ -41,6 +41,10 @@ namespace Menus
 	void BuildRecoveryUnlocks(MenuBase* recovery); // Unlocks.cpp
 	void BuildRecoveryCollectibles(MenuBase* recovery); // Collectibles.cpp
 	void BuildMiscellaneous(MenuBase* root);
+	// Minigames.cpp: the sibling minigame mods under Misc > Minigames;
+	// ShutdownMinigames (DllMain) takes their patches out on eject.
+	void BuildMinigames(MenuBase* minigames);
+	void ShutdownMinigames();
 	void BuildScriptTools(MenuBase* root);
 	void BuildSettings(MenuBase* root);
 	// Settings.cpp. RegisterSettings creates the "general", "style",

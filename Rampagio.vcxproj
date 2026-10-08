@@ -95,6 +95,9 @@
     <ProjectReference Include="external\YEEAHSM\YEEAHSMLib.vcxproj">
       <Project>{8D3F6A21-7C4B-4E59-B1A2-9E0C5D7F3B48}</Project>
     </ProjectReference>
+    <ProjectReference Include="external\FFFCheat\FFFCheatLib.vcxproj">
+      <Project>{3E7B9C52-1A4D-4F8E-B6C3-D92A5F0E7C61}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{825A6BD4-A1A2-4AF7-A181-49E34539782C}</ProjectGuid>

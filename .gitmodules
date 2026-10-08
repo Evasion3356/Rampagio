@@ -19,3 +19,6 @@
 [submodule "external/YEEAHSM"]
 	path = external/YEEAHSM
 	url = https://github.com/Evasion3356/YEEAHSM.git
+[submodule "external/FFFCheat"]
+	path = external/FFFCheat
+	url = https://github.com/Evasion3356/FFFCheat.git

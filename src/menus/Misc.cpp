@@ -1036,6 +1036,7 @@ namespace Menus
 		MenuBase* minigames = Ui::Submenu(misc, "Minigames");
 		Ui::Toggle(minigames, "misc.undeadnightmareii", "Undead Nightmare II", SetUndead, UndeadTick);
 		Ui::Number(minigames, "misc.undeadatonce", "Undead at Once", &g_undeadCount, 1, 60, 1);
+		BuildMinigames(minigames);
 
 		Ui::Section(misc, "Camera");
 		Ui::Looped(misc, "misc.camzoom", "Cam Zoom", CamZoomTick);
