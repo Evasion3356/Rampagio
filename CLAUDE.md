@@ -100,7 +100,9 @@ Manager lists and removes them).
   `SetHotkeyable(false)` marks actions that open the keyboard. Toggles and
   values with a change hook only come back on start when
   `settings.restoretoggles` is on (the file keeps their saved values until
-  they're changed); plain values (parameters) and `settings.*` always do.
+  they're changed); plain values (parameters), `settings.*` and commands
+  marked `SetAlwaysRestore()` (option-like toggles, e.g. the sibling
+  mods' rows) always do.
   Load / Save > Load Settings restores everything.
   `ListMenu` rebuilds its rows each time it opens. Don't nest a `ListMenu`
   or `Submenu` inside a `ListMenu`'s build (each rebuild would register a
@@ -467,29 +469,72 @@ Global Editor), Hotkeys, Themes and Settings.
    number/text input, list submenus, toggle persistence, hotkeys.
 3. Port submenu by submenu, live-testing each row (Features table).
 
-### Goal B: merge the sibling projects as submodules (needs recon)
+### Goal B: the sibling mods as submodules (built 2026-10-08, untested)
 
-Bring BlackjackCheat, ChallengeCheat, DominoCheat, FFFCheat, FishingFix,
-GoldHorse, HorseMenu, HorseStatLock, PokerCheat and YEEAHSM in as git
-submodules, so Rampagio is the one menu. Status: research only, no work
-started. Open questions:
+The siblings are dependencies, not copies (user, 2026-10-08): each repo
+builds its feature core as a static library, `<Name>Lib.vcxproj`, that
+its own standalone ASI links, and Rampagio adds the repo as a submodule
+under `external/` and links the same library through a
+`ProjectReference` in `Rampagio.vcxproj`. Updating one means moving its
+submodule pin (`git -C external/<Name> checkout <commit or tag>`, then
+commit the pin) and rebuilding. Version tags in the siblings publish a
+GitHub release and a Nexus upload, so the library refactors were pushed
+to their default branch untagged and Rampagio pins those commits; move
+to a tag once one exists. The rows live in the matching Rampage area and
+own the options (saved in `Rampagio.json`), so nothing reads the
+siblings' INIs. Don't load a sibling's standalone `.asi` next to
+Rampagio: both would apply (a second stow hook just fails its pattern,
+but the fishing wait and HUDs would double).
 
-- Each sibling is a standalone ASI with its own `DllMain`, script loop,
-  menu, INI and log. Each needs a library/feature entry point split out
-  of its ASI shell, without breaking the standalone build.
-- GoldHorse and HorseStatLock have no remote; a submodule needs one.
-- GoldHorse runs online through Exodus, which conflicts with the
-  singleplayer-only rule.
-- HorseMenu (upstream `YimMenu/HorseMenu`) was written by the user, so
-  its code can be adapted into Rampagio directly (no license concern).
-  It has its own framework and an online focus, so decide whether it's
-  a dependency at all or only a source to lift pieces from (e.g.
-  `ScriptFunction`, `FiberPool`, `Pointers.cpp` patterns).
-- YEEAHSM uses `deps/minhook`; the others use `external/`. Shared
-  submodules (ScriptHookSDK, spdlog, json, RDR-Classes, minhook) would
-  nest; pick one copy and check version skew.
-- Conflicting hooks/patches (several use MinHook or byte patches) when
-  all run in one process.
+| Submodule | Library | Rampagio rows |
+|---|---|---|
+| `FishingFix` | `FishingFixLib` | Player > Fixes: Fishing Cast Fix, Dead Eye Fix (`PlayerFixes.cpp`) |
+| `YEEAHSM` | `YEEAHSMLib` | Weapon > Keep Weapons on Dismount (`Weapons.cpp`) |
+| `FFFCheat` | `FFFCheatLib` | Misc > Minigames > Five Finger Fillet (`Minigames.cpp`) |
+| `ChallengeCheat` | `ChallengeCheatLib` | Recovery > Challenges (`Challenges.cpp`) |
+| `PokerCheat`, `BlackjackCheat`, `DominoCheat` (repo `DominoesCheat`) | `<Name>Lib` | Misc > Minigames > Poker/Blackjack/Dominoes (`Minigames.cpp`) |
+
+How a library stays linkable next to Rampagio and the others (each
+repo's CLAUDE.md has a "Library" section with its specifics):
+
+- Everything that could collide is in the library's namespace
+  (`FishingFix::GameMemory`, `PokerCheat::GamePointers`,
+  `ChallengeCheat::Localization`, the advisors' header-only
+  `ScriptLocal`/`ScriptGlobal`, ...). Rampagio and the siblings all had
+  global `PatternScan`, `GamePointers`, `Localization` and `Log`.
+- No log file: `<Name>::Log::SetSink` forwards lines; Rampagio prefixes
+  them (`[PokerCheat] ...`) into `Rampagio.log`.
+- No INI: options come from the host. FFFCheat takes an options
+  provider; the advisors keep live values in `Config::Mutable()` and list
+  them in `Config::Options()` (stable id, section, label, description,
+  kind, range), from which `Minigames.cpp` builds the rows, so an option
+  added upstream appears with a pin bump (ids must never change).
+  `tools/lang_sync.py` reads those tables too. ChallengeCheat's language
+  comes from `Localization::SetLanguage`.
+- Host-provided: MinHook (YEEAHSM and ChallengeCheat include
+  `MinHook.h` but don't build it; Rampagio's `DllMain` removes their
+  hooks and then calls `MH_Uninitialize`, which `NativeHooks::Shutdown` no
+  longer does), keyboard state (`keyboard.cpp`, which gained
+  `IsKeyWithAlt` for the bet hotkeys) and ScriptHookRDR2.lib.
+  `DllMain` calls `Menus::ShutdownMinigames` first (dominoes' search
+  worker, `DominoCheat::OnProcessDetach`), and `script.cpp`'s loop runs
+  `Menus::TickChallenges`.
+- The libraries compile against their own nested `external/`
+  (ScriptHookSDK, RDR-Classes, minhook), all on the same fork commit as
+  Rampagio's; clone with `--recurse-submodules` (the release workflow
+  already does).
+- Rows that stand in for a sibling's INI setting use
+  `SetAlwaysRestore()` (Command.h) so they come back on start whatever
+  `settings.restoretoggles` says; the fixes, Keep Weapons on Dismount,
+  the fillet patches and the advisors default to on, as the standalone
+  mods are.
+
+Static instead, at the user's request: CigCardTest (Recovery >
+Collectibles > Cigarette Cards' Complete Set / Complete All Sets) and
+GoldHorse's SP horse features (Horse > Horse Stats: Keep Cores Golden,
+Lock Stats, `HorseLock.cpp`); GoldHorse isn't updated anymore and its
+Online parts stay out. HorseStatLock is covered by that port. HorseMenu
+stays a source to lift code from, not a dependency.
 
 ### Goal C: improve on Rampage
 
@@ -511,7 +556,9 @@ Hitmarker uses `BytePatch`, and the menu is translated into 13
 languages. The 5 Partial rows wait on tabled areas or the ImGui overlay,
 except Force Player Type (needs live testing first) and Settings >
 Plugins (no counterpart). Everything builds clean (Debug); nothing is
-live-tested. Menu key is F5.
+live-tested. Menu key is F5. Goal B's submodules are wired in (see
+Goal B); their rows are untested in Rampagio, though the libraries'
+code is what the standalone mods already ran live.
 
 0. **Config rewrite: built, not live-tested** (merged into `master`,
    2026-10-07). Phases 1-6 of `docs/CONFIG_REWRITE_PLAN.md` are done; its
@@ -541,7 +588,10 @@ live-tested. Menu key is F5.
    match (`Rampagio.log`) before trusting any "via Game Script" row. The
    other Rampage users of `sub_18001C900` (e.g. `flow_controller`
    `func_290` from `sub_1800626A0`) get ported with their submenus.
-5. Live-test once the user asks for it.
+5. Live-test once the user asks for it. For Goal B, first remove the
+   standalone sibling `.asi` files from the game folder, then check
+   `Rampagio.log` for each library's signature lines (`[FishingFix]`,
+   `[YEEAHSM]`, `[ChallengeCheat]`, ...) before trusting its rows.
 6. UI direction (decided 2026-10-07): the native menu stays the main UI
    and must be drivable by controller, keyboard and mouse. Mouse support
    is built, untested (Settings > Core > Mouse Controls, `MenuBase::OnMouse`
