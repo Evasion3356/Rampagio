@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 125 done, 25 partial, 5 pending, 10 tabled, 2 dropped.
+Submenus: 127 done, 26 partial, 2 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -216,11 +216,11 @@ Submenus: 125 done, 25 partial, 5 pending, 10 tabled, 2 dropped.
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
 | SubWeaponModifiers | 5 | Partial | Weapon > Weapon Modifiers: weapon model swap and weapon skill stats pending |
-| SubWeaponVisuals | 12 | Pending |  |
+| SubWeaponVisuals | 12 | Partial | Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback (Rampage byte patches) not ported |
 | SubWeapons | 33 | Partial | Weapon: Always Kill Cam, Thunder Hawk, Rope Gun, Portal Gun, Debug Gun pending |
-| SubWeaponsAimbot | 7 | Pending |  |
+| SubWeaponsAimbot | 7 | Done | Weapon > Aimbot: target filter (all/humans/animals) and Ignore Dying Peds are ours |
 | SubWeaponsAmmunition | 5 | Partial | Weapon > Ammunition: Drop Ammo pending |
-| SubWeaponsBullets | 8 | Pending |  |
+| SubWeaponsBullets | 8 | Done | Weapon > Weapon Bullets: Particle Gun uses the script effects list; Ped / Vehicle Gun models and Remote Cannonball steering are ours |
 | SubWeaponsGive | 0 | Done | Weapon > Manage Weapons > Give Weapon |
 | SubWeaponsManage | 10 | Partial | Weapon > Manage Weapons: Give Favourite, Upgrade Weapon, Add Component, Get Duplicate Model pending |
 

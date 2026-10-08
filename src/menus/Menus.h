@@ -27,6 +27,7 @@ namespace Menus
 	void BuildPlayerPosse(MenuBase* self); // Posse.cpp
 	void BuildHorse(MenuBase* root);
 	void BuildWeapons(MenuBase* root);
+	void BuildWeaponSubmenus(MenuBase* weapons); // WeaponSubmenus.cpp
 	void BuildVehicle(MenuBase* root);
 	void BuildTeleport(MenuBase* root);
 	void BuildSpawner(MenuBase* root);

@@ -167,6 +167,9 @@ STATUS = {
  'SubPedEditorPlaySpeechVignettes':('Done','Ped Editor > Play Speech > Vignettes: the shared Player menu, opened from the Ped Editor (Menus::Target)'),
  'SubPedEditorPlaySpeechCustom':('Done','Ped Editor > Play Speech > Custom Speeches: the shared Player menu, opened from the Ped Editor (Menus::Target)'),
  'SubPedEditorVoiceChanger':('Done','Ped Editor > Play Speech > Voice Changer: the shared Player menu, opened from the Ped Editor (Menus::Target)'),
+ 'SubWeaponVisuals':('Partial','Weapon > Weapon Visuals: crosshair sprites and colour, arrow trails, condition; Disable Hitmarker / Hit Feedback (Rampage byte patches) not ported'),
+ 'SubWeaponsAimbot':('Done','Weapon > Aimbot: target filter (all/humans/animals) and Ignore Dying Peds are ours'),
+ 'SubWeaponsBullets':('Done','Weapon > Weapon Bullets: Particle Gun uses the script effects list; Ped / Vehicle Gun models and Remote Cannonball steering are ours'),
 }
 out=['# Porting status','','Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.','"Options" counts Rampage\'s static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.','']
 by=collections.defaultdict(list)
