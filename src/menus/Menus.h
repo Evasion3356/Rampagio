@@ -24,6 +24,7 @@ namespace Menus
 	void BuildWardrobeTop(MenuBase* wardrobe);
 	void BuildWardrobe(MenuBase* wardrobe);
 	void BuildModelChanger(MenuBase* wardrobe); // ModelChanger.cpp
+	void BuildPlayerPosse(MenuBase* self); // Posse.cpp
 	void BuildHorse(MenuBase* root);
 	void BuildWeapons(MenuBase* root);
 	void BuildVehicle(MenuBase* root);
@@ -36,6 +37,15 @@ namespace Menus
 	void BuildMiscellaneous(MenuBase* root);
 	void BuildScriptTools(MenuBase* root);
 	void BuildSettings(MenuBase* root);
+
+	// The player's posse (Posse.cpp), shared with the spawners.
+	namespace Posse
+	{
+		// Makes `ped` a mission entity and a bodyguard in the player's group.
+		void Add(Ped ped);
+		// Living members.
+		const std::vector<Ped>& Members();
+	}
 
 	// The Give Weapon list's weapon names (Weapons.cpp).
 	std::span<const char* const> WeaponNames();

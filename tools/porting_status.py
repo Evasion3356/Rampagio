@@ -50,6 +50,7 @@ STATUS = {
  'SubVoiceChanger':('Done','Player > Play Speech > Voice Changer: Set Voice lists the script voices plus Custom Input (ours)'),
  'SubPlayerProofs':('Done','Player > Player Proofs: re-applied every frame (ours)'),
  'SubPlayerConfigFlags':('Done','Player > Config Flags: flag by number (no names), shows current state (ours)'),
+ 'SubPlayerPosse':('Partial','Player > Posse: commands are menu rows (Posse Commands hotkeys wait for Rampagio hotkeys); Add Aimed/Nearest Ped, Teleport, Dismiss and Delete rows (ours)'),
  'SubTeleport':('Partial','Teleport: own town list; Rampage\'s region/camp/shop location lists and Blips not ported'),
  'SubTeleportCustom':('Done','Teleport > Load Custom / Delete Custom'),
  'SubWorld':('Partial','World: main rows done; Water, Cloud Editor, managers, Door Manager, Tornado, IPL, World States, Ambient Light pending'),

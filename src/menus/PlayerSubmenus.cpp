@@ -224,5 +224,7 @@ namespace Menus
 		Ui::Choice(flags, "Status", { "Disabled", "Enabled" }, &g_configStatus,
 			[](int status) { PED::SET_PED_CONFIG_FLAG(Me(), g_configFlag, status != 0); });
 		flags->SetOnOpen([](MenuBase*) { ReadConfigFlag(); });
+
+		BuildPlayerPosse(self);
 	}
 }
