@@ -236,72 +236,72 @@ namespace Menus
 		MenuBase* world = Ui::Submenu(root, "World");
 
 		MenuBase* time = Ui::Submenu(world, "Time");
-		Ui::Number(time, "Hour", &g_hour, 0, 23, 1, ApplyTime);
-		Ui::Number(time, "Minute", &g_minute, 0, 59, 1, ApplyTime);
-		Ui::Number(time, "Second", &g_second, 0, 59, 1, ApplyTime);
-		Ui::Number(time, "Day", &g_day, 1, 31, 1, ApplyDate);
-		Ui::Number(time, "Month", &g_month, 1, 12, 1, ApplyDate);
-		Ui::Number(time, "Year", &g_year, 1800, 1950, 1, ApplyDate);
-		Ui::Number(time, "Game Minute Milliseconds", &g_msPerMinute, 100, 60000, 100, [] { CLOCK::_SET_MILLISECONDS_PER_GAME_MINUTE(g_msPerMinute); });
-		Ui::Looped(time, "Stop Time", [] { CLOCK::_PAUSE_CLOCK_THIS_FRAME(TRUE); });
-		Ui::Number(time, "Time Scale", &g_timeScale, 0.0f, 1.0f, 0.05f, [] { MISC::SET_TIME_SCALE(g_timeScale); });
-		Ui::Do(time, "Sunrise", [] { SetTimeOfDay(6, 1); });
-		Ui::Do(time, "Midday", [] { SetTimeOfDay(12, 15); });
-		Ui::Do(time, "Sunset", [] { SetTimeOfDay(19, 19); });
-		Ui::Do(time, "Midnight", [] { SetTimeOfDay(23, 23); });
-		Ui::Do(time, "Add 1 Hour", [] { CLOCK::ADD_TO_CLOCK_TIME(1, 0, 0); });
-		Ui::Looped(time, "Sync System Time", SyncSystemTimeTick);
+		Ui::Number(time, "world.hour", "Hour", &g_hour, 0, 23, 1, ApplyTime);
+		Ui::Number(time, "world.minute", "Minute", &g_minute, 0, 59, 1, ApplyTime);
+		Ui::Number(time, "world.second", "Second", &g_second, 0, 59, 1, ApplyTime);
+		Ui::Number(time, "world.day", "Day", &g_day, 1, 31, 1, ApplyDate);
+		Ui::Number(time, "world.month", "Month", &g_month, 1, 12, 1, ApplyDate);
+		Ui::Number(time, "world.year", "Year", &g_year, 1800, 1950, 1, ApplyDate);
+		Ui::Number(time, "world.gameminutemilliseconds", "Game Minute Milliseconds", &g_msPerMinute, 100, 60000, 100, [] { CLOCK::_SET_MILLISECONDS_PER_GAME_MINUTE(g_msPerMinute); });
+		Ui::Looped(time, "world.stoptime", "Stop Time", [] { CLOCK::_PAUSE_CLOCK_THIS_FRAME(TRUE); });
+		Ui::Number(time, "world.timescale", "Time Scale", &g_timeScale, 0.0f, 1.0f, 0.05f, [] { MISC::SET_TIME_SCALE(g_timeScale); });
+		Ui::Do(time, "world.sunrise", "Sunrise", [] { SetTimeOfDay(6, 1); });
+		Ui::Do(time, "world.midday", "Midday", [] { SetTimeOfDay(12, 15); });
+		Ui::Do(time, "world.sunset", "Sunset", [] { SetTimeOfDay(19, 19); });
+		Ui::Do(time, "world.midnight", "Midnight", [] { SetTimeOfDay(23, 23); });
+		Ui::Do(time, "world.add1hour", "Add 1 Hour", [] { CLOCK::ADD_TO_CLOCK_TIME(1, 0, 0); });
+		Ui::Looped(time, "world.syncsystemtime", "Sync System Time", SyncSystemTimeTick);
 		Ui::Section(time, "Timelapse");
-		Ui::Choice(time, "Progression", { "Slow", "Normal", "Fast" }, &g_timelapseSpeed);
-		Ui::Looped(time, "Enable Timelapse", TimelapseTick);
+		Ui::Choice(time, "world.progression", "Progression", { "Slow", "Normal", "Fast" }, &g_timelapseSpeed);
+		Ui::Looped(time, "world.enabletimelapse", "Enable Timelapse", TimelapseTick);
 
 		MenuBase* weather = Ui::Submenu(world, "Weather");
-		Ui::Do(weather, "Reset Weather", ResetWeather);
-		Ui::Do(weather, "Randomize", [] { MISC::CLEAR_WEATHER_TYPE_PERSIST(); MISC::SET_RANDOM_WEATHER_TYPE(FALSE, TRUE); });
-		Ui::Toggle(weather, "Smooth Transition", [](bool on) { g_smoothWeather = on; });
-		Ui::Toggle(weather, "Freeze", [](bool on) { g_freezeWeather = on; MISC::_SET_WEATHER_TYPE_FROZEN(on); });
+		Ui::Do(weather, "world.resetweather", "Reset Weather", ResetWeather);
+		Ui::Do(weather, "world.randomize", "Randomize", [] { MISC::CLEAR_WEATHER_TYPE_PERSIST(); MISC::SET_RANDOM_WEATHER_TYPE(FALSE, TRUE); });
+		Ui::Toggle(weather, "world.smoothtransition", "Smooth Transition", [](bool on) { g_smoothWeather = on; });
+		Ui::Toggle(weather, "world.freeze", "Freeze", [](bool on) { g_freezeWeather = on; MISC::_SET_WEATHER_TYPE_FROZEN(on); });
 		Ui::Section(weather, "Weather Type");
 		for (const Weather& w : kWeathers)
 		{
 			const Hash hash = GameUtil::Joaat(w.name);
-			Ui::Do(weather, w.label, [hash] { SetWeather(hash); });
+			Ui::Do(weather, Ui::Id("world.weather", w.label), w.label, [hash] { SetWeather(hash); });
 		}
 		Ui::Section(weather, "Levels");
-		Ui::Number(weather, "Wind Speed", &g_wind, 0.0f, 50.0f, 0.5f, [] { MISC::SET_WIND_SPEED(g_wind); });
-		Ui::Number(weather, "Rain Level", &g_rain, 0.0f, 1.0f, 0.05f, [] { MISC::SET_RAIN(g_rain); });
-		Ui::Number(weather, "Snow Level", &g_snow, 0.0f, 1.0f, 0.05f, [] { MISC::_SET_SNOW_LEVEL(g_snow); });
-		Ui::Number(weather, "Moonlight", &g_moon, 0.0f, 1.0f, 0.05f, [] { GRAPHICS::ENABLE_MOON_CYCLE_OVERRIDE(g_moon); });
+		Ui::Number(weather, "world.windspeed", "Wind Speed", &g_wind, 0.0f, 50.0f, 0.5f, [] { MISC::SET_WIND_SPEED(g_wind); });
+		Ui::Number(weather, "world.rainlevel", "Rain Level", &g_rain, 0.0f, 1.0f, 0.05f, [] { MISC::SET_RAIN(g_rain); });
+		Ui::Number(weather, "world.snowlevel", "Snow Level", &g_snow, 0.0f, 1.0f, 0.05f, [] { MISC::_SET_SNOW_LEVEL(g_snow); });
+		Ui::Number(weather, "world.moonlight", "Moonlight", &g_moon, 0.0f, 1.0f, 0.05f, [] { GRAPHICS::ENABLE_MOON_CYCLE_OVERRIDE(g_moon); });
 		Ui::Section(weather, "Extras");
-		Ui::Do(weather, "Lightning Flash", [] { MISC::FORCE_LIGHTNING_FLASH(); });
-		Ui::Toggle(weather, "Guarma Horizon", [](bool on) { STREAMING::_SET_GUARMA_WORLDHORIZON_ACTIVE(on); });
-		Ui::Toggle(weather, "Halloween Override", SetHalloween);
-		Ui::Toggle(weather, "Snowy Map", SetSnowyMap);
-		Ui::Choice(weather, "Coverage Type", { "0", "1", "2", "3" }, &g_coverage, [](int i) { GRAPHICS::_SET_SNOW_COVERAGE_TYPE(i); });
+		Ui::Do(weather, "world.lightningflash", "Lightning Flash", [] { MISC::FORCE_LIGHTNING_FLASH(); });
+		Ui::Toggle(weather, "world.guarmahorizon", "Guarma Horizon", [](bool on) { STREAMING::_SET_GUARMA_WORLDHORIZON_ACTIVE(on); });
+		Ui::Toggle(weather, "world.halloweenoverride", "Halloween Override", SetHalloween);
+		Ui::Toggle(weather, "world.snowymap", "Snowy Map", SetSnowyMap);
+		Ui::Choice(weather, "world.coveragetype", "Coverage Type", { "0", "1", "2", "3" }, &g_coverage, [](int i) { GRAPHICS::_SET_SNOW_COVERAGE_TYPE(i); });
 
 		BuildWorldSubmenus(world);
 
 		Ui::Section(world, "Toggles");
-		Ui::Toggle(world, "Disable Interior Lightning", SetInteriorLights);
-		Ui::Toggle(world, "Disable Distant Lights", [](bool on) { GRAPHICS::_DISABLE_FAR_ARTIFICIAL_LIGHTS(on); });
-		Ui::Looped(world, "Firework Mode", FireworkTick, FireworkOff);
-		Ui::Looped(world, "Giant Mode", GiantTick, GiantOff);
-		Ui::Number(world, "Giant Scale", &g_giantScale, 1.0f, 10.0f, 0.5f);
-		Ui::Toggle(world, "No Gravity", [](bool on) { SetGravity(!on); });
+		Ui::Toggle(world, "world.disableinteriorlightning", "Disable Interior Lightning", SetInteriorLights);
+		Ui::Toggle(world, "world.disabledistantlights", "Disable Distant Lights", [](bool on) { GRAPHICS::_DISABLE_FAR_ARTIFICIAL_LIGHTS(on); });
+		Ui::Looped(world, "world.fireworkmode", "Firework Mode", FireworkTick, FireworkOff);
+		Ui::Looped(world, "world.giantmode", "Giant Mode", GiantTick, GiantOff);
+		Ui::Number(world, "world.giantscale", "Giant Scale", &g_giantScale, 1.0f, 10.0f, 0.5f);
+		Ui::Toggle(world, "world.nogravity", "No Gravity", [](bool on) { SetGravity(!on); });
 
 		Ui::Section(world, "Actions");
-		Ui::Do(world, "Populate Area", [] { MISC::POPULATE_NOW(); PED::INSTANTLY_FILL_PED_POPULATION(); });
-		Ui::Number(world, "Area Scale", &g_areaRadius, 5.0f, 1000.0f, 5.0f);
-		Ui::Do(world, "Clear Area", ClearArea);
-		Ui::Do(world, "Clean Area", CleanArea);
-		Ui::Do(world, "Delete All Trains", [] { VEHICLE::DELETE_ALL_TRAINS(); });
-		Ui::Do(world, "Delete All Pickups", DeleteAllPickups);
-		Ui::Action(world, "Door Unlocker", [] {
+		Ui::Do(world, "world.populatearea", "Populate Area", [] { MISC::POPULATE_NOW(); PED::INSTANTLY_FILL_PED_POPULATION(); });
+		Ui::Number(world, "world.areascale", "Area Scale", &g_areaRadius, 5.0f, 1000.0f, 5.0f);
+		Ui::Do(world, "world.cleararea", "Clear Area", ClearArea);
+		Ui::Do(world, "world.cleanarea", "Clean Area", CleanArea);
+		Ui::Do(world, "world.deletealltrains", "Delete All Trains", [] { VEHICLE::DELETE_ALL_TRAINS(); });
+		Ui::Do(world, "world.deleteallpickups", "Delete All Pickups", DeleteAllPickups);
+		Ui::Action(world, "world.doorunlocker", "Door Unlocker", [] {
 			std::string text;
 			if (!GameUtil::PromptText("Enter Door Hash", text) || text.empty())
 				return std::string();
 			OBJECT::DOOR_SYSTEM_SET_DOOR_STATE(GameUtil::ParseHash(text), 0);
 			return std::string();
-		});
-		Ui::Action(world, "Quick Camp", QuickCamp);
+		})->SetHotkeyable(false);
+		Ui::Action(world, "world.quickcamp", "Quick Camp", QuickCamp);
 	}
 }
