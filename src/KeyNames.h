@@ -3,8 +3,9 @@
 	(settings.menukey is shown and validated through these). Deliberately
 	does NOT just strip "VK_" off the Windows constant names: several of
 	those don't match what's printed on the key (VK_PRIOR/VK_NEXT for
-	PageUp/PageDown, VK_BACK, VK_CAPITAL, VK_SNAPSHOT, ...), so the table below uses keycap names first, with the odd Windows
-	names kept only as extra aliases.
+	PageUp/PageDown, VK_BACK, VK_CAPITAL, VK_SNAPSHOT, ...), so the table
+	below uses keycap names first, with the odd Windows names kept only as
+	extra aliases.
 
 	Accepted (case-insensitive, spaces and underscores ignored):
 	  - F1..F24
