@@ -4,6 +4,8 @@
 
 #include "..\external\RDR-Classes\rage\tlsContext.hpp"
 
+#include <algorithm>
+#include <charconv>
 #include <memory>
 
 namespace
@@ -14,7 +16,7 @@ namespace
 		std::vector<bool> mask; // true = must match
 	};
 
-	Pattern ParsePattern(const std::string& text)
+	Pattern ParsePattern(std::string_view text)
 	{
 		Pattern p;
 		for (size_t i = 0; i < text.size();)
@@ -32,7 +34,9 @@ namespace
 			}
 			else
 			{
-				p.bytes.push_back(static_cast<std::uint8_t>(std::stoul(text.substr(i, 2), nullptr, 16)));
+				std::uint8_t byte = 0;
+				std::from_chars(text.data() + i, text.data() + std::min(i + 2, text.size()), byte, 16);
+				p.bytes.push_back(byte);
 				p.mask.push_back(true);
 				i += 2;
 			}

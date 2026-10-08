@@ -268,7 +268,7 @@ namespace
 
 	// Decodes the UTF-8 code point at s[i]; returns its byte length (>= 1,
 	// so malformed input still makes progress).
-	size_t DecodeUtf8(const std::string& s, size_t i, char32_t& cp)
+	size_t DecodeUtf8(std::string_view s, size_t i, char32_t& cp)
 	{
 		const unsigned char c = static_cast<unsigned char>(s[i]);
 		size_t len = c < 0x80 ? 1 : (c >> 5) == 0x6 ? 2 : (c >> 4) == 0xE ? 3 : (c >> 3) == 0x1E ? 4 : 1;
@@ -301,7 +301,7 @@ namespace
 	}
 
 	// Greedy wrap: break at spaces, or after any wide (CJK) character.
-	std::vector<std::string> WrapText(const std::string& text, int maxUnits)
+	std::vector<std::string> WrapText(std::string_view text, int maxUnits)
 	{
 		if (maxUnits <= 0)
 			maxUnits = INT_MAX; // 0 = never wrap (explicit newlines still break)
@@ -309,7 +309,7 @@ namespace
 		std::vector<std::string> lines;
 		size_t lineStart = 0, i = 0;
 		int units = 0;
-		size_t breakEnd = std::string::npos, breakNext = std::string::npos; // last break opportunity on this line
+		size_t breakEnd = std::string_view::npos, breakNext = std::string_view::npos; // last break opportunity on this line
 
 		while (i < text.size())
 		{
@@ -318,10 +318,10 @@ namespace
 
 			if (cp == 0x0A) // newline
 			{
-				lines.push_back(text.substr(lineStart, i - lineStart));
+				lines.emplace_back(text.substr(lineStart, i - lineStart));
 				lineStart = i = i + n;
 				units = 0;
-				breakEnd = breakNext = std::string::npos;
+				breakEnd = breakNext = std::string_view::npos;
 				continue;
 			}
 			if (cp == U' ' && units == 0)
@@ -334,12 +334,12 @@ namespace
 			const int width = IsClosingPunctuation(cp) ? 0 : (wide ? 2 : 1);
 			if (units > maxUnits - width && units > 0)
 			{
-				const size_t end = breakEnd != std::string::npos && breakEnd > lineStart ? breakEnd : i;
-				const size_t next = breakEnd != std::string::npos && breakEnd > lineStart ? breakNext : i;
-				lines.push_back(text.substr(lineStart, end - lineStart));
+				const size_t end = breakEnd != std::string_view::npos && breakEnd > lineStart ? breakEnd : i;
+				const size_t next = breakEnd != std::string_view::npos && breakEnd > lineStart ? breakNext : i;
+				lines.emplace_back(text.substr(lineStart, end - lineStart));
 				lineStart = i = next; // rescan the overflow from the new line start
 				units = 0;
-				breakEnd = breakNext = std::string::npos;
+				breakEnd = breakNext = std::string_view::npos;
 				continue;
 			}
 
@@ -357,7 +357,7 @@ namespace
 		}
 
 		if (lineStart < text.size())
-			lines.push_back(text.substr(lineStart));
+			lines.emplace_back(text.substr(lineStart));
 		return lines;
 	}
 }
@@ -500,7 +500,7 @@ void MenuBase::OnDraw()
 
 	// Header: the title over the header color.
 	DrawBox(centerX, y + 0.046f, kWidth, 0.105f, style.header);
-	const std::string title = style.title.empty() ? "Rampagio" : style.title;
+	const std::string_view title = style.title.empty() ? std::string_view("Rampagio") : std::string_view(style.title);
 	if (style.centeredTitle)
 		DrawMenuText(title, centerX, y + 0.0135f, 0.95f, style.titleText, TitleFace(), TextAlign::Center, true);
 	else
@@ -737,8 +737,8 @@ void MenuController::DrawStatusText()
 		// a Center-aligned field's x parameter is a -1..1 offset from
 		// screen center rather than DrawTextAt's normal 0..1 left-edge
 		// position -- 0.5 (screen-center in 0..1) maps to 0.0 here.
-		std::string formatText = "<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Center'><FONT FACE='$Font5' LETTERSPACING='0' SIZE='28'>~s~"
-			+ std::string(Tr(m_statusText)) + "</FONT></P><TEXTFORMAT>";
+		std::string formatText = "<TEXTFORMAT RIGHTMARGIN='0'><P ALIGN='Center'><FONT FACE='$Font5' LETTERSPACING='0' SIZE='28'>~s~";
+		formatText.append(Tr(m_statusText)).append("</FONT></P><TEXTFORMAT>");
 		UIDEBUG::_BG_SET_TEXT_COLOR(255, 255, 255, 255);
 		UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", formatText.c_str()), -1.0f + (0.5f * 2.0f), 0.5f);
 	}

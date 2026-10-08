@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <cstdlib>
 #include <iterator>
 
@@ -126,22 +127,26 @@ namespace GameUtil
 		return true;
 	}
 
-	Hash ParseHash(const std::string& text)
+	Hash ParseHash(std::string_view text)
 	{
 		if (text.empty())
 			return 0;
-		char* end = nullptr;
+		// The whole text must be the number, else it's a name.
+		const auto number = [](std::string_view digits, int base, Hash& out)
+		{
+			const auto [end, ec] = std::from_chars(digits.data(), digits.data() + digits.size(), out, base);
+			return ec == std::errc() && end == digits.data() + digits.size();
+		};
+		Hash value = 0;
 		if (text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
 		{
-			const unsigned long value = std::strtoul(text.c_str() + 2, &end, 16);
-			if (*end == '\0')
-				return static_cast<Hash>(value);
+			if (number(text.substr(2), 16, value))
+				return value;
 		}
 		else if (std::isdigit(static_cast<unsigned char>(text[0])))
 		{
-			const unsigned long value = std::strtoul(text.c_str(), &end, 10);
-			if (*end == '\0')
-				return static_cast<Hash>(value);
+			if (number(text, 10, value))
+				return value;
 		}
 		return Joaat(text);
 	}
@@ -154,16 +159,16 @@ namespace GameUtil
 		return character;
 	}
 
-	std::string ItemName(Hash item, const std::string& fallback)
+	std::string ItemName(Hash item, std::string_view fallback)
 	{
 		// Rampage takes 3..37 characters as a real name; empty or NULL
 		// means the game has no label for the hash.
 		const char* text = HUD::GET_STRING_FROM_HASH_KEY(item);
 		if (!text)
-			return fallback;
+			return std::string(fallback);
 		const std::string_view name(text);
 		if (name.size() < 3 || name == "NULL")
-			return fallback;
+			return std::string(fallback);
 		return std::string(name);
 	}
 

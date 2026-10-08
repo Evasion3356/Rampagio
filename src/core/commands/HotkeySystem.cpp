@@ -39,11 +39,14 @@ namespace Rampagio
 		self.MarkStateDirty();
 	}
 
-	void HotkeySystem::Clear(const std::string& name)
+	void HotkeySystem::Clear(std::string_view name)
 	{
 		HotkeySystem& self = GetInstance();
-		if (self.m_Bindings.erase(name))
+		if (auto it = self.m_Bindings.find(name); it != self.m_Bindings.end())
+		{
+			self.m_Bindings.erase(it);
 			self.MarkStateDirty();
+		}
 	}
 
 	Command* HotkeySystem::Update(const std::function<bool(int)>& isKeyDown)

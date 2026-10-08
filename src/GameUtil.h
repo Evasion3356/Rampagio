@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace GameUtil
@@ -56,7 +57,7 @@ namespace GameUtil
 
 	// A typed name or hash: "0x..." hex, plain decimal, else joaat of the
 	// name. 0 for empty text.
-	Hash ParseHash(const std::string& text);
+	Hash ParseHash(std::string_view text);
 
 	// ---- Inventory ----
 
@@ -104,5 +105,5 @@ namespace GameUtil
 
 	// An item's name in the game's current language: the item hash is
 	// also its text label. `fallback` if the game has no text for it.
-	std::string ItemName(Hash item, const std::string& fallback);
+	std::string ItemName(Hash item, std::string_view fallback);
 }

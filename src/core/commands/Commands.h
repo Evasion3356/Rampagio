@@ -26,10 +26,17 @@ namespace Rampagio
 	class Command;
 	class LoopedCommand;
 
+	// Lets m_ByName be searched by string_view without building a string.
+	struct StringHash
+	{
+		using is_transparent = void;
+		size_t operator()(std::string_view s) const { return std::hash<std::string_view>{}(s); }
+	};
+
 	class Commands : private IStateSerializer
 	{
 		std::unordered_map<std::uint32_t, Command*> m_ByHash;
-		std::unordered_map<std::string, Command*> m_ByName;
+		std::unordered_map<std::string, Command*, StringHash, std::equal_to<>> m_ByName;
 		std::vector<Command*> m_Ordered;
 		std::vector<LoopedCommand*> m_LoopedCommands;
 		bool m_Suspended = false;
@@ -58,7 +65,7 @@ namespace Rampagio
 		static T* GetCommand(std::string_view name)
 		{
 			auto& map = GetInstance().m_ByName;
-			auto it = map.find(std::string(name));
+			auto it = map.find(name);
 			return it == map.end() ? nullptr : dynamic_cast<T*>(it->second);
 		}
 

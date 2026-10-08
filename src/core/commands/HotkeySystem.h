@@ -19,6 +19,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Rampagio
@@ -27,7 +28,7 @@ namespace Rampagio
 
 	class HotkeySystem : private IStateSerializer
 	{
-		std::map<std::string, std::vector<int>> m_Bindings;
+		std::map<std::string, std::vector<int>, std::less<>> m_Bindings;
 		std::map<std::string, bool> m_WasDown;
 
 		HotkeySystem();
@@ -41,8 +42,8 @@ namespace Rampagio
 		// Binds `chain` to `name`, replacing its old binding and removing the
 		// same chain from any other command.
 		static void Bind(const std::string& name, std::vector<int> chain);
-		static void Clear(const std::string& name);
-		static const std::map<std::string, std::vector<int>>& GetBindings() { return GetInstance().m_Bindings; }
+		static void Clear(std::string_view name);
+		static const std::map<std::string, std::vector<int>, std::less<>>& GetBindings() { return GetInstance().m_Bindings; }
 
 		// Fires the commands whose chain was just completed; returns the last
 		// one fired (or nullptr), so the caller can show its StatusText.

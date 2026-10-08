@@ -23,6 +23,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <format>
 #include <map>
 #include <set>
@@ -114,15 +115,16 @@ namespace
 	std::vector<ClothingCategory> g_clothing;
 	bool g_clothingLoaded = false;
 
-	std::string TagValue(const std::string& line, const char* tag)
+	// A view into `line`.
+	std::string_view TagValue(std::string_view line, const char* tag)
 	{
 		const std::string open = std::string("<") + tag + ">";
 		const size_t a = line.find(open);
-		if (a == std::string::npos)
+		if (a == std::string_view::npos)
 			return {};
 		const size_t start = a + open.size();
 		const size_t end = line.find('<', start);
-		return line.substr(start, end == std::string::npos ? std::string::npos : end - start);
+		return line.substr(start, end == std::string_view::npos ? std::string_view::npos : end - start);
 	}
 
 	void LoadClothing()
@@ -141,7 +143,7 @@ namespace
 			else if (auto v = TagValue(line, "IsMP"); !v.empty())
 				item.mp = v == "true" || v == "1";
 			else if (auto v = TagValue(line, "PedType"); !v.empty())
-				item.pedType = std::atoi(v.c_str());
+				std::from_chars(v.data(), v.data() + v.size(), item.pedType);
 			else if (auto v = TagValue(line, "Category"); !v.empty())
 				category = GameUtil::ParseHash(v);
 			else if (auto v = TagValue(line, "Hash"); !v.empty())
