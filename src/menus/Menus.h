@@ -56,4 +56,47 @@ namespace Menus
 
 	// The Give Weapon list's weapon names (Weapons.cpp).
 	std::span<const char* const> WeaponNames();
+
+	// The ped the shared ped submenus act on (PedEditor.cpp). The Player
+	// submenus in PlayerSubmenus.cpp, PlayerActions.cpp and Wardrobe.cpp
+	// call Target::Get() instead of PLAYER_PED_ID(); the Ped Editor and
+	// the Horse menu link to the same menus and Bind themselves, so a row
+	// reached through them acts on their ped. Per-frame ticks run with the
+	// menu closed, so they fall back to the player.
+	namespace Target
+	{
+		// Rows reached through `menu` act on getter() (while it exists).
+		void Bind(MenuBase* menu, std::function<Ped()> getter);
+		// The ped of the innermost bound menu on the open menu stack, else
+		// the player.
+		Ped Get();
+	}
+
+	// The Player submenus the Ped Editor and Horse menu link to, filled in
+	// by their builders.
+	struct SharedMenus
+	{
+		MenuBase* scenarios = nullptr;
+		MenuBase* animations = nullptr;
+		MenuBase* effects = nullptr;
+		MenuBase* emotes = nullptr;
+		MenuBase* speech = nullptr;
+		MenuBase* voice = nullptr;
+		MenuBase* moods = nullptr;
+		MenuBase* walkStyles = nullptr;
+		MenuBase* damagePacks = nullptr;
+		MenuBase* outfits = nullptr;
+		MenuBase* components = nullptr;
+		MenuBase* metaTags = nullptr;
+		MenuBase* metaExpressions = nullptr;
+		MenuBase* overlays = nullptr;
+	};
+	SharedMenus& Shared();
+
+	namespace PedEditor
+	{
+		void Build(); // once, after the Player menus
+		// Opens the Ped Editor on `ped`.
+		void Open(Ped ped);
+	}
 }

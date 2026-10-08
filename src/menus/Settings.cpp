@@ -170,7 +170,7 @@ namespace
 	{
 		std::map<std::string, bool> on;
 		for (MenuItemToggle* t : Ui::AllToggles())
-			if (t != g_toggleSavingToggle && t != g_autoSaveToggle && t != g_soundsToggle && t != g_gamepadToggle)
+			if (t->Persist() && t != g_toggleSavingToggle && t != g_autoSaveToggle && t != g_soundsToggle && t != g_gamepadToggle)
 				on[Ui::Key(t)] = t->GetState();
 		return on;
 	}

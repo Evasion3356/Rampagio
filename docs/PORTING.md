@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 92 done, 23 partial, 40 pending, 10 tabled, 2 dropped.
+Submenus: 125 done, 25 partial, 5 pending, 10 tabled, 2 dropped.
 
 ## Debug
 
@@ -15,13 +15,13 @@ Submenus: 92 done, 23 partial, 40 pending, 10 tabled, 2 dropped.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubHorseBlip | 3 | Pending |  |
-| SubHorseLoader | 2 | Pending |  |
-| SubHorsePedMetaExpressions | 0 | Pending |  |
-| SubHorsePedMetaTags | 6 | Pending |  |
-| SubHorseStats | 6 | Pending |  |
-| SubMobileStable | 3 | Pending |  |
-| SubMobileStableComponent | 10 | Pending |  |
+| SubHorseBlip | 3 | Done | Horse > Blip |
+| SubHorseLoader | 2 | Done | Horse > Horse Loader: model, meta tags and gender in Rampagio_Horses.ini (ours) |
+| SubHorsePedMetaExpressions | 0 | Done | Horse > Meta Ped Expressions: the horse expressions of the shared menu |
+| SubHorsePedMetaTags | 6 | Done | Horse > Meta Ped Tags: the shared menu with Index / Load Data from Index |
+| SubHorseStats | 6 | Done | Horse > Horse Stats: ranks 0-10 per attribute |
+| SubMobileStable | 3 | Done | Horse > Mobile Stable: 280 HORSE_EQUIPMENT_ items from the game scripts, grouped by kind |
+| SubMobileStableComponent | 10 | Partial | Horse > Mobile Stable > <kind>: picking applies the item; no per-item tint picks |
 | SubSelfHorse | 33 | Done | Horse |
 
 ## Misc
@@ -50,34 +50,34 @@ Submenus: 92 done, 23 partial, 40 pending, 10 tabled, 2 dropped.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubPedEditor | 19 | Pending |  |
-| SubPedEditorAnimationDictsList | 4 | Pending |  |
-| SubPedEditorAnimationsCustom | 6 | Pending |  |
-| SubPedEditorAnimationsDicts | 1 | Pending |  |
-| SubPedEditorCombat | 4 | Pending |  |
-| SubPedEditorCombatAttributes | 0 | Pending |  |
-| SubPedEditorDamagePacks | 3 | Pending |  |
-| SubPedEditorEffects | 25 | Pending |  |
-| SubPedEditorEmotes | 8 | Pending |  |
-| SubPedEditorFacialAnimations | 4 | Pending |  |
-| SubPedEditorGeneral | 13 | Pending |  |
-| SubPedEditorMetaExpressions | 0 | Pending |  |
-| SubPedEditorMetaTags | 7 | Pending |  |
-| SubPedEditorPlaySpeech | 1 | Pending |  |
-| SubPedEditorPlaySpeechCustom | 3 | Pending |  |
-| SubPedEditorPlaySpeechFlowgreet | 3 | Pending |  |
-| SubPedEditorPlaySpeechRegular | 2 | Pending |  |
-| SubPedEditorPlaySpeechVignettes | 3 | Pending |  |
-| SubPedEditorScenarios | 7 | Pending |  |
-| SubPedEditorVoiceChanger | 1 | Pending |  |
-| SubPedEditorWalkStyles | 2 | Pending |  |
-| SubPedEditorWardrobe | 10 | Pending |  |
-| SubPedEditorWardrobeComponent | 3 | Pending |  |
-| SubPedEditorWardrobeWearableState | 1 | Pending |  |
-| SubPedEditorWeapons | 6 | Pending |  |
-| SubPedEditorWeaponsGive | 0 | Pending |  |
-| SubPedPositioning | 0 | Pending |  |
-| SubPedSelectAttachment | 3 | Pending |  |
+| SubPedEditor | 19 | Done | Ped Editor (from Spawner > Ped Database and World > Ped Manager): Attach To Something offers player, horse and nearest entities (ours) |
+| SubPedEditorAnimationDictsList | 4 | Done | Ped Editor > Animations > Dictionaries > (dictionary): the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorAnimationsCustom | 6 | Done | Ped Editor > Animations > Custom Animations: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorAnimationsDicts | 1 | Done | Ped Editor > Animations > Dictionaries: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorCombat | 4 | Done | Ped Editor > General > Combat Style: 27 styles and 10 mods from the game scripts |
+| SubPedEditorCombatAttributes | 0 | Done | Ped Editor > General > Combat Style > Combat Attributes: by number, 0-127 |
+| SubPedEditorDamagePacks | 3 | Done | Ped Editor > Wardrobe > Apply Damage Packs: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorEffects | 25 | Partial | Ped Editor > Effects: the shared Player menu, opened from the Ped Editor (Menus::Target); the 25 presets of Rampage not ported |
+| SubPedEditorEmotes | 8 | Done | Ped Editor > Emotes: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorFacialAnimations | 4 | Done | Ped Editor > Animations > Facial Animations: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorGeneral | 13 | Done | Ped Editor > General |
+| SubPedEditorMetaExpressions | 0 | Done | Ped Editor > Wardrobe > Meta Ped Expressions: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorMetaTags | 7 | Done | Ped Editor > Wardrobe > Meta Ped Tags: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorPlaySpeech | 1 | Done | Ped Editor > Play Speech: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorPlaySpeechCustom | 3 | Done | Ped Editor > Play Speech > Custom Speeches: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorPlaySpeechFlowgreet | 3 | Done | Ped Editor > Play Speech > Flow Greets: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorPlaySpeechRegular | 2 | Done | Ped Editor > Play Speech > Regular Speeches: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorPlaySpeechVignettes | 3 | Done | Ped Editor > Play Speech > Vignettes: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorScenarios | 7 | Done | Ped Editor > Scenarios: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorVoiceChanger | 1 | Done | Ped Editor > Play Speech > Voice Changer: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorWalkStyles | 2 | Done | Ped Editor > Wardrobe > Walk Styles: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorWardrobe | 10 | Done | Ped Editor > Wardrobe: own rows plus links to the shared wardrobe menus |
+| SubPedEditorWardrobeComponent | 3 | Done | Ped Editor > Wardrobe > Components: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorWardrobeWearableState | 1 | Done | Ped Editor > Wardrobe > Components > Wearable State: the shared Player menu, opened from the Ped Editor (Menus::Target) |
+| SubPedEditorWeapons | 6 | Done | Ped Editor > Weapons |
+| SubPedEditorWeaponsGive | 0 | Done | Ped Editor > Weapons > Give Weapon |
+| SubPedPositioning | 0 | Done | Ped Editor > Positioning: position and heading, or attachment offsets while attached |
+| SubPedSelectAttachment | 3 | Done | Ped Editor > Attach To Something (ours: player, horse, nearest ped/vehicle/object) |
 
 ## Player
 
@@ -179,7 +179,7 @@ Submenus: 92 done, 23 partial, 40 pending, 10 tabled, 2 dropped.
 | SubPedSpawner | 2 | Done | Spawner > Ped Spawner: models from the game scripts; Hijack Ped adds the first ped of a typed model to the database |
 | SubPedSpawnerAddon | 3 | Done | Spawner > Ped Spawner > Addon Peds: Rampagio_AddonPeds.txt, re-read on open |
 | SubPedSpawnerAnimal | 1 | Partial | Spawner > Ped Spawner > Animals: Legendary Animals lists the legendary models the scripts name; the outfit-preset legendaries of Rampage are its own table |
-| SubPedSpawnerDatabase | 2 | Done | Spawner > Ped Spawner > Ped Database: per-ped actions (teleport, posse, bodyguard, enemy, revive, kill, delete) until the Ped Editor is ported |
+| SubPedSpawnerDatabase | 2 | Done | Spawner > Ped Spawner > Ped Database: per-ped actions, and Ped Editor opens the full editor |
 | SubPedSpawnerDispatch | 1 | Partial | Spawner > Law Dispatch Spawner: 49 LAW_ responses from the game scripts; the law region per response (Rampage table) is not set |
 | SubPedSpawnerFish | 1 | Done | Spawner > Ped Spawner > Fishes |
 | SubPedSpawnerHorses | 2 | Done | Spawner > Ped Spawner > Horses: one list from the game scripts |

@@ -3,12 +3,20 @@
 	the current mount for most rows and on its tracked "primary horse" for
 	the rest; we use GameUtil::PlayerHorse() (mount, else last mount, else
 	saddle horse) for both.
+
+	Also SubHorseBlip, SubHorseLoader (ours: Rampagio_Horses.ini), SubHorseStats,
+	SubMobileStable / SubMobileStableComponent (tack from the game scripts,
+	tools/extract_peds.py) and the horse's Meta Ped Tags / Expressions, which
+	open the Player's menus bound to the horse (Menus::Target).
 */
 
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\keyboard.h"
+#include "..\DataFile.h"
 
+#include <algorithm>
+#include <cstring>
 #include <format>
 
 namespace
@@ -316,6 +324,249 @@ namespace
 			TASK::STOP_ANIM_TASK(Me(), g_sideDict.c_str(), g_sideAnim, 0.0f);
 		g_sideDict.clear();
 	}
+	// --- blip (SubHorseBlip) ------------------------------------------------------
+
+	constexpr Hash BLIP_STYLE_HORSE = 0x8D39991C; // Rampage's horse blip style
+	Ped g_blipHorse = 0;
+	Blip g_horseBlip = 0;
+
+	std::string AddHorseBlip()
+	{
+		const Ped mount = Mount();
+		if (!mount)
+			return "Get on a horse first";
+		if (g_horseBlip && MAP::DOES_BLIP_EXIST(g_horseBlip))
+			MAP::REMOVE_BLIP(&g_horseBlip);
+		g_blipHorse = mount;
+		g_horseBlip = MAP::BLIP_ADD_FOR_ENTITY(BLIP_STYLE_HORSE, mount);
+		MAP::SET_BLIP_NAME_FROM_TEXT_FILE(g_horseBlip, "BLIP_AMBIENT_HORSE");
+		return "";
+	}
+
+	std::string TeleportToBlipHorse()
+	{
+		if (!ENTITY::DOES_ENTITY_EXIST(g_blipHorse))
+			return "No blipped horse";
+		const Vector3 v = ENTITY::GET_ENTITY_COORDS(g_blipHorse, TRUE, FALSE);
+		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Me(), v.x, v.y, v.z, TRUE, TRUE, TRUE);
+		PED::SET_PED_ONTO_MOUNT(Me(), g_blipHorse, -1, TRUE);
+		return "";
+	}
+
+	std::string BlipHorseToMe()
+	{
+		if (!ENTITY::DOES_ENTITY_EXIST(g_blipHorse))
+			return "No blipped horse";
+		const Vector3 v = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
+		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(g_blipHorse, v.x, v.y, v.z, TRUE, TRUE, TRUE);
+		return "";
+	}
+
+	// --- loader (SubHorseLoader; ours: Rampagio_Horses.ini) ------------------------
+
+	const wchar_t* kHorsesFile = L"Rampagio_Horses.ini";
+	constexpr int kGenderExpression = 0xA28B; // 1.0 male, 0.0 female (Rampage's Gender row)
+
+	std::string SaveHorse()
+	{
+		const Ped horse = Horse();
+		if (!horse)
+			return "No horse";
+		std::string name;
+		if (!GameUtil::PromptText("Horse name", name, 40) || name.empty())
+			return "";
+		DataFile::Ini ini = DataFile::Load(kHorsesFile);
+		ini.sections.erase(name);
+		auto& sec = ini.sections[name];
+		sec["model"] = std::format("0x{:08X}", ENTITY::GET_ENTITY_MODEL(horse));
+		sec["gender"] = std::format("{:.2f}", PED::_GET_CHAR_EXPRESSION(horse, kGenderExpression));
+		const int count = PED::_GET_NUM_COMPONENTS_IN_PED(horse);
+		for (int i = 0; i < count; i++)
+		{
+			Hash d = 0, a = 0, n = 0, m = 0, palette = 0;
+			int t0 = 0, t1 = 0, t2 = 0;
+			PED::GET_META_PED_ASSET_GUIDS(horse, i, &d, &a, &n, &m);
+			PED::GET_META_PED_ASSET_TINT(horse, i, &palette, &t0, &t1, &t2);
+			sec[std::format("tag{}", i)] = std::format("0x{:X},0x{:X},0x{:X},0x{:X},0x{:X},{},{},{}", d, a, n, m, palette, t0, t1, t2);
+		}
+		Ui::Controller().ReopenActiveLater();
+		return DataFile::Save(kHorsesFile, ini) ? "Saved " + name : "Couldn't save";
+	}
+
+	std::string LoadHorse(const std::string& name)
+	{
+		DataFile::Ini ini = DataFile::Load(kHorsesFile);
+		auto it = ini.sections.find(name);
+		if (it == ini.sections.end())
+			return "No horse named " + name;
+		auto& sec = it->second;
+		const Hash model = GameUtil::ParseHash(sec["model"]);
+		if (!GameUtil::LoadModel(model))
+			return "Couldn't load the model";
+		const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
+		const Ped horse = PED::CREATE_PED(model, p.x + 2.0f, p.y, p.z, ENTITY::GET_ENTITY_HEADING(Me()), FALSE, TRUE, FALSE, FALSE);
+		STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+		if (!horse)
+			return "Couldn't spawn it";
+		PED::_SET_RANDOM_OUTFIT_VARIATION(horse, TRUE);
+		for (int i = PED::_GET_NUM_COMPONENTS_IN_PED(horse) - 1; i >= 0; i--)
+			if (const Hash category = PED::_GET_PED_COMPONENT_CATEGORY_BY_INDEX(horse, i))
+				PED::REMOVE_TAG_FROM_META_PED(horse, category, 0);
+		for (int i = 0; ; i++)
+		{
+			auto tag = sec.find(std::format("tag{}", i));
+			if (tag == sec.end())
+				break;
+			Hash h[5] = {};
+			int t[3] = {};
+			char buf[5][16] = {};
+			if (sscanf_s(tag->second.c_str(), "%15[^,],%15[^,],%15[^,],%15[^,],%15[^,],%d,%d,%d", buf[0], 16, buf[1], 16, buf[2], 16, buf[3], 16, buf[4], 16, &t[0], &t[1], &t[2]) != 8)
+				continue;
+			for (int k = 0; k < 5; k++)
+				h[k] = GameUtil::ParseHash(buf[k]);
+			PED::_SET_META_PED_TAG(horse, h[0], h[1], h[2], h[3], h[4], t[0], t[1], t[2]);
+		}
+		PED::_SET_CHAR_EXPRESSION(horse, kGenderExpression, std::strtof(sec["gender"].c_str(), nullptr));
+		PED::_UPDATE_PED_VARIATION(horse, FALSE, TRUE, TRUE, TRUE, FALSE);
+		return "";
+	}
+
+	void BuildLoader(MenuBase* m)
+	{
+		Ui::Action(m, "Save Current", SaveHorse);
+		Ui::Section(m, "Load Horse");
+		DataFile::Ini ini = DataFile::Load(kHorsesFile);
+		if (ini.sections.empty())
+			Ui::Section(m, "No saved horses");
+		for (const auto& [name, sec] : ini.sections)
+			Ui::Action(m, name, [name] { return LoadHorse(name); });
+		if (!ini.sections.empty())
+		{
+			Ui::Section(m, "Delete");
+			for (const auto& [name, sec] : ini.sections)
+				Ui::Action(m, "Delete " + name, [name]
+				{
+					DataFile::Ini file = DataFile::Load(kHorsesFile);
+					file.sections.erase(name);
+					DataFile::Save(kHorsesFile, file);
+					Ui::Controller().ReopenActiveLater();
+					return "Deleted " + name;
+				});
+		}
+	}
+
+	// --- stats (SubHorseStats) -------------------------------------------------------
+
+	int g_gender = 0; // 0 female, 1 male
+	struct HorseStat
+	{
+		const char* name;
+		int attribute;
+		int value;
+	};
+	HorseStat g_stats[] = {
+		{ "Health Core", 0, 0 }, { "Stamina Core", 1, 0 }, { "Handling Level", 4, 0 }, { "Speed Level", 5, 0 },
+		{ "Acceleration Level", 6, 0 }, { "Bonding Level", 7, 0 }, { "Weight", 13, 0 },
+	};
+
+	std::string MaxBonding()
+	{
+		const Ped mount = Mount();
+		if (!mount)
+			return "Get on a horse first";
+		if (PLAYER::_GET_SADDLE_HORSE_FOR_PLAYER(PLAYER::PLAYER_ID()) != mount)
+			return "Only works for your active saddle horse";
+		// Global_40.f_1095 is the active horse slot; the slot's bonding
+		// points are .f_1[slot /*436*/].f_372.f_1 (as the scripts write it).
+		UINT64* slotGlobal = GameUtil::Global(40 + 1095);
+		if (!slotGlobal)
+			return "Script globals aren't available";
+		const int slot = *reinterpret_cast<int*>(slotGlobal);
+		UINT64* points = GameUtil::Global(40 + 1095 + 1 + 436 * slot + 372 + 1);
+		if (!points)
+			return "Script globals aren't available";
+		const float needed = static_cast<float>(ATTRIBUTE::GET_DEFAULT_ATTRIBUTE_POINTS_NEEDED_FOR_RANK(ENTITY::GET_ENTITY_MODEL(mount), 7, 4)) - 2.0f;
+		float& current = *reinterpret_cast<float*>(points);
+		if (needed > current)
+			current = needed;
+		return "Bonding maxed";
+	}
+
+	// --- mobile stable (SubMobileStable / SubMobileStableComponent) -----------------
+
+	struct Tack
+	{
+		const char* group;
+		const char* name;
+	};
+	const Tack kTack[] = {
+#include "..\data\HorseTack.inc"
+	};
+	// Tack categories Remove All clears (13, as Rampage's).
+	const char* const kTackCategories[] = { "HORSE_SADDLES", "horse_blankets", "horse_bedrolls", "horse_saddlebags",
+		"saddle_horns", "saddle_stirrups", "saddle_lanterns", "horse_manes", "horse_tails", "horse_mustache",
+		"horse_bridles", "horse_shoes", "horse_holsters" };
+
+	void ApplyTack(Hash item)
+	{
+		OnMount([item](Ped m) {
+			PED::_APPLY_SHOP_ITEM_TO_PED(m, item, FALSE, FALSE, FALSE);
+			PED::_APPLY_SHOP_ITEM_TO_PED(m, item, FALSE, TRUE, FALSE);
+			PED::_UPDATE_PED_VARIATION(m, FALSE, TRUE, TRUE, TRUE, FALSE);
+		});
+	}
+
+	void RemoveTack(Hash category)
+	{
+		OnMount([category](Ped m) {
+			PED::REMOVE_TAG_FROM_META_PED(m, category, 0);
+			PED::_UPDATE_PED_VARIATION(m, FALSE, TRUE, TRUE, TRUE, FALSE);
+		});
+	}
+
+	void BuildMobileStable(MenuBase* horse)
+	{
+		MenuBase* stable = Ui::Submenu(horse, "Mobile Stable");
+		std::vector<std::string> groups;
+		for (const Tack& t : kTack)
+			if (std::find(groups.begin(), groups.end(), t.group) == groups.end())
+				groups.push_back(t.group);
+		for (const std::string& group : groups)
+		{
+			MenuBase* sub = Ui::Submenu(stable, group);
+			int n = 0;
+			for (const Tack& t : kTack)
+				if (group == t.group)
+				{
+					const Hash item = GameUtil::Joaat(t.name);
+					Ui::Do(sub, std::format("{} {}", ++n, t.name + std::strlen("HORSE_EQUIPMENT_")), [item] { ApplyTack(item); });
+				}
+		}
+		Ui::Section(stable, "Custom");
+		Ui::Action(stable, "Add Component", []() -> std::string
+		{
+			std::string text;
+			if (!GameUtil::PromptText("Tack item name or hash:", text) || text.empty())
+				return "";
+			const Hash item = GameUtil::ParseHash(text);
+			if (!ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item, 0))
+				return "Not an item the game knows";
+			ApplyTack(item);
+			return "";
+		});
+		Ui::Action(stable, "Remove Component", []() -> std::string
+		{
+			std::string text;
+			if (!GameUtil::PromptText("Category name or hash:", text) || text.empty())
+				return "";
+			RemoveTack(GameUtil::ParseHash(text));
+			return "";
+		});
+		Ui::Do(stable, "Remove All", [] {
+			for (const char* category : kTackCategories)
+				RemoveTack(GameUtil::Joaat(category));
+		});
+	}
 }
 
 namespace Menus
@@ -323,6 +574,47 @@ namespace Menus
 	void BuildHorse(MenuBase* root)
 	{
 		MenuBase* horse = Ui::Submenu(root, "Horse");
+		// Meta Ped Tags / Expressions below act on the horse.
+		Target::Bind(horse, [] { return GameUtil::PlayerHorse(); });
+
+		MenuBase* blip = Ui::Submenu(horse, "Blip");
+		Ui::Action(blip, "Add Blip", AddHorseBlip);
+		Ui::Action(blip, "Teleport to", TeleportToBlipHorse);
+		Ui::Action(blip, "Teleport to Me", BlipHorseToMe);
+		Ui::ListMenu(horse, "Horse Loader", BuildLoader);
+		Ui::Link(horse, "Meta Ped Tags", Shared().metaTags);
+		Ui::Link(horse, "Meta Ped Expressions", Shared().metaExpressions);
+
+		MenuBase* stats = Ui::Submenu(horse, "Horse Stats");
+		Ui::Choice(stats, "Gender", { "Female", "Male" }, &g_gender, [](int g) {
+			OnMount([g](Ped m) {
+				PED::_SET_CHAR_EXPRESSION(m, kGenderExpression, g == 1 ? 1.0f : 0.0f);
+				PED::_UPDATE_PED_VARIATION(m, FALSE, TRUE, TRUE, TRUE, FALSE);
+			});
+		});
+		Ui::Do(stats, "Max Horse Cores", [] {
+			OnMount([](Ped m) {
+				ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, 0, ATTRIBUTE::GET_MAX_ATTRIBUTE_RANK(m, 0));
+				ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, 1, ATTRIBUTE::GET_MAX_ATTRIBUTE_RANK(m, 1));
+			});
+		});
+		Ui::Action(stats, "Max Horse Bonding", MaxBonding);
+		Ui::Section(stats, "Custom");
+		for (HorseStat& s : g_stats)
+		{
+			HorseStat* stat = &s;
+			Ui::Number(stats, s.name, &s.value, 0, 10, 1,
+				[stat] { OnMount([stat](Ped m) { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, stat->attribute, stat->value); }); }, true);
+		}
+		stats->SetOnOpen([](MenuBase*) {
+			if (const Ped m = Mount())
+			{
+				g_gender = PED::_GET_CHAR_EXPRESSION(m, kGenderExpression) > 0.5f ? 1 : 0;
+				for (HorseStat& s : g_stats)
+					s.value = ATTRIBUTE::GET_ATTRIBUTE_BASE_RANK(m, s.attribute);
+			}
+		});
+		BuildMobileStable(horse);
 
 		Ui::Section(horse, "Toggles");
 		Ui::Looped(horse, "Invincible", [] { g_invincible.Tick(SetInvincible); }, [] { g_invincible.Off(SetInvincible); });

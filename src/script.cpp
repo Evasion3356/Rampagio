@@ -33,6 +33,7 @@ namespace
 		Menus::BuildRecovery(root);
 		Menus::BuildMiscellaneous(root);
 		Menus::BuildSettings(root);
+		Menus::PedEditor::Build(); // links to the Player menus, so after them
 	}
 }
 

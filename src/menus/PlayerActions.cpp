@@ -27,7 +27,9 @@
 
 namespace
 {
-	Ped Me() { return PLAYER::PLAYER_PED_ID(); }
+	// The Player menu's ped, or the Ped Editor's when reached through it
+	// (Menus::Target).
+	Ped Me() { return Menus::Target::Get(); }
 
 	template <size_t N>
 	std::span<const char* const> Names(const char* const (&names)[N]) { return names; }
@@ -367,7 +369,7 @@ namespace
 
 	void BuildAnimations(MenuBase* self)
 	{
-		MenuBase* anims = Ui::Submenu(self, "Animations");
+		MenuBase* anims = Menus::Shared().animations = Ui::Submenu(self, "Animations");
 
 		// SubSelfAnimationsCustom.
 		MenuBase* custom = Ui::Submenu(anims, "Custom Animations");
@@ -415,7 +417,7 @@ namespace
 	// the effects the scripts start with a literal asset, plus Custom.
 	void BuildEffects(MenuBase* self)
 	{
-		MenuBase* fx = Ui::Submenu(self, "Effects");
+		MenuBase* fx = Menus::Shared().effects = Ui::Submenu(self, "Effects");
 		Ui::Number(fx, "Scale", &g_effectScale, 0.1f, 10.0f, 0.1f);
 		Ui::Looped(fx, "Loop", LoopEffectTick);
 		Ui::Section(fx, "Custom");
@@ -440,7 +442,7 @@ namespace
 	// gun twirls.
 	void BuildEmotes(MenuBase* self)
 	{
-		MenuBase* emotes = Ui::Submenu(self, "Emotes");
+		MenuBase* emotes = Menus::Shared().emotes = Ui::Submenu(self, "Emotes");
 		Ui::Do(emotes, "Smoke", [] { StartScenarioHere("WORLD_HUMAN_SMOKE"); });
 		Ui::Do(emotes, "Smoke a Cigar", [] { StartScenarioHere("WORLD_HUMAN_SMOKE_CIGAR"); });
 		Ui::Do(emotes, "Stop Action", [] { TASK::CLEAR_PED_TASKS(Me(), TRUE, TRUE); });
@@ -470,11 +472,11 @@ namespace
 
 	void BuildSpeech(MenuBase* self)
 	{
-		MenuBase* speech = Ui::Submenu(self, "Play Speech");
+		MenuBase* speech = Menus::Shared().speech = Ui::Submenu(self, "Play Speech");
 
 		// SubVoiceChanger. Ours: "Set Voice" lists the voices the scripts
 		// use, with Custom Input for any other.
-		MenuBase* voice = Ui::Submenu(speech, "Voice Changer");
+		MenuBase* voice = Menus::Shared().voice = Ui::Submenu(speech, "Voice Changer");
 		Ui::Do(voice, "Set Voice to Arthur", SetVoiceArthur);
 		Ui::Do(voice, "Set Voice to John", [] { SetVoice("JOHN_PLAYER"); });
 		Ui::NameList(voice, "Set Voice", Names(kVoices), SetVoice);

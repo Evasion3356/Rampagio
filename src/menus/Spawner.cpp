@@ -333,6 +333,7 @@ namespace
 			m->AddItem(new MenuItemLabel([] { return std::string("Ped no longer exists"); }));
 			return;
 		}
+		Ui::Do(m, "Ped Editor", [p] { Menus::PedEditor::Open(p); });
 		Ui::Do(m, "Teleport to Ped", [p] {
 			const Vector3 v = ENTITY::GET_ENTITY_COORDS(p, TRUE, FALSE);
 			ENTITY::SET_ENTITY_COORDS(Me(), v.x, v.y, v.z, FALSE, FALSE, FALSE, FALSE);

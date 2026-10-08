@@ -290,7 +290,12 @@ class MenuItemToggle : public MenuItemSwitchable
 {
 	std::function<void(bool)>	m_onChange;
 	std::function<void()>		m_onTick;
+	bool						m_persist = true;
 public:
+	// Rampagio: false keeps it out of Settings' saved toggles (per-ped
+	// toggles in the Ped Editor).
+	void SetPersist(bool persist) { m_persist = persist; }
+	bool Persist() const { return m_persist; }
 	MenuItemToggle(string caption, std::function<void(bool)> onChange, std::function<void()> onTick = nullptr)
 		: MenuItemSwitchable(caption),
 		m_onChange(onChange),
@@ -555,6 +560,7 @@ public:
 	bool HasActiveMenu()			{	return m_menuStack.size() > 0; }
 	// Rampagio additions, for Settings > Search and the hotkeys.
 	const vector<MenuBase *>& GetMenus() const { return m_menuList; }
+	const vector<MenuBase *>& GetStack() const { return m_menuStack; }
 	MenuBase *GetTopMenu()			{	return GetActiveMenu(); }
 	void PushMenu(MenuBase *menu)	{	if (IsMenuRegistered(menu)) m_menuStack.push_back(menu); }
 	void PopMenu()					{   if (m_menuStack.size()) m_menuStack.pop_back(); }

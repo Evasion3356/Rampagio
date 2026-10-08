@@ -562,6 +562,28 @@ namespace Menus
 
 		// SubWorldLocalPeds ("Ped Manager").
 		MenuBase* peds = Ui::Submenu(world, "Ped Manager");
+		// Ours: open the Ped Editor on the aimed-at or a nearby ped.
+		Ui::Action(peds, "Edit Aimed Ped", []() -> std::string {
+			Entity e = 0;
+			if (!PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(PLAYER::PLAYER_ID(), &e) || !ENTITY::IS_ENTITY_A_PED(e))
+				return "Aim at a ped first";
+			Menus::PedEditor::Open(e);
+			return "";
+		});
+		Ui::ListMenu(peds, "Edit Nearby Ped", [](MenuBase* m) {
+			const Vector3 me = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
+			std::vector<std::pair<float, Ped>> nearby;
+			for (Ped p : OtherPeds())
+				nearby.push_back({ GameUtil::DistanceSq(me, ENTITY::GET_ENTITY_COORDS(p, TRUE, FALSE)), p });
+			std::sort(nearby.begin(), nearby.end());
+			if (nearby.size() > 40)
+				nearby.resize(40);
+			for (const auto& [d, p] : nearby)
+				Ui::Do(m, std::format("{:.0f} m  0x{:08X}{}", std::sqrt(d), ENTITY::GET_ENTITY_MODEL(p), ENTITY::IS_ENTITY_DEAD(p) ? " (dead)" : ""),
+					[p] { Menus::PedEditor::Open(p); });
+			if (nearby.empty())
+				Ui::Section(m, "No peds nearby");
+		});
 		Ui::Do(peds, "Teleport to Me", [] {
 			const Vector3 p = ENTITY::GET_ENTITY_COORDS(Me(), TRUE, FALSE);
 			for (Ped ped : OtherPeds())

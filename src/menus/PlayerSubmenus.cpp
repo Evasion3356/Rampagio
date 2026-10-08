@@ -12,7 +12,9 @@
 
 namespace
 {
-	Ped Me() { return PLAYER::PLAYER_PED_ID(); }
+	// The Player menu's ped, or the Ped Editor's / horse's when reached
+	// through them (Menus::Target).
+	Ped Me() { return Menus::Target::Get(); }
 	Player MyPlayer() { return PLAYER::PLAYER_ID(); }
 
 	template <size_t N>
@@ -151,7 +153,7 @@ namespace Menus
 	{
 		// SubSelfScenarios ("Reload List" reads Rampage's Scenarios.txt; ours
 		// has the script list built in and Custom Input for anything else).
-		Ui::NameList(self, "Scenarios", Names(kScenarios), PlayScenario, [](MenuBase* m) {
+		Shared().scenarios = Ui::NameList(self, "Scenarios", Names(kScenarios), PlayScenario, [](MenuBase* m) {
 			Ui::Do(m, "Stop Playing", [] { TASK::CLEAR_PED_TASKS(Me(), TRUE, TRUE); });
 			Ui::Do(m, "Stop Playing Immediately", [] { TASK::CLEAR_PED_TASKS_IMMEDIATELY(Me(), TRUE, TRUE); });
 			Ui::Do(m, "Use Nearest", UseNearestScenario);
@@ -162,10 +164,10 @@ namespace Menus
 		// SubSelfWardrobe; the rest of it is in Wardrobe.cpp.
 		MenuBase* wardrobe = Ui::Submenu(self, "Wardrobe");
 		BuildWardrobeTop(wardrobe);
-		Ui::NameList(wardrobe, "Walk Styles", Names(kWalkStyles), SetWalkStyle, [](MenuBase* m) {
+		Shared().walkStyles = Ui::NameList(wardrobe, "Walk Styles", Names(kWalkStyles), SetWalkStyle, [](MenuBase* m) {
 			Ui::Do(m, "Reset", [] { PED::_CLEAR_PED_DESIRED_LOCO_MOTION_TYPE(Me()); });
 		});
-		Ui::NameList(wardrobe, "Apply Damage Packs", Names(kDamagePacks),
+		Shared().damagePacks = Ui::NameList(wardrobe, "Apply Damage Packs", Names(kDamagePacks),
 			[](const std::string& pack) { PED::APPLY_PED_DAMAGE_PACK(Me(), pack.c_str(), 1.0f, 1.0f); },
 			[](MenuBase* m) { Ui::Do(m, "Clear all", ClearDamage); });
 		BuildWardrobe(wardrobe);
@@ -188,7 +190,7 @@ namespace Menus
 		BuildPlayerSpeech(self);
 
 		// SubMoods: facial idle overrides from the ped's own facial dictionary.
-		Ui::NameList(self, "Moods", Names(kMoods),
+		Shared().moods = Ui::NameList(self, "Moods", Names(kMoods),
 			[](const std::string& mood) { PED::SET_FACIAL_IDLE_ANIM_OVERRIDE(Me(), mood.c_str(), nullptr); },
 			[](MenuBase* m) { Ui::Do(m, "Reset", [] { PED::CLEAR_FACIAL_IDLE_ANIM_OVERRIDE(Me()); }); });
 

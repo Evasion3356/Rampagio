@@ -75,6 +75,14 @@ hotkey (Settings > Hotkey Manager).
   overlays and toggle auto-save (`Menus::TickSettings`). Saves
   `Rampagio_Settings.ini`, `Rampagio_Toggles.ini` (toggles by
   `Ui::Key`, "Menu Title > Caption") and `Rampagio_Themes.ini`.
+- `src/menus/PedEditor.cpp`: the Ped Editor and `Menus::Target`. The
+  Player submenus in `PlayerSubmenus.cpp`, `PlayerActions.cpp` and
+  `Wardrobe.cpp` act on `Target::Get()` (their `Me()`), which is the ped
+  of the innermost menu on the open stack bound with `Target::Bind` (the
+  Ped Editor's ped, the Horse menu's horse), else the player. The Ped
+  Editor and Horse menu reach those menus with `Ui::Link` through
+  `Menus::Shared()` instead of building copies. Ticks run with the menu
+  closed, so they always act on the player.
 - `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, `PlayerMount`,
   `PlayerHorse`, `TeleportToGround`, entity pools, script globals,
   model/anim loading, `PromptText` on-screen keyboard, `Joaat`).

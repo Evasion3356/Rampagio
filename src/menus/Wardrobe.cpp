@@ -27,7 +27,9 @@
 
 namespace
 {
-	Ped Me() { return PLAYER::PLAYER_PED_ID(); }
+	// The Player menu's ped, or the Ped Editor's / horse's when reached
+	// through them (Menus::Target).
+	Ped Me() { return Menus::Target::Get(); }
 
 	constexpr Hash kArthur = 0x0D7114C9; // player_zero
 	constexpr Hash kJohn = 0x00B69710;   // player_three
@@ -674,18 +676,29 @@ namespace
 	int g_tagCategory = 0;
 	std::string g_tagFields[5]; // drawable, albedo, normal, material, palette
 	int g_tagTints[3] = {};
+	int g_tagIndex = 0;
 
-	void ReadTag()
+	void ShowTag(const MetaTag& t)
 	{
-		const Ped ped = Me();
-		const int index = ComponentIndexInCategory(ped, GameUtil::Joaat(kCategories[g_tagCategory]));
-		const MetaTag t = index >= 0 ? ReadMetaTag(ped, index) : MetaTag{};
 		const Hash values[5] = { t.drawable, t.albedo, t.normal, t.material, t.palette };
 		for (int i = 0; i < 5; i++)
 			g_tagFields[i] = Hex(values[i]);
 		g_tagTints[0] = t.tint0;
 		g_tagTints[1] = t.tint1;
 		g_tagTints[2] = t.tint2;
+	}
+
+	void ReadTag()
+	{
+		const Ped ped = Me();
+		const int index = ComponentIndexInCategory(ped, GameUtil::Joaat(kCategories[g_tagCategory]));
+		ShowTag(index >= 0 ? ReadMetaTag(ped, index) : MetaTag{});
+	}
+
+	void ReadTagAt(int index)
+	{
+		const Ped ped = Me();
+		ShowTag(index < PED::_GET_NUM_COMPONENTS_IN_PED(ped) ? ReadMetaTag(ped, index) : MetaTag{});
 	}
 
 	void ApplyTag()
@@ -795,7 +808,7 @@ namespace Menus
 {
 	void BuildWardrobeTop(MenuBase* wardrobe)
 	{
-		Ui::ListMenu(wardrobe, "Outfits", BuildOutfits);
+		Shared().outfits = Ui::ListMenu(wardrobe, "Outfits", BuildOutfits);
 		BuildModelChanger(wardrobe);
 	}
 
@@ -821,9 +834,13 @@ namespace Menus
 		hair->SetOnOpen([](MenuBase*) { ReadHair(); });
 
 		// SubSelfPedMetaTags.
-		MenuBase* tags = Ui::Submenu(wardrobe, "Meta Ped Tags");
+		MenuBase* tags = Menus::Shared().metaTags = Ui::Submenu(wardrobe, "Meta Ped Tags");
 		std::vector<std::string> categories(std::begin(kCategories), std::end(kCategories));
 		Ui::Choice(tags, "Category", categories, &g_tagCategory, [](int) { ReadTag(); });
+		// Rampage's horse tags read by component index instead (a horse has
+		// no clothing categories).
+		Ui::Number(tags, "Index", &g_tagIndex, 0, 60, 1);
+		Ui::Do(tags, "Load Data from Index", [] { ReadTagAt(g_tagIndex); });
 		const char* const kFields[] = { "Drawable", "Albedo", "Normal", "Material", "Palette" };
 		for (int i = 0; i < 5; i++)
 			Ui::Text(tags, kFields[i], &g_tagFields[i]);
@@ -833,25 +850,25 @@ namespace Menus
 		Ui::Do(tags, "Apply", ApplyTag);
 		tags->SetOnOpen([](MenuBase*) { ReadTag(); });
 
-		// SubSelfPedMetaExpressions: human expressions only (the horse ones
-		// belong to the horse menus).
-		MenuBase* expressions = Ui::Submenu(wardrobe, "Meta Ped Expressions");
-		for (size_t i = 0; i < std::size(kExpressions); i++)
-		{
-			if (kExpressions[i].horse)
-				continue;
-			Ui::Number(expressions, kExpressions[i].name, &g_expressionValues[i], -1.0f, 1.0f, 0.1f, [i] {
-				PED::_SET_CHAR_EXPRESSION(Me(), kExpressions[i].id, g_expressionValues[i]);
-				PED::_UPDATE_PED_VARIATION(Me(), FALSE, TRUE, TRUE, TRUE, FALSE);
-			});
-		}
-		expressions->SetOnOpen([](MenuBase*) {
+		// SubSelfPedMetaExpressions / SubHorsePedMetaExpressions /
+		// SubPedEditorMetaExpressions: the human or the horse expressions,
+		// whichever the target ped is.
+		Shared().metaExpressions = Ui::ListMenu(wardrobe, "Meta Ped Expressions", [](MenuBase* m) {
+			const bool horse = !PED::IS_PED_HUMAN(Me());
 			for (size_t i = 0; i < std::size(kExpressions); i++)
+			{
+				if (kExpressions[i].horse != horse)
+					continue;
 				g_expressionValues[i] = PED::_GET_CHAR_EXPRESSION(Me(), kExpressions[i].id);
+				Ui::Number(m, kExpressions[i].name, &g_expressionValues[i], -1.0f, 1.0f, 0.1f, [i] {
+					PED::_SET_CHAR_EXPRESSION(Me(), kExpressions[i].id, g_expressionValues[i]);
+					PED::_UPDATE_PED_VARIATION(Me(), FALSE, TRUE, TRUE, TRUE, FALSE);
+				});
+			}
 		});
 
 		// SubSelfCustomizations.
-		Ui::ListMenu(wardrobe, "Overlay Textures", BuildOverlay);
+		Shared().overlays = Ui::ListMenu(wardrobe, "Overlay Textures", BuildOverlay);
 
 		Ui::Toggle(wardrobe, "Wardrobe Cam", [](bool on) { if (!on) WardrobeCamOff(); }, WardrobeCamTick);
 		Ui::Number(wardrobe, "Outfit Variation", &g_outfitVariation, 0, 200, 1, ApplyOutfitVariation);
@@ -869,7 +886,7 @@ namespace Menus
 		// SubSelfWardrobeComponent / SubSelfWardrobeWearableState.
 		g_stateMenu = Ui::DetachedListMenu("Wearable State", BuildStateMenu);
 		g_categoryMenu = Ui::DetachedListMenu("Components", [](MenuBase* m) { BuildCategoryMenu(m, g_categoryIndex); });
-		Ui::ListMenu(wardrobe, "Components", BuildComponents);
+		Shared().components = Ui::ListMenu(wardrobe, "Components", BuildComponents);
 
 		Ui::Section(wardrobe, "Custom");
 		Ui::Action(wardrobe, "Enable Ped Component", EnableComponent);

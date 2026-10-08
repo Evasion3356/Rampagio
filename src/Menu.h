@@ -36,6 +36,9 @@ namespace Ui
 	MenuBase* Root();
 
 	MenuBase* Submenu(MenuBase* parent, const std::string& title);
+	// A row in `parent` that opens an existing menu, so one menu can be
+	// reached from two places (the Ped Editor reuses the Player submenus).
+	void Link(MenuBase* parent, const std::string& title, MenuBase* menu);
 	// A submenu whose rows build(menu) recreates every time it opens; build
 	// gets an empty menu.
 	MenuBase* ListMenu(MenuBase* parent, const std::string& title, std::function<void(MenuBase*)> build);

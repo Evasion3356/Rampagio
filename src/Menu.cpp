@@ -52,6 +52,11 @@ namespace Ui
 		return NewMenu(parent, title);
 	}
 
+	void Link(MenuBase* parent, const std::string& title, MenuBase* menu)
+	{
+		parent->AddItem(new MenuItemMenu(title, menu));
+	}
+
 	MenuBase* ListMenu(MenuBase* parent, const std::string& title, std::function<void(MenuBase*)> build)
 	{
 		MenuBase* menu = NewMenu(parent, title);
