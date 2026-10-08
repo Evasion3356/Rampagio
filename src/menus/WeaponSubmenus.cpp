@@ -112,35 +112,35 @@ namespace
 	void BuildVisuals(MenuBase* weapons)
 	{
 		MenuBase* v = Ui::Submenu(weapons, "Weapon Visuals");
-		Ui::Toggle(v, "Invisible Weapon", [](bool on) { if (const Entity w = CurrentWeaponEntity()) ENTITY::SET_ENTITY_VISIBLE(w, !on); });
-		Ui::Number(v, "Opacity", &g_opacity, 0, 255, 15, [] { if (const Entity w = CurrentWeaponEntity()) ENTITY::SET_ENTITY_ALPHA(w, g_opacity, FALSE); });
-		Ui::Looped(v, "Crosshair", CrosshairTick);
+		Ui::Toggle(v, "weapon.invisibleweapon", "Invisible Weapon", [](bool on) { if (const Entity w = CurrentWeaponEntity()) ENTITY::SET_ENTITY_VISIBLE(w, !on); });
+		Ui::Number(v, "weapon.opacity", "Opacity", &g_opacity, 0, 255, 15, [] { if (const Entity w = CurrentWeaponEntity()) ENTITY::SET_ENTITY_ALPHA(w, g_opacity, FALSE); });
+		Ui::Looped(v, "weapon.crosshair", "Crosshair", CrosshairTick);
 		std::vector<std::string> names;
 		for (const Crosshair& c : kCrosshairs)
 			names.push_back(c.name);
-		Ui::Choice(v, "Crosshair Type", names, &g_crosshairType);
+		Ui::Choice(v, "weapon.crosshairtype", "Crosshair Type", names, &g_crosshairType);
 		MenuBase* color = Ui::Submenu(v, "Crosshair Color");
 		const char* const kRgba[] = { "Red", "Green", "Blue", "Alpha" };
 		for (int i = 0; i < 4; i++)
-			Ui::Number(color, kRgba[i], &g_crosshairColor[i], 0, 255, 5);
-		Ui::Choice(v, "Arrow Trail", { "Default", "Trail 1", "Trail 2" }, &g_arrowTrail,
+			Ui::Number(color, Ui::Id("weapon.crosshaircolor", kRgba[i]), kRgba[i], &g_crosshairColor[i], 0, 255, 5);
+		Ui::Choice(v, "weapon.arrowtrail", "Arrow Trail", { "Default", "Trail 1", "Trail 2" }, &g_arrowTrail,
 			[](int i) { WEAPON::_SET_ARROW_TRAIL_FX(Me(), kArrowTrails[i]); });
 		Ui::Section(v, "Condition");
-		Ui::Toggle(v, "No Degradation", [](bool on) { PLAYER::_SET_WEAPON_DEGRADATION_MODIFIER(MyPlayer(), on ? 0.0f : 1.0f); });
-		Ui::Looped(v, "Automatic Clean", AutoCleanTick);
-		Ui::Do(v, "Apply Dirt", [] { SetWeaponCondition(CurrentWeaponEntity(), 100.0f); });
-		Ui::Do(v, "Clean", []
+		Ui::Toggle(v, "weapon.nodegradation", "No Degradation", [](bool on) { PLAYER::_SET_WEAPON_DEGRADATION_MODIFIER(MyPlayer(), on ? 0.0f : 1.0f); });
+		Ui::Looped(v, "weapon.automaticclean", "Automatic Clean", AutoCleanTick);
+		Ui::Do(v, "weapon.applydirt", "Apply Dirt", [] { SetWeaponCondition(CurrentWeaponEntity(), 100.0f); });
+		Ui::Do(v, "weapon.clean", "Clean", []
 		{
 			SetWeaponCondition(CurrentWeaponEntity(), 0.0f);
 			AUDIO::PLAY_SOUND_FRONTEND("GUN_OIL", "PICKUP_SOUNDSET", TRUE, 0);
 		});
 		Ui::Section(v, "Misc");
-		Ui::Looped(v, "Clear Dead Eye", []
+		Ui::Looped(v, "weapon.cleardeadeye", "Clear Dead Eye", []
 		{
 			if (PLAYER::IS_PLAYER_FREE_AIMING(MyPlayer()) && CurrentWeapon() != WEAPON_UNARMED && PAD::IS_CONTROL_PRESSED(0, INPUT_SPECIAL_ABILITY))
 				GRAPHICS::ANIMPOSTFX_STOP_ALL();
 		});
-		Ui::Looped(v, "Disable Radial Reticle", [] { PED::SET_PED_RESET_FLAG(Me(), 293, TRUE); });
+		Ui::Looped(v, "weapon.disableradialreticle", "Disable Radial Reticle", [] { PED::SET_PED_RESET_FLAG(Me(), 293, TRUE); });
 	}
 
 	// --- aimbot ------------------------------------------------------------------
@@ -224,27 +224,27 @@ namespace
 	void BuildAimbot(MenuBase* weapons)
 	{
 		MenuBase* a = Ui::Submenu(weapons, "Aimbot");
-		Ui::Choice(a, "Targeting Mode", { "Wide", "Normal", "Narrow", "Free Aim" }, &g_targetingMode,
+		Ui::Choice(a, "weapon.targetingmode", "Targeting Mode", { "Wide", "Normal", "Narrow", "Free Aim" }, &g_targetingMode,
 			[](int mode) { PLAYER::SET_PLAYER_TARGETING_MODE(mode); });
-		Ui::Toggle(a, "Lockon Range Override", [](bool on)
+		Ui::Toggle(a, "weapon.lockonrangeoverride", "Lockon Range Override", [](bool on)
 		{
 			if (on && g_lockonRange <= 0.0f)
 				g_lockonRange = WEAPON::_GET_MAX_LOCKON_DISTANCE_OF_CURRENT_PED_WEAPON(Me());
 			if (!on)
 				PLAYER::SET_PLAYER_LOCKON_RANGE_OVERRIDE(MyPlayer(), WEAPON::_GET_MAX_LOCKON_DISTANCE_OF_CURRENT_PED_WEAPON(Me()));
 		}, [] { PLAYER::SET_PLAYER_LOCKON_RANGE_OVERRIDE(MyPlayer(), g_lockonRange); });
-		Ui::Number(a, "Lockon Range", &g_lockonRange, 0.0f, 1000.0f, 5.0f);
-		Ui::Do(a, "Reset", []
+		Ui::Number(a, "weapon.lockonrange", "Lockon Range", &g_lockonRange, 0.0f, 1000.0f, 5.0f);
+		Ui::Do(a, "weapon.aimbot.reset", "Reset", []
 		{
 			g_lockonRange = WEAPON::_GET_MAX_LOCKON_DISTANCE_OF_CURRENT_PED_WEAPON(Me());
 			PLAYER::SET_PLAYER_LOCKON_RANGE_OVERRIDE(MyPlayer(), g_lockonRange);
 		});
-		Ui::Choice(a, "Bone", { "Head", "Neck", "Spine", "Left Hand", "Right Hand", "Right Foot", "Left Foot" }, &g_bone);
-		Ui::Choice(a, "Targets", { "All Peds", "Humans", "Animals" }, &g_aimTargets);
-		Ui::Toggle(a, "Ignore Dying Peds", [](bool on) { g_skipDead = on; })->SetState(true);
-		Ui::Looped(a, "Triggerbot", TriggerbotTick, [] { PLAYER::DISABLE_PLAYER_FIRING(MyPlayer(), FALSE); });
-		Ui::Looped(a, "Aimbot", AimbotTick);
-		Ui::Toggle(a, "Auto Shoot", [](bool on) { g_autoShoot = on; });
+		Ui::Choice(a, "weapon.bone", "Bone", { "Head", "Neck", "Spine", "Left Hand", "Right Hand", "Right Foot", "Left Foot" }, &g_bone);
+		Ui::Choice(a, "weapon.targets", "Targets", { "All Peds", "Humans", "Animals" }, &g_aimTargets);
+		Ui::Toggle(a, "weapon.ignoredyingpeds", "Ignore Dying Peds", [](bool on) { g_skipDead = on; })->SetDefault(true);
+		Ui::Looped(a, "weapon.triggerbot", "Triggerbot", TriggerbotTick, [] { PLAYER::DISABLE_PLAYER_FIRING(MyPlayer(), FALSE); });
+		Ui::Looped(a, "weapon.aimbot", "Aimbot", AimbotTick);
+		Ui::Toggle(a, "weapon.autoshoot", "Auto Shoot", [](bool on) { g_autoShoot = on; });
 	}
 
 	// --- bullets -----------------------------------------------------------------
@@ -442,28 +442,28 @@ namespace
 	void BuildBullets(MenuBase* weapons)
 	{
 		MenuBase* b = Ui::Submenu(weapons, "Weapon Bullets");
-		Ui::Looped(b, "Explosion Gun", ExplosionGunTick);
-		Ui::Number(b, "Explosion Type", &g_explosionType, 0, 40, 1);
-		Ui::Looped(b, "Bullet Type Gun", BulletTypeTick);
+		Ui::Looped(b, "weapon.explosiongun", "Explosion Gun", ExplosionGunTick);
+		Ui::Number(b, "weapon.explosiontype", "Explosion Type", &g_explosionType, 0, 40, 1);
+		Ui::Looped(b, "weapon.bullettypegun", "Bullet Type Gun", BulletTypeTick);
 		std::vector<std::string> bullets;
 		for (const char* w : kBulletWeapons)
 			bullets.push_back(w + 7);
-		Ui::Choice(b, "Bullet Type", bullets, &g_bulletType);
-		Ui::Looped(b, "Particle Gun", ParticleGunTick);
+		Ui::Choice(b, "weapon.bullettype", "Bullet Type", bullets, &g_bulletType);
+		Ui::Looped(b, "weapon.particlegun", "Particle Gun", ParticleGunTick);
 		std::vector<std::string> particles;
 		for (const Effect& e : kEffects)
 			particles.push_back(e.name);
-		Ui::Choice(b, "Particle", particles, &g_particle);
-		Ui::Looped(b, "Size Gun", SizeGunTick, [] { PLAYER::DISABLE_PLAYER_FIRING(MyPlayer(), FALSE); });
-		Ui::Choice(b, "Size", { "Large", "Small", "Normal" }, &g_size);
-		Ui::Looped(b, "Coords Gun", CoordsGunTick);
-		Ui::Looped(b, "Remote Cannonball", CannonballTick, EndCannonball);
-		Ui::Looped(b, "Ped Gun", PedGunTick);
+		Ui::Choice(b, "weapon.particle", "Particle", particles, &g_particle);
+		Ui::Looped(b, "weapon.sizegun", "Size Gun", SizeGunTick, [] { PLAYER::DISABLE_PLAYER_FIRING(MyPlayer(), FALSE); });
+		Ui::Choice(b, "weapon.size", "Size", { "Large", "Small", "Normal" }, &g_size);
+		Ui::Looped(b, "weapon.coordsgun", "Coords Gun", CoordsGunTick);
+		Ui::Looped(b, "weapon.remotecannonball", "Remote Cannonball", CannonballTick, EndCannonball);
+		Ui::Looped(b, "weapon.pedgun", "Ped Gun", PedGunTick);
 		std::vector<std::string> peds(std::begin(kPedGunModels), std::end(kPedGunModels));
-		Ui::Choice(b, "Ped Model", peds, &g_pedGun);
-		Ui::Looped(b, "Vehicle Gun", VehicleGunTick);
+		Ui::Choice(b, "weapon.pedmodel", "Ped Model", peds, &g_pedGun);
+		Ui::Looped(b, "weapon.vehiclegun", "Vehicle Gun", VehicleGunTick);
 		std::vector<std::string> vehicles(std::begin(kVehicleGunModels), std::end(kVehicleGunModels));
-		Ui::Choice(b, "Vehicle Model", vehicles, &g_vehicleGun);
+		Ui::Choice(b, "weapon.vehiclemodel", "Vehicle Model", vehicles, &g_vehicleGun);
 	}
 	// --- the remaining SubWeapons / Manage / Ammunition / Modifiers rows -----------
 
@@ -749,30 +749,30 @@ namespace Menus
 {
 	void BuildWeaponExtras(MenuBase* weapons, MenuBase* manage, MenuBase* ammo, MenuBase* mods)
 	{
-		Ui::Looped(weapons, "Always Kill Cam", AlwaysKillCamTick);
-		Ui::Looped(weapons, "Thunder Hawk", ThunderHawkTick, [] { g_hawkThrown = false; });
-		Ui::Looped(weapons, "Rope Gun", RopeGunTick, [] { g_roped = false; });
-		Ui::Looped(weapons, "Portal Gun", PortalGunTick, PortalGunOff);
-		Ui::Looped(weapons, "Debug Gun", DebugGunTick);
+		Ui::Looped(weapons, "weapon.alwayskillcam", "Always Kill Cam", AlwaysKillCamTick);
+		Ui::Looped(weapons, "weapon.thunderhawk", "Thunder Hawk", ThunderHawkTick, [] { g_hawkThrown = false; });
+		Ui::Looped(weapons, "weapon.ropegun", "Rope Gun", RopeGunTick, [] { g_roped = false; });
+		Ui::Looped(weapons, "weapon.portalgun", "Portal Gun", PortalGunTick, PortalGunOff);
+		Ui::Looped(weapons, "weapon.debuggun", "Debug Gun", DebugGunTick);
 
-		Ui::Action(manage, "Give Favourite", GiveFavourite);
-		Ui::Action(manage, "Upgrade Weapon", UpgradeWeapon);
-		Ui::Action(manage, "Add Component", AddComponent);
-		Ui::Action(manage, "Get Duplicate Model", DuplicateModel);
+		Ui::Action(manage, "weapon.givefavourite", "Give Favourite", GiveFavourite);
+		Ui::Action(manage, "weapon.upgradeweapon", "Upgrade Weapon", UpgradeWeapon);
+		Ui::Action(manage, "weapon.addcomponent", "Add Component", AddComponent)->SetHotkeyable(false);
+		Ui::Action(manage, "weapon.getduplicatemodel", "Get Duplicate Model", DuplicateModel);
 
 		std::vector<std::string> pickups;
 		for (const char* p : kAmmoPickups)
 			pickups.push_back(p + 12);
-		Ui::Choice(ammo, "Drop Ammo", pickups, &g_dropAmmo, DropAmmo);
+		Ui::Choice(ammo, "weapon.dropammo", "Drop Ammo", pickups, &g_dropAmmo, DropAmmo);
 
-		Ui::Looped(mods, "Weapon Scale", WeaponScaleTick, [] { RemoveScaled(); g_scaledFor = 0; });
-		Ui::Number(mods, "Weapon Scale Size", &g_weaponScale, 0.1f, 10.0f, 0.1f, [] { g_scaledFor = 0; });
+		Ui::Looped(mods, "weapon.weaponscale", "Weapon Scale", WeaponScaleTick, [] { RemoveScaled(); g_scaledFor = 0; });
+		Ui::Number(mods, "weapon.weaponscalesize", "Weapon Scale Size", &g_weaponScale, 0.1f, 10.0f, 0.1f, [] { g_scaledFor = 0; });
 		Ui::Section(mods, "Stats");
 		mods->AddItem(new MenuItemLabel([] {
 			const char* name = WEAPON::_GET_WEAPON_NAME(CurrentWeapon());
 			return std::string("Weapon: ") + (name ? name : "-");
 		}));
-		Ui::Number(mods, "Skill", &g_weaponSkill, 0.0f, 1000.0f, 10.0f, [] { SetWeaponSkill(); }, true);
+		Ui::Number(mods, "weapon.skill", "Skill", &g_weaponSkill, 0.0f, 1000.0f, 10.0f, [] { SetWeaponSkill(); }, true);
 	}
 }
 
