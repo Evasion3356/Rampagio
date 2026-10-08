@@ -240,6 +240,53 @@ namespace
 		}
 	};
 
+	// Terminates every live thread of the script; how many.
+	int TerminateAll(std::uint32_t hash)
+	{
+		const GamePointers::Pointers* p = GamePointers::Get();
+		if (!p)
+			return 0;
+		std::vector<int> ids;
+		for (rage::scrThread* thread : *p->ScriptThreads)
+		{
+			if (thread && thread->m_Context.m_ThreadId && thread->m_Context.m_ScriptHash == hash &&
+				thread->m_Context.m_State != rage::eThreadState::killed)
+				ids.push_back(static_cast<int>(thread->m_Context.m_ThreadId));
+		}
+		for (int id : ids)
+			SCRIPT::TERMINATE_THREAD(id);
+		return static_cast<int>(ids.size());
+	}
+
+	// Rampage's Restart: terminate every thread of the script, wait until
+	// none runs, then start it again (StartJob), with no arguments.
+	struct RestartJob
+	{
+		std::uint32_t hash;
+		int stackSize;
+		ULONGLONG deadline;
+		bool terminated = false;
+
+		void operator()()
+		{
+			if (!terminated)
+			{
+				TerminateAll(hash);
+				terminated = true;
+				MainThread::Post(*this);
+				return;
+			}
+			if (SCRIPT::GET_NUMBER_OF_THREADS_RUNNING_THE_SCRIPT_WITH_THIS_HASH(hash) > 0)
+			{
+				if (GetTickCount64() > deadline)
+					return Report(std::format("{} was still running after 5 seconds; not restarted.", ScriptLabel(hash)), true);
+				MainThread::Post(*this);
+				return;
+			}
+			MainThread::Post(StartJob{ hash, stackSize, GetTickCount64() + 5000 });
+		}
+	};
+
 	// --- window (render thread) -----------------------------------------
 
 	struct StackSize
@@ -301,7 +348,12 @@ namespace
 
 		// Start Script
 		int startScript = -1; // index into ScriptNames()
-		int startStack = 6;   // DEFAULT
+		int startStackSize = 1024;
+		std::uint32_t startSizedFor = 0; // the script startStackSize was picked for
+
+		// force cleanup
+		int cleanupFlags = 0;
+		std::uint32_t cleanupFlagsFor = 0; // thread id the flags were defaulted for
 		char startFilter[64] = {};
 
 		// function hooks
@@ -428,6 +480,35 @@ namespace
 		}
 	}
 
+	// The flag bits the 1491.50 scripts check, with how many check each
+	// (tools/extract_cleanup_flags.py's data).
+	struct CleanupBit
+	{
+		int bit;
+		int scripts;
+	};
+	constexpr CleanupBit kCleanupBits[] = { { 0, 1169 }, { 1, 1524 }, { 2, 8 }, { 3, 1337 }, { 5, 859 },
+		{ 7, 9 }, { 9, 1513 }, { 11, 9 }, { 12, 231 } };
+	constexpr int kAllCleanupFlags = 0x1AAF;
+
+	void CleanupFlagsInput()
+	{
+		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 7);
+		ImGui::InputScalar("Flags", ImGuiDataType_S32, &g_ui.cleanupFlags, nullptr, nullptr, "%X", ImGuiInputTextFlags_CharsHexadecimal);
+		for (int i = 0; i < static_cast<int>(std::size(kCleanupBits)); i++)
+		{
+			const CleanupBit& bit = kCleanupBits[i];
+			if (i % 3)
+				ImGui::SameLine(ImGui::GetFontSize() * 9 * (i % 3));
+			ImGui::CheckboxFlags(std::format("0x{:X} ({} scripts)", 1 << bit.bit, bit.scripts).c_str(), &g_ui.cleanupFlags, 1 << bit.bit);
+		}
+		if (ImGui::SmallButton("Every flag scripts check"))
+			g_ui.cleanupFlags = kAllCleanupFlags;
+		ImGui::SameLine();
+		if (ImGui::SmallButton("Rampage's (0x800)"))
+			g_ui.cleanupFlags = 0x800;
+	}
+
 	void DrawThreadList()
 	{
 		ImGui::SetNextItemWidth(-FLT_MIN);
@@ -540,25 +621,76 @@ namespace
 			ImGui::EndCombo();
 		}
 
-		ImGui::SetNextItemWidth(-FLT_MIN);
-		const StackSize& stack = kStackSizes[g_ui.startStack];
-		if (ImGui::BeginCombo("##stack", std::format("{} ({})", stack.name, stack.size).c_str(), ImGuiComboFlags_HeightLarge))
+		// A newly picked script gets the stack size it's normally started with.
+		const std::uint32_t hash = g_ui.startScript >= 0 ? names[g_ui.startScript].hash : 0;
+		const int knownSize = hash ? ScriptData::StackSize(hash) : 0;
+		if (hash != g_ui.startSizedFor)
 		{
-			for (int i = 0; i < static_cast<int>(std::size(kStackSizes)); i++)
+			g_ui.startSizedFor = hash;
+			if (knownSize > 0)
+				g_ui.startStackSize = knownSize;
+		}
+
+		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 7);
+		ImGui::InputInt("##stacksize", &g_ui.startStackSize, 0, 0);
+		g_ui.startStackSize = std::clamp(g_ui.startStackSize, 1, 200000);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		const StackSize* named = nullptr;
+		for (const StackSize& stack : kStackSizes)
+		{
+			if (stack.size == g_ui.startStackSize)
+				named = &stack;
+		}
+		if (ImGui::BeginCombo("##stack", named ? named->name : "(custom)", ImGuiComboFlags_HeightLarge))
+		{
+			for (const StackSize& stack : kStackSizes)
 			{
-				if (ImGui::Selectable(std::format("{} ({})", kStackSizes[i].name, kStackSizes[i].size).c_str(), i == g_ui.startStack))
-					g_ui.startStack = i;
+				if (ImGui::Selectable(std::format("{} ({})", stack.name, stack.size).c_str(), &stack == named))
+					g_ui.startStackSize = stack.size;
 			}
 			ImGui::EndCombo();
 		}
-		g_stackSize = kStackSizes[g_ui.startStack].size;
+		g_stackSize = g_ui.startStackSize;
+		if (hash)
+		{
+			int running = 0;
+			for (const ThreadInfo& info : g_ui.threads)
+				running += info.hash == hash && info.state != rage::eThreadState::killed;
+			if (knownSize > 0)
+				ImGui::TextColored(kDim, "Usual stack size: %d.  Running: %d.", knownSize, running);
+			else
+				ImGui::TextColored(kDim, "Usual stack size unknown.  Running: %d.", running);
+		}
 
 		ImGui::BeginDisabled(g_ui.startScript < 0);
 		if (ImGui::Button("Start"))
-			MainThread::Post(StartJob{ names[g_ui.startScript].hash, kStackSizes[g_ui.startStack].size, GetTickCount64() + 5000 });
+			MainThread::Post(StartJob{ hash, g_ui.startStackSize, GetTickCount64() + 5000 });
 		ImGui::EndDisabled();
 		ImGui::SameLine();
-		ImGui::TextColored(kDim, "Free stacks: %d", g_ui.freeStacks);
+		ImGui::TextColored(kDim, "Free stacks of this size: %d", g_ui.freeStacks);
+
+		ImGui::Spacing();
+		if (ImGui::Button("Force Cleanup All Scripts..."))
+			ImGui::OpenPopup("cleanupall");
+		if (ImGui::BeginPopup("cleanupall"))
+		{
+			ImGui::TextUnformatted("FORCE_CLEANUP: every script that registered for these\ncleanup flags cleans up (usually missions and activities).");
+			CleanupFlagsInput();
+			if (ImGui::Button("Force Cleanup All"))
+			{
+				const int flags = g_ui.cleanupFlags;
+				MainThread::Post([flags] {
+					PLAYER::FORCE_CLEANUP(flags);
+					Report(std::format("FORCE_CLEANUP(0x{:X}).", flags), false);
+				});
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
 	}
 
 	void DrawThreadTab(const ThreadInfo& info)
@@ -601,6 +733,18 @@ namespace
 		}
 
 		const std::uint32_t id = info.id;
+		const std::uint32_t hash = info.hash;
+		if (g_ui.cleanupFlagsFor != id)
+		{
+			// Default to the flags this script checks, so Force Cleanup does something.
+			g_ui.cleanupFlagsFor = id;
+			const std::uint32_t flags = ScriptData::CleanupFlags(hash);
+			g_ui.cleanupFlags = static_cast<int>(flags ? flags : kAllCleanupFlags);
+		}
+		int instances = 0;
+		for (const ThreadInfo& other : g_ui.threads)
+			instances += other.hash == hash && other.state != rage::eThreadState::killed;
+
 		if (info.state != rage::eThreadState::killed)
 		{
 			if (ImGui::Button("Kill"))
@@ -611,6 +755,17 @@ namespace
 				});
 			}
 			ImGui::SameLine();
+			if (instances > 1)
+			{
+				if (ImGui::Button(std::format("Kill all {}", instances).c_str()))
+				{
+					MainThread::Post([hash] {
+						const int killed = TerminateAll(hash);
+						Report(std::format("Terminated {} thread(s) of {}.", killed, ScriptLabel(hash)), false);
+					});
+				}
+				ImGui::SameLine();
+			}
 			if (ImGui::Button(info.paused ? "Resume" : "Pause"))
 			{
 				MainThread::Post([id] {
@@ -630,6 +785,42 @@ namespace
 				});
 			}
 			ImGui::SameLine();
+		}
+		// Restart works on a killed thread too: it starts the script again.
+		const int restartSize = info.stackSize ? static_cast<int>(info.stackSize) : ScriptData::StackSize(hash);
+		ImGui::BeginDisabled(restartSize <= 0);
+		if (ImGui::Button("Restart"))
+			MainThread::Post(RestartJob{ hash, restartSize, GetTickCount64() + 5000 });
+		ImGui::EndDisabled();
+		if (ImGui::BeginItemTooltip())
+		{
+			ImGui::Text("Terminates every thread of %s, waits until none runs,\nthen starts it again with stack size %d and no arguments.",
+				info.name.c_str(), restartSize);
+			ImGui::EndTooltip();
+		}
+		if (info.state != rage::eThreadState::killed)
+		{
+			ImGui::SameLine();
+			if (ImGui::Button("Force Cleanup..."))
+				ImGui::OpenPopup("cleanup");
+			if (ImGui::BeginPopup("cleanup"))
+			{
+				ImGui::Text("FORCE_CLEANUP_FOR_THREAD_WITH_THIS_ID(%u, flags):\nthe thread runs its cleanup if it registered for these flags.", id);
+				CleanupFlagsInput();
+				if (ImGui::Button("Force Cleanup"))
+				{
+					const int flags = g_ui.cleanupFlags;
+					MainThread::Post([id, flags] {
+						PLAYER::FORCE_CLEANUP_FOR_THREAD_WITH_THIS_ID(static_cast<int>(id), flags);
+						Report(std::format("FORCE_CLEANUP_FOR_THREAD_WITH_THIS_ID({}, 0x{:X}).", id, flags), false);
+					});
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel"))
+					ImGui::CloseCurrentPopup();
+				ImGui::EndPopup();
+			}
 		}
 		if (ImGui::Button("Copy name"))
 			ImGui::SetClipboardText(info.name.c_str());

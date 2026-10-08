@@ -73,7 +73,7 @@ Manager lists and removes them).
   `ColorCommand`, optionally writing through the feature's own variable),
   `ActionCommand` and `HotkeySystem` (key chains by command id). Only
   `src/core/*.cpp`, `DataFile.cpp`, `Settings.cpp`, the four collection
-  menus and `Spawner.cpp` (vehicle JSON Loader) include the full `<nlohmann/json.hpp>`; headers use
+  menus, `Spawner.cpp` (vehicle JSON Loader) and `debug/GlobalEditor.cpp` include the full `<nlohmann/json.hpp>`; headers use
   `json_fwd.hpp`.
 - `src/menus/<Area>.cpp`: one file per top-level menu (Player, Horse,
   Teleport, World, ...), declared in `src/menus/Menus.h`. Each holds both
@@ -212,8 +212,11 @@ Manager lists and removes them).
   `src/menus/Debug.cpp`). English only, on purpose. `ScriptData` (script
   names by hash, `src/data/ScriptNames.inc` from
   `tools/extract_script_names.py`; natives, `src/data/NativeList.inc` from
-  `tools/extract_native_list.py`), `ScriptHooks` (function and native
-  hooks), `ScriptMonitor` (the window). Built on `src/ScriptBytecode.{h,cpp}`
+  `tools/extract_native_list.py`; stack sizes, `ScriptStackSizes.inc`;
+  cleanup flags, `ForceCleanupFlags.inc` from
+  `tools/extract_cleanup_flags.py`), `ScriptHooks` (function and native
+  hooks), `ScriptMonitor` (the window), `GlobalEditor` (Debug > Global
+  Editor, watch list in `Rampagio_Globals.json`). Built on `src/ScriptBytecode.{h,cpp}`
   (functions numbered as the decompiler's func_N; checked by
   `tools/check_script_functions.py`) and `src/ScriptVM.{h,cpp}` (a script VM
   detour: private patched code copies, HorseMenu's ScriptPatches way, and
@@ -260,7 +263,8 @@ Manager lists and removes them).
   (model plus outfit preset), and the overlay TX Id/palette tables (read
   from its static initializers' stack stores, see the tool's docstring)
   and the Teleport > Blips type labels, and the Cutscene Player's lists and
-  Try to Populate cast, and the Mobile Stable's tack families and tints.
+  Try to Populate cast, and the Mobile Stable's tack families and tints,
+  and the stack size each script is started with (`ScriptStackSizes.inc`).
 - `src/data/EffectPresets.inc`: Player > Effects' 25 named presets,
   Rampage's, read from its preset thunks by
   `tools/extract_rampage_effects.py` (pefile + capstone, no IDA).
@@ -604,9 +608,10 @@ code is what the standalone mods already ran live.
    until the user brings them back: the Debug, Object Editor and Script Tools areas
    (tabled 2026-10-07; `TABLED_AREAS` in `tools/porting_status.py`). For
    Debug > Scripts the user wants to rework the tools rather than port
-   them as-is; that rework started 2026-10-08 with Debug > Script Monitor
-   (`docs/SCRIPT_MONITOR.md`: built, not live-tested; its "Not yet" list is
-   what's left of Rampage's Script Tools). Leftovers listed in
+   them as-is; that rework is built (2026-10-08): Debug > Script Monitor
+   and Global Editor cover all of Rampage's Script Tools and Global Editor
+   (`docs/SCRIPT_MONITOR.md`; not live-tested). Rampage's own Debug
+   submenu (its developer menu) stays tabled. Leftovers listed in
    `docs/PORTING.md` rows marked Partial.
 4. Script-function caller: built (`src/ScriptFunction.h`), untested.
    Its first live test should check the four GamePointers signatures

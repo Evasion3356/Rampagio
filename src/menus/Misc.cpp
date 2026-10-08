@@ -19,8 +19,8 @@
 	  plus the cutscenes the scripts name; Try to Populate casts peds from
 	  Rampage's model table (data\CutsceneCast.inc), and Stop Current
 	  deletes them (Rampage leaves them for the user to delete).
-	Not ported: Friendlist (online) and the
-	Dev rows that open tabled areas (Global Editor, Script Tools).
+	Not ported: Friendlist (online). The Dev rows Global Editor and
+	Script Tools open the ImGui tools of Debug (Debug.cpp).
 	The Dev section also holds the Stat Editor (Rampage's SubStatEditor).
 */
 
@@ -28,6 +28,8 @@
 #include "..\GameUtil.h"
 #include "..\GamePointers.h"
 #include "..\NativeHooks.h"
+#include "..\debug\GlobalEditor.h"
+#include "..\debug\ScriptMonitor.h"
 #include "..\keyboard.h"
 #include "..\Log.h"
 #include "..\LogFallback.h"
@@ -1062,7 +1064,9 @@ namespace Menus
 
 		Ui::Section(misc, "Dev");
 		BuildVolumeEditor(misc);
+		Ui::Do(misc, "misc.globaleditor", "Global Editor", [] { GlobalEditor::SetOpen(true); });
 		BuildStatEditor(misc);
+		Ui::Do(misc, "misc.scripttools", "Script Tools", [] { ScriptMonitor::SetOpen(true); });
 		Ui::Toggle(misc, "misc.enablemag1demo", "Enable Mag 1 Demo", HookToggle(kIsMagDemo1Active));
 		Ui::Toggle(misc, "misc.scprofanitybypass", "SC Profanity Bypass", HookToggle(kProfanityPassed));
 		Ui::Toggle(misc, "misc.forcealldlcspresent", "Force All DLCs Present", HookToggle(kIsDlcPresent));

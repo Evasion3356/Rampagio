@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 151 done, 7 partial, 0 pending, 7 tabled, 2 dropped.
+Submenus: 155 done, 4 partial, 0 pending, 6 tabled, 2 dropped.
 
 ## Debug
 
@@ -33,7 +33,7 @@ Submenus: 151 done, 7 partial, 0 pending, 7 tabled, 2 dropped.
 | SubFriendlist | 1 | Dropped | Online only (Social Club friends) |
 | SubGameMusic | 8 | Done | Miscellaneous > Game Music: 314 music events from the game scripts |
 | SubMinigames | 1 | Done | Miscellaneous > Minigames > Undead Nightmare II: own wave logic (kill count spawns bosses) on the models and bosses Rampage uses |
-| SubMiscellaneous | 18 | Partial | Miscellaneous: Air Walk holds a fixed height (ours); About lives in Settings; Global Editor and Script Tools rows wait for the tabled Script Tools area |
+| SubMiscellaneous | 18 | Done | Miscellaneous: Air Walk holds a fixed height (ours); About lives in Settings; the Dev rows Global Editor and Script Tools open the Debug ImGui tools |
 | SubMobileTheater | 11 | Done | Miscellaneous > Mobile Theater: screen position and size rows (ours) |
 | SubMusicPlayer | 8 | Done | Miscellaneous > Music Player: Windows MCI on files in a RampagioMusic folder (ours; Rampage bundles FMOD) |
 
@@ -145,10 +145,10 @@ Submenus: 151 done, 7 partial, 0 pending, 7 tabled, 2 dropped.
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubGlobalEditor | 7 | Tabled |  |
-| SubScriptEditor | 3 | Partial | Debug > Script Monitor > Thread: Kill (and Pause/Resume, ours); Restart and Force Cleanup not yet |
+| SubGlobalEditor | 7 | Done | Debug > Global Editor (ImGui, ours): addresses as the decompiled scripts write them, a saved watch list, INT/FLOAT/BOOL/HASH/VECTOR3/TEXT_LABEL/char* |
+| SubScriptEditor | 3 | Done | Debug > Script Monitor > Thread: Restart, Kill / Kill all, Force Cleanup defaulting to the flags the script checks (ours; Rampage passes 0x800, which 9 scripts check), plus Pause/Resume (ours) |
 | SubScriptPatcher | 7 | Done | Debug > Script Monitor > Functions: hooks named func_N or by Position, argument and return counts read from the bytecode (ours) |
-| SubScriptTools | 3 | Partial | Debug > Script Monitor (ImGui, ours): its Script Monitor, Script Patcher, Script Loader (Start Script) and Script Terminator (Kill); Force Cleanup All Scripts not yet |
+| SubScriptTools | 3 | Done | Debug > Script Monitor (ImGui, ours): its Script Monitor, Script Patcher, Script Loader (Start Script, stack size preselected from the table of Rampage), Script Terminator (Kill / Kill all) and Force Cleanup All Scripts (flags the scripts check, not only 0x800) |
 
 ## Settings
 

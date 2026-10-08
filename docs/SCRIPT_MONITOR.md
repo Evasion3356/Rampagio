@@ -1,10 +1,13 @@
 # Script Monitor
 
-Debug > Script Monitor: the first piece of the reworked Debug / Script
-Tools area (2026-10-08). An ImGui window that replaces Rampage's Script
-Monitor, Script Patcher, Script Loader and Script Terminator, which expect
-the user to already know script hashes, function offsets and argument
-counts. Built, not live-tested. In English only, on purpose.
+Debug > Script Monitor and Debug > Global Editor: the reworked Debug /
+Script Tools area (2026-10-08). Two ImGui windows that replace everything
+in Rampage's Script Tools (Script Monitor, Script Patcher, Script Loader,
+Script Terminator, the script editor's Restart / Terminate / Force Cleanup,
+Force Cleanup All Scripts) and its Global Editor, which expect the user to
+already know script hashes, function offsets, argument counts, stack sizes
+and cleanup flags. Rampage's Misc > Dev rows Global Editor and Script Tools
+open the same windows. Built, not live-tested. In English only, on purpose.
 
 ## What it shows
 
@@ -17,9 +20,20 @@ counts. Built, not live-tested. In English only, on purpose.
   peak, calls per frame), how long it has run (since the monitor first saw
   it), the program's code size, native count, statics, globals block,
   arguments, string heap and reference count, and the exit reason of a
-  killed thread. Kill (`TERMINATE_THREAD`), Pause/Resume (sets the
-  thread's state; the previous state comes back on Resume, on going online
-  and on eject), copy name/hash.
+  killed thread. Kill (`TERMINATE_THREAD`), Kill all (every thread of the
+  script, Rampage's Terminate), Pause/Resume (sets the thread's state; the
+  previous state comes back on Resume, on going online and on eject),
+  Restart, Force Cleanup, copy name/hash.
+- **Restart** (Rampage's): terminates every thread of the script, waits
+  until `GET_NUMBER_OF_THREADS_RUNNING_THE_SCRIPT_WITH_THIS_HASH` is 0, then
+  starts it with the thread's own stack size and no arguments.
+- **Force Cleanup** (`FORCE_CLEANUP_FOR_THREAD_WITH_THIS_ID`) and **Force
+  Cleanup All Scripts** (`FORCE_CLEANUP`): a script only cleans up for the
+  flags it checks with `HAS_FORCE_CLEANUP_OCCURRED`. Rampage always passes
+  0x800, which only 9 of the 1,535 scripts that check any flag check. The
+  flags default to the ones the selected script checks
+  (`src/data/ForceCleanupFlags.inc`, `tools/extract_cleanup_flags.py`, from
+  the decompiled scripts); each bit shows how many scripts check it.
 - **Functions** tab: every function in the script as the decompiled
   scripts number them, with Position, ENTER offset, argument and return
   counts and size. Click one, or type `func_688` / `0x3A7`, to hook it.
@@ -27,7 +41,25 @@ counts. Built, not live-tested. In English only, on purpose.
   search by name or hash), and the native hooks with call counts, last
   caller and last arguments (hover the name).
 - **All Hooks** tab, and **Start Script** (HorseMenu's "New": name picker,
-  stack size, free stack count).
+  stack size, free stack count, how many already run). Picking a script
+  sets the stack size it's normally started with, from Rampage's table of
+  1,639 script stack sizes (`src/data/ScriptStackSizes.inc`,
+  `tools/extract_rampage_tables.py`; 364 are unknown there too).
+
+## Global Editor
+
+Rampage's Global Editor builds an address one keyboard prompt at a time
+(Base Global, Add = +N, Add Array = + index * size + 1) and Gets or Sets one
+value (int, float, bool, string; vector3 read-only). Ours takes the address
+as the decompiled script writes it, e.g. `Global_1425247.f_12[3 /*2*/]`
+(`.f_N` adds N, `[i /*size*/]` adds 1 + i * size, `+N` too), shows the
+resolved index as you type, and keeps a watch list with live values
+(`Rampagio_Globals.json`). Types: INT, FLOAT, BOOL, HASH (a name is
+hashed), VECTOR3 (three slots, writable), TEXT_LABEL_15/23/31/63 (the
+chars in the slots) and char* (read-only). Scalars read and write the low
+32 bits of the slot, as Rampage does. Reads and writes run on the script
+thread inside SEH, so an index past its block's allocation reads as
+`<unreadable>` instead of crashing.
 
 ## How
 
@@ -107,15 +139,20 @@ Vulkan-Headers are submodules.
    void hooks, and a char* return on a function returning a label.
 6. Native hook: Log only on a frequent native (call count, caller, args),
    then a Return hook, then Remove.
-7. Start Script with a harmless script and stack size; Kill it.
+7. Start Script with a harmless script (its stack size preselected); Kill
+   it; Restart it; Force Cleanup a mission script with its default flags
+   and with 0x800, and compare.
+7a. Global Editor: watch a known global (e.g. the cheats' `Global_1425247`
+   entries from CLAUDE.md), set it, see the game react; restart the game
+   and see the watch list come back.
 8. Eject with hooks active and paused threads: scripts resume, game keeps
    running, re-inject works and the monitor opens again.
 9. Going online closes the window and removes every hook.
 
 ## Not yet
 
-- Restart and Force Cleanup (Rampage's SubScriptEditor), Force Cleanup All
-  Scripts.
 - Hooks aren't saved; a user-supplied function name table (labels for
   func_N per script) could be loaded from a file later.
-- Locals/statics and globals editors (the Global Editor stays tabled).
+- A locals/statics editor for a thread (Rampage has none).
+- Rampage's Debug submenu (SubDebug) is its own developer menu (logging,
+  console, UI feed tests, Throw Exception); still tabled.

@@ -6,9 +6,16 @@
 	tabled.
 
 	- Script Monitor (ours): an ImGui window (src/debug/ScriptMonitor.h)
-	  that also does what Rampage's Script Patcher, Script Loader and
-	  Script Terminator do, without the user having to know script hashes,
-	  function offsets or argument counts.
+	  that also does what Rampage's Script Patcher, Script Loader, Script
+	  Terminator and script editor (Restart, Terminate, Force Cleanup) do,
+	  without the user having to know script hashes, function offsets,
+	  argument counts, stack sizes or cleanup flags.
+	- Global Editor (Rampage's SubGlobalEditor, ours in how it's driven):
+	  an ImGui window (src/debug/GlobalEditor.h) taking globals as the
+	  decompiled scripts write them, with a saved watch list.
+
+	Rampage's Misc > Dev rows Global Editor and Script Tools open the same
+	windows (Misc.cpp).
 
 	Not translated: the Script Monitor is for people reading the
 	decompiled scripts, so its row stays in English too (src/lang/ignore.txt).
@@ -16,6 +23,7 @@
 
 #include "Menus.h"
 #include "..\debug\ScriptMonitor.h"
+#include "..\debug\GlobalEditor.h"
 
 namespace Menus
 {
@@ -24,5 +32,7 @@ namespace Menus
 		MenuBase* debug = Ui::Submenu(root, "Debug");
 		Ui::Do(debug, "debug.scriptmonitor", "Script Monitor", [] { ScriptMonitor::SetOpen(true); });
 		Ui::Describe(debug, "Script threads, their functions, and function/native hooks, in an overlay window.\nThe menu key closes it.");
+		Ui::Do(debug, "debug.globaleditor", "Global Editor", [] { GlobalEditor::SetOpen(true); });
+		Ui::Describe(debug, "Watch and edit script globals, written as the decompiled scripts write them.\nThe menu key closes it.");
 	}
 }

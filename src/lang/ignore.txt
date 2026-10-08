@@ -50,3 +50,6 @@ zh-CN
 Debug
 Script Monitor
 Script threads, their functions, and function/native hooks, in an overlay window.\nThe menu key closes it.
+Global Editor
+Script Tools
+Watch and edit script globals, written as the decompiled scripts write them.\nThe menu key closes it.

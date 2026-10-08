@@ -21,6 +21,12 @@ namespace ScriptData
 	const char* FindScriptName(std::uint32_t hash);
 	// Every known script, sorted by name.
 	std::span<const ScriptName> ScriptNames();
+	// The stack size Rampage starts the script with (ScriptStackSizes.inc,
+	// tools/extract_rampage_tables.py), or 0 if unknown.
+	int StackSize(std::uint32_t hash);
+	// The force-cleanup flags the script checks (ForceCleanupFlags.inc,
+	// tools/extract_cleanup_flags.py), or 0 if none.
+	std::uint32_t CleanupFlags(std::uint32_t hash);
 
 	// The return-value kinds a hook can produce, matching NativeList.inc's kind column.
 	enum class NativeReturn : std::uint8_t { Void, Int, Float, Vector3, String, Pointer };

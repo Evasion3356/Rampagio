@@ -22,6 +22,7 @@
 #include "menus/Menus.h"
 #include "MainThread.h"
 #include "debug/ScriptMonitor.h"
+#include "debug/GlobalEditor.h"
 #include "overlay/Overlay.h"
 #include "core/settings/Settings.h"
 #include "core/commands/Commands.h"
@@ -82,6 +83,7 @@ namespace
 		// Paused threads resume; the game's code and native tables go back
 		// as they were.
 		ScriptMonitor::Suspend();
+		GlobalEditor::Suspend();
 	}
 
 	// No C++ objects here, so it can use SEH: a hook that faults during
@@ -124,6 +126,7 @@ void ScriptMain()
 
 	BuildMenu();
 	ScriptMonitor::Register();
+	GlobalEditor::Register();
 	LoadSettings();
 	// Resolved now so an eject can check for an active script thread
 	// (ScriptUnload); features resolve them on first use anyway.
@@ -149,6 +152,7 @@ void ScriptMain()
 			Rampagio::Commands::Suspend();
 			Ui::DisableAllToggles();
 			ScriptMonitor::Suspend();
+			GlobalEditor::Suspend();
 			MainThread::Clear();
 		}
 		wasOnline = online;
@@ -158,6 +162,7 @@ void ScriptMain()
 			// Actions from the ImGui tools, then their snapshot.
 			MainThread::Run();
 			ScriptMonitor::Tick();
+			GlobalEditor::Tick();
 			Overlay::SetCloseKey(MenuKey());
 
 			MenuController& menus = Ui::Controller();

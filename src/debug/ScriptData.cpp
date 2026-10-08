@@ -1,4 +1,5 @@
 #include "ScriptData.h"
+#include "..\..\external\RDR-Classes\rage\joaat.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -24,6 +25,26 @@ namespace
 #include "..\data\ScriptNames.inc"
 	};
 
+	struct StackSizeRow
+	{
+		const char* name;
+		int size;
+	};
+
+	constexpr StackSizeRow kStackSizes[] = {
+#include "..\data\ScriptStackSizes.inc"
+	};
+
+	struct CleanupRow
+	{
+		const char* name;
+		std::uint32_t flags;
+	};
+
+	constexpr CleanupRow kCleanupFlags[] = {
+#include "..\data\ForceCleanupFlags.inc"
+	};
+
 	constexpr NativeRow kNatives[] = {
 #include "..\data\NativeList.inc"
 	};
@@ -35,6 +56,8 @@ namespace
 		std::vector<ScriptData::Native> natives;
 		std::vector<const char*> namespaces;
 		std::unordered_map<std::uint64_t, std::size_t> nativeByHash;
+		std::unordered_map<std::uint32_t, int> stackSizes;
+		std::unordered_map<std::uint32_t, std::uint32_t> cleanupFlags;
 
 		Tables()
 		{
@@ -44,6 +67,15 @@ namespace
 			scriptsByName.assign(std::begin(kScriptNames), std::end(kScriptNames));
 			std::sort(scriptsByName.begin(), scriptsByName.end(),
 				[](const auto& a, const auto& b) { return std::strcmp(a.name, b.name) < 0; });
+
+			for (const StackSizeRow& row : kStackSizes)
+			{
+				if (row.size > 0)
+					stackSizes.emplace(rage::Joaat(row.name), row.size);
+			}
+
+			for (const CleanupRow& row : kCleanupFlags)
+				cleanupFlags.emplace(rage::Joaat(row.name), row.flags);
 
 			natives.reserve(std::size(kNatives));
 			for (const NativeRow& row : kNatives)
@@ -77,6 +109,20 @@ namespace ScriptData
 	std::span<const ScriptName> ScriptNames()
 	{
 		return Get().scriptsByName;
+	}
+
+	int StackSize(std::uint32_t hash)
+	{
+		const auto& sizes = Get().stackSizes;
+		auto it = sizes.find(hash);
+		return it != sizes.end() ? it->second : 0;
+	}
+
+	std::uint32_t CleanupFlags(std::uint32_t hash)
+	{
+		const auto& flags = Get().cleanupFlags;
+		auto it = flags.find(hash);
+		return it != flags.end() ? it->second : 0;
 	}
 
 	std::span<const Native> Natives()
