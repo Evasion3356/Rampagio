@@ -33,7 +33,7 @@ Submenus: 147 done, 8 partial, 0 pending, 10 tabled, 2 dropped.
 | SubFriendlist | 1 | Dropped | Online only (Social Club friends) |
 | SubGameMusic | 8 | Done | Miscellaneous > Game Music: 314 music events from the game scripts |
 | SubMinigames | 1 | Done | Miscellaneous > Minigames > Undead Nightmare II: own wave logic (kill count spawns bosses) on the models and bosses Rampage uses |
-| SubMiscellaneous | 18 | Partial | Miscellaneous: Air Walk holds a fixed height (ours); Take a Photo saves without the district/state photo stats; About lives in Settings; Global Editor and Script Tools rows wait for the tabled Script Tools area |
+| SubMiscellaneous | 18 | Partial | Miscellaneous: Air Walk holds a fixed height (ours); About lives in Settings; Global Editor and Script Tools rows wait for the tabled Script Tools area |
 | SubMobileTheater | 11 | Done | Miscellaneous > Mobile Theater: screen position and size rows (ours) |
 | SubMusicPlayer | 8 | Done | Miscellaneous > Music Player: Windows MCI on files in a RampagioMusic folder (ours; Rampage bundles FMOD) |
 

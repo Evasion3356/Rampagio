@@ -111,7 +111,7 @@ STATUS = {
  'SubWeaponsGive':('Done','Weapon > Manage Weapons > Give Weapon'),
  'SubWeaponsAmmunition':('Done','Weapon > Ammunition: Drop Ammo offers six PICKUP_AMMO_ kinds from the game scripts'),
  'SubWeaponModifiers':('Done','Weapon > Weapon Modifiers: Weapon Scale re-applies on weapon switch (ours); Skill sets the current weapon stat'),
- 'SubMiscellaneous':('Partial','Miscellaneous: Air Walk holds a fixed height (ours); Take a Photo saves without the district/state photo stats; About lives in Settings; Global Editor and Script Tools rows wait for the tabled Script Tools area'),
+ 'SubMiscellaneous':('Partial','Miscellaneous: Air Walk holds a fixed height (ours); About lives in Settings; Global Editor and Script Tools rows wait for the tabled Script Tools area'),
  'SubMusicPlayer':('Done','Miscellaneous > Music Player: Windows MCI on files in a RampagioMusic folder (ours; Rampage bundles FMOD)'),
  'SubGameMusic':('Done','Miscellaneous > Game Music: 314 music events from the game scripts'),
  'SubMobileTheater':('Done','Miscellaneous > Mobile Theater: screen position and size rows (ours)'),

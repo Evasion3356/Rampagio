@@ -19,7 +19,7 @@
 	  plus the cutscenes the scripts name; Try to Populate casts peds from
 	  Rampage's model table (data\CutsceneCast.inc), and Stop Current
 	  deletes them (Rampage leaves them for the user to delete).
-	Not ported: Friendlist (online), Social Club photo upload stats, and the
+	Not ported: Friendlist (online) and the
 	Dev rows that open tabled areas (Global Editor, Script Tools).
 	The Dev section also holds the Stat Editor (Rampage's SubStatEditor).
 */
@@ -332,6 +332,19 @@ namespace
 			WAIT(0);
 		if (status != 0)
 			return "Photo failed";
+		// The district and state photo stats camera_item sets, from the
+		// current district (Global_1897952.f_41, Rampage's table).
+		static constexpr const char* kDistricts[] = { "BAY", "BGV", "BLU", "CML", "GRT", "GRZ", "GRE", "GRW", "GUA",
+			"HRT", "ROA", "SCM", "TAL", "GAP", "RIO", "CHO", "HEN" };
+		static constexpr const char* kStates[] = { "LEMOYNE", "WEST_ELIZ", "LEMOYNE", "NEW_HANOV", "WEST_ELIZ", "AMBARINO",
+			"AMBARINO", "AMBARINO", "GUARMA", "NEW_HANOV", "NEW_HANOV", "LEMOYNE", "WEST_ELIZ", "NEW_AUST", "NEW_AUST",
+			"NEW_AUST", "NEW_AUST" };
+		const int district = SCRIPT::IS_LOADING_SCREEN_VISIBLE() ? -1 : static_cast<int>(GameUtil::Global(1897952)[41]);
+		if (district >= 0 && district < static_cast<int>(std::size(kDistricts)))
+		{
+			GRAPHICS::_SET_DISTRICT_PHOTO_TAKEN_STAT(kDistricts[district]);
+			GRAPHICS::_SET_STATE_PHOTO_TAKEN_STAT(kStates[district]);
+		}
 		GRAPHICS::SAVE_HIGH_QUALITY_PHOTO(0);
 		return "Photo saved";
 	}
