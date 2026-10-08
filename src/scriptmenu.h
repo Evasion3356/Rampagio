@@ -24,6 +24,8 @@
 
 using namespace std;
 
+namespace Rampagio { class Command; }
+
 class MenuBase;
 class MenuController;
 
@@ -93,6 +95,9 @@ public:
 	virtual	void OnRight() {}
 	virtual	void OnFrame() {}
 	virtual	string GetCaption() { return ""; }
+	// Rampagio: the command a row shows (Menu.h id overloads), for F11
+	// binding; nullptr for plain rows.
+	virtual Rampagio::Command* GetCommand() { return nullptr; }
 
 	float GetLineWidth()  { return m_lineWidth;  }
 	virtual float GetLineHeight() { return m_lineHeight; }

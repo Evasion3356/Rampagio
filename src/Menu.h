@@ -4,8 +4,8 @@
 	same place, e.g.
 
 		MenuBase* self = Ui::Submenu(root, "Player");
-		Ui::Toggle(self, "Godmode", SetGodmode);
-		Ui::Action(self, "Heal", Heal);
+		Ui::Toggle(self, "player.godmode", "Godmode", SetGodmode);
+		Ui::Action(self, "player.heal", "Heal", Heal);
 
 	Rows:
 	  Action   one-shot; returns a status string (empty = no popup)
@@ -17,11 +17,24 @@
 	  Submenu  a nested menu; ListMenu is one rebuilt each time it opens
 	  NameList a submenu picking one of many names, with Search and Custom
 	           Input rows
+
+	Commands: the overloads that take an id first ("<area>.<feature>",
+	lowercase) create a command (src/core/commands) for the row and
+	register it. Its state is saved in Rampagio.json under that id, it can
+	be bound to a hotkey (F11), and toggles tick from the main loop
+	(Commands::RunLoopedCommands), so they work in menus never opened. Use
+	them for every row built once in a Menus::BuildXxx. Rows built inside a
+	ListMenu/DetachedListMenu build, or per ped, use the id-less overloads:
+	those rows aren't saved and can't be bound.
 */
 
 #pragma once
 
 #include "scriptmenu.h"
+#include "core\commands\BoolCommand.h"
+#include "core\commands\LoopedCommand.h"
+#include "core\commands\ValueCommands.h"
+#include "core\commands\ActionCommand.h"
 
 #include <functional>
 #include <span>
@@ -66,6 +79,19 @@ namespace Ui
 	// Shows "caption: *value" ("Not set" while empty); selecting it opens the
 	// on-screen keyboard on the current value. onChange runs after an edit.
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange = nullptr);
+
+	// Command rows (see the header comment). Toggle returns a
+	// LoopedCommand when it has an onTick. Number's applyOnSelect also makes
+	// it hotkeyable (select = apply); Choice is hotkeyable when it has an
+	// onChange; Text never is (it opens the on-screen keyboard).
+	Rampagio::ActionCommand* Action(MenuBase* menu, const std::string& id, const std::string& caption, std::function<std::string()> action);
+	Rampagio::ActionCommand* Do(MenuBase* menu, const std::string& id, const std::string& caption, std::function<void()> action);
+	Rampagio::BoolCommand* Toggle(MenuBase* menu, const std::string& id, const std::string& caption, std::function<void(bool)> onChange, std::function<void()> onTick = nullptr);
+	Rampagio::LoopedCommand* Looped(MenuBase* menu, const std::string& id, const std::string& caption, std::function<void()> onTick, std::function<void()> onOff = nullptr);
+	Rampagio::IntCommand* Number(MenuBase* menu, const std::string& id, const std::string& caption, int* value, int min, int max, int step, std::function<void()> onChange = nullptr, bool applyOnSelect = false);
+	Rampagio::FloatCommand* Number(MenuBase* menu, const std::string& id, const std::string& caption, float* value, float min, float max, float step, std::function<void()> onChange = nullptr, bool applyOnSelect = false);
+	Rampagio::ListCommand* Choice(MenuBase* menu, const std::string& id, const std::string& caption, std::vector<std::string> options, int* index, std::function<void(int)> onChange = nullptr);
+	Rampagio::StringCommand* Text(MenuBase* menu, const std::string& id, const std::string& caption, std::string* value, std::function<void()> onChange = nullptr);
 
 	// Switches every toggle off through its onChange (online kill switch).
 	void DisableAllToggles();
