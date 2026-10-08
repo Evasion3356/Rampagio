@@ -371,7 +371,7 @@ void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color
 
 // Rampagio: menu text the way Rampage draws it (scriptmenu.cpp): sized by
 // _BG_SET_TEXT_SCALE instead of a SIZE tag. Center and Right need the game's
-// text format struct (found by pattern on first use): Center puts the
+// text format struct (found by FindMenuTextFormat): Center puts the
 // text's center at x, Right its right end at x + 0.5. Without the struct
 // they fall back to an estimate. title also sets the format flag Rampage
 // sets for its header text. The markup is built in one reused buffer, so
@@ -379,6 +379,10 @@ void DrawTextAt(float x, float y, const char* str, int fontSize, ColorRgba color
 enum class TextAlign { Left, Center, Right };
 void DrawMenuText(std::string_view text, float x, float y, float scale, ColorRgba color, const char* face = nullptr,
 	TextAlign align = TextAlign::Left, bool title = false);
+
+// Rampagio: scans for that struct now. Called at start-up so the scan doesn't
+// stall the frame the menu first opens on; DrawMenuText scans anyway if not.
+void FindMenuTextFormat();
 
 // Rampagio: a texture from a streamed dictionary (requested on first use,
 // drawn once loaded), centered at x, y.

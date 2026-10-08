@@ -207,6 +207,11 @@ void DrawMenuText(std::string_view text, float x, float y, float scale, ColorRgb
 	UIDEBUG::_BG_DISPLAY_TEXT(MISC::VAR_STRING(10, "LITERAL_STRING", markup.c_str()), x, y);
 }
 
+void FindMenuTextFormat()
+{
+	TextFormat();
+}
+
 void DrawMenuSprite(const char* dict, const char* name, float x, float y, float width, float height, float heading, ColorRgba color)
 {
 	if (!TXD::HAS_STREAMED_TEXTURE_DICT_LOADED(dict))

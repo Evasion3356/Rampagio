@@ -131,6 +131,7 @@ void ScriptMain()
 	// Resolved now so an eject can check for an active script thread
 	// (ScriptUnload); features resolve them on first use anyway.
 	GamePointers::Get();
+	FindMenuTextFormat();
 
 	bool wasOnline = false;
 	DWORD languageRead = 0;

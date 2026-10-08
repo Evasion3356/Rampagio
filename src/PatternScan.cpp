@@ -2,6 +2,7 @@
 #include "Log.h"
 
 #include <windows.h>
+#include <array>
 #include <vector>
 #include <string>
 #include <cstring>
@@ -11,7 +12,7 @@ namespace
 	struct ParsedPattern
 	{
 		std::vector<std::uint8_t> bytes;
-		std::vector<bool> mask; // true = must match, false = wildcard
+		std::vector<std::uint8_t> mask; // 1 = must match, 0 = wildcard
 	};
 
 	ParsedPattern Parse(std::string_view pattern)
@@ -29,7 +30,7 @@ namespace
 			if (pattern[i] == '?')
 			{
 				parsed.bytes.push_back(0);
-				parsed.mask.push_back(false);
+				parsed.mask.push_back(0);
 				i++;
 				// tolerate "??" as a single wildcard token
 				if (i < pattern.size() && pattern[i] == '?')
@@ -38,12 +39,28 @@ namespace
 			else
 			{
 				parsed.bytes.push_back(static_cast<std::uint8_t>(std::stoul(std::string(pattern.substr(i, 2)), nullptr, 16)));
-				parsed.mask.push_back(true);
+				parsed.mask.push_back(1);
 				i += 2;
 			}
 		}
 
 		return parsed;
+	}
+
+	// How often each byte value occurs in the image, from one 4 KB page in
+	// every 16 (a few MB), counted once.
+	std::array<std::uint32_t, 256> CountBytes(const std::uint8_t* base, std::size_t size)
+	{
+		constexpr std::size_t kPage = 0x1000;
+		constexpr std::size_t kStride = 16 * kPage;
+		std::array<std::uint32_t, 256> counts{};
+		for (std::size_t offset = 0; offset + kPage <= size; offset += kStride)
+		{
+			const std::uint8_t* page = base + offset;
+			for (std::size_t i = 0; i < kPage; i++)
+				counts[page[i]]++;
+		}
+		return counts;
 	}
 }
 
@@ -60,79 +77,60 @@ namespace PatternScan
 		std::size_t imageSize = ntHeaders->OptionalHeader.SizeOfImage;
 
 		ParsedPattern parsed = Parse(pattern);
-		if (parsed.bytes.empty())
+		const std::size_t patternLen = parsed.bytes.size();
+		if (patternLen == 0 || imageSize < patternLen)
 			return std::nullopt;
+		// Raw pointers: vector indexing is checked, and slow, in Debug.
+		const std::uint8_t* bytes = parsed.bytes.data();
+		const std::uint8_t* mask = parsed.mask.data();
 
-		std::size_t patternLen = parsed.bytes.size();
-		if (imageSize < patternLen)
-			return std::nullopt;
+		// memchr jumps between occurrences of one concrete byte (the
+		// anchor) and only those candidates are compared. The anchor is the
+		// pattern's rarest byte in this image: patterns usually start with a
+		// REX prefix (48, 4C) that occurs every few bytes of x64 code, and
+		// anchoring on it made a scan check nearly every offset (about a
+		// second per pattern, and the first menu open waited on one).
+		static const std::array<std::uint32_t, 256> counts = CountBytes(base, imageSize);
+		std::size_t anchor = patternLen;
+		for (std::size_t i = 0; i < patternLen; i++)
+			if (mask[i] && (anchor == patternLen || counts[bytes[i]] < counts[bytes[anchor]]))
+				anchor = i;
 
-		// Anchor on the first non-wildcard byte and use memchr (a
-		// well-optimized, typically SIMD-backed CRT routine) to jump
-		// straight to each candidate occurrence of it, instead of
-		// testing every single byte offset in the image by hand. The
-		// original version here did a naive brute-force scan -- for
-		// every one of a ~100MB+ game executable's byte offsets, an
-		// inner-loop comparison -- which turned out to be the real
-		// cause of a one-time hitch on the first "Toggle Poker Cheat"
-		// press each session (this function's result is cached, but the
-		// cache only gets populated on that first call). Every
-		// signature used in this project so far starts with a concrete
-		// byte (not a wildcard), so this covers the real case; an
-		// all-wildcard pattern is handled as a degenerate no-match below
-		// rather than falling back to a slow scan.
-		std::size_t firstConcrete = 0;
-		while (firstConcrete < patternLen && !parsed.mask[firstConcrete])
-			firstConcrete++;
-
-		if (firstConcrete == patternLen)
+		if (anchor == patternLen)
 		{
 			// Pattern is all wildcards -- degenerate, nothing to anchor on.
 			// This is a bug in pattern generation, not normal usage.
-			// Log a warning to catch accidental all-wildcard patterns early.
 			Log::Write("PatternScan::FindInMainModule: WARNING -- pattern is all wildcards, cannot scan");
 			return std::nullopt;
 		}
 
-		// Start searching at base+firstConcrete, not base -- candidateStart
-		// (below) is computed as candidateAnchor - firstConcrete, so
-		// starting any earlier could let memchr find an anchor byte
-		// close enough to the very start of the image that
-		// candidateStart would point before base, reading out of bounds.
-		std::uint8_t* searchStart = base + firstConcrete;
-		std::size_t remaining = imageSize - firstConcrete;
-
-		// Honor startAddress by starting the anchor search that much later.
+		// A match starts in [first, end - patternLen]; startAddress skips
+		// every match that begins before it.
+		const std::uint8_t* end = base + imageSize;
+		const std::uint8_t* first = base;
 		const std::uintptr_t imageBase = reinterpret_cast<std::uintptr_t>(base);
 		if (startAddress > imageBase)
 		{
-			const std::size_t skip = static_cast<std::size_t>(startAddress - imageBase);
-			if (skip >= remaining)
+			if (startAddress - imageBase > imageSize - patternLen)
 				return std::nullopt;
-			searchStart += skip;
-			remaining -= skip;
+			first = base + (startAddress - imageBase);
 		}
 
-		for (;;)
+		const std::uint8_t* next = first + anchor;            // next anchor position to search from
+		const std::uint8_t* last = end - patternLen + anchor; // last possible anchor position
+		while (next <= last)
 		{
-			// Only the region that could still contain a full match
-			// (patternLen - firstConcrete bytes after the anchor) needs
-			// to be searched for the anchor byte.
-			if (remaining < patternLen - firstConcrete)
-				break;
-
-			std::size_t searchableForAnchor = remaining - (patternLen - firstConcrete - 1);
-			void* found = memchr(searchStart, parsed.bytes[firstConcrete], searchableForAnchor);
+			const void* found = memchr(next, bytes[anchor], static_cast<std::size_t>(last - next) + 1);
 			if (!found)
 				break;
 
-			std::uint8_t* candidateAnchor = static_cast<std::uint8_t*>(found);
-			std::uint8_t* candidateStart = candidateAnchor - firstConcrete;
+			const std::uint8_t* candidateAnchor = static_cast<const std::uint8_t*>(found);
+			const std::uint8_t* candidateStart = candidateAnchor - anchor;
 
 			bool matched = true;
 			for (std::size_t j = 0; j < patternLen; j++)
 			{
-				if (parsed.mask[j] && candidateStart[j] != parsed.bytes[j])
+				if (mask[j] && candidateStart[j] != bytes[j])
 				{
 					matched = false;
 					break;
@@ -142,10 +140,7 @@ namespace PatternScan
 			if (matched)
 				return reinterpret_cast<std::uintptr_t>(candidateStart);
 
-			// Advance past this anchor candidate and keep scanning.
-			std::size_t advanced = static_cast<std::size_t>(candidateAnchor - searchStart) + 1;
-			searchStart += advanced;
-			remaining -= advanced;
+			next = candidateAnchor + 1;
 		}
 
 		return std::nullopt;
