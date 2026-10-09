@@ -166,8 +166,12 @@ launches from a world scenario point.
 4. [x] Optional: name the `ci_category_*` hashes for finer groups
    (2026-10-09; see "B4" under Implementation notes).
 
-### C. Live tests (none done)
+### C. Live tests
 
+- [x] Dino Bones list shows [Found] correctly; Show on Map places the
+  `DinoBones.inc` blips (user, 2026-10-09: the New Austin ones, not yet
+  reached in the save, show; each bone not checked one by one, and 3, 5,
+  11, 27, 28 still have no position).
 - [ ] Found state flips when picking up a dino bone, rock carving,
   dreamcatcher, legendary fish; blip disappears without reopening.
 - [ ] A save with some legendaries killed shows the right ones.
