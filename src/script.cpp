@@ -201,8 +201,11 @@ void ScriptMain()
 			}
 			else if (!OnlineGuard::IsOnline())
 			{
-				if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed() && !OnlineGuard::IsOnline())
-					menus.PushMenu(Ui::Root());
+				if (MenuInput::MenuSwitchPressed() && !OnlineGuard::IsOnline())
+				{
+					MenuInput::MenuInputBeep();
+					menus.Toggle(Ui::Root());
+				}
 				menus.Update();
 			}
 			if (!OnlineGuard::IsOnline())

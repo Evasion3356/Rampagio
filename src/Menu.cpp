@@ -398,7 +398,6 @@ namespace Ui
 	{
 		for (auto* toggle : g_toggles)
 			toggle->SetOff();
-		while (g_controller.HasActiveMenu())
-			g_controller.PopMenu();
+		g_controller.CloseAll();
 	}
 }

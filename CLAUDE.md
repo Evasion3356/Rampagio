@@ -46,7 +46,8 @@ Menu key: **F5** by default (Settings > Core > Menu Key, saved as
 `settings.menukey` in `Rampagio.json`), the same key Rampage uses, at the
 user's request. Don't load Rampage and
 Rampagio together with default keys. Controls: NUMPAD 8/2 to move,
-NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back; on a gamepad RB +
+NUMPAD 5 to select, NUMPAD 0/Backspace to go back (F5 hides
+the menu and reopens it where it was, as Rampage's menu key does); on a gamepad RB +
 Left opens it and the d-pad, A and B navigate. F11 on a command row opens
 the Hotkey window (ImGui: its bindings, gesture/action drop-downs, Clear,
 Add Key); Y on a pad binds from the native menu. A binding is keys, mouse

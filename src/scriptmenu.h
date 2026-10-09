@@ -573,7 +573,8 @@ public:
 		wasDown = down;
 		return pressed && !PAD::IS_USING_KEYBOARD_AND_MOUSE(2);
 	}
-	// Toggle key is MenuKey() (default F5), or a gamepad combo.
+	// Toggle key is MenuKey() (default F5), or a gamepad combo. It shows and
+	// hides the menu (MenuController::Toggle); it never goes back a level.
 	static bool MenuSwitchPressed()
 	{
 		return IsKeyJustUp(MenuKey()) || GamepadOpenPressed();
@@ -586,7 +587,7 @@ public:
 				PAD::DISABLE_CONTROL_ACTION(2, input, TRUE);
 		return {
 			IsKeyDown(VK_NUMPAD5) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_RETURN)) || (pad && Pad(INPUT_FRONTEND_ACCEPT)),
-			IsKeyDown(VK_NUMPAD0) || MenuSwitchPressed() || IsKeyDown(VK_BACK) || (pad && Pad(INPUT_FRONTEND_CANCEL)),
+			IsKeyDown(VK_NUMPAD0) || IsKeyDown(VK_BACK) || (pad && Pad(INPUT_FRONTEND_CANCEL)),
 			IsKeyDown(VK_NUMPAD8) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_UP)) || (pad && Pad(INPUT_FRONTEND_UP)),
 			IsKeyDown(VK_NUMPAD2) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_DOWN)) || (pad && Pad(INPUT_FRONTEND_DOWN)),
 			IsKeyDown(VK_NUMPAD4) || (IsKeyDownLong(VK_CONTROL) && IsKeyDown(VK_LEFT)) || (pad && Pad(INPUT_FRONTEND_LEFT)),
@@ -614,10 +615,13 @@ class MenuController
 	DWORD	m_statusTextMaxTicks;
 	bool	m_reopenPending = false;
 	bool	m_inputBlocked = false;
+	// Rampagio addition: the menu key hides the menu without clearing the
+	// stack, so the next press reopens it where it was (as Rampage does).
+	bool	m_hidden = false;
 
 	void InputWait(int ms)		{	m_inputTurnOnTime = GetTickCount() + ms; }
 	bool InputIsOnWait()		{	return m_inputTurnOnTime > GetTickCount(); }
-	MenuBase *GetActiveMenu()	{	return m_menuStack.size() ? m_menuStack[m_menuStack.size() - 1] : NULL; }
+	MenuBase *GetActiveMenu()	{	return m_menuStack.size() && !m_hidden ? m_menuStack[m_menuStack.size() - 1] : NULL; }
 	void DrawStatusText();
 public:
 	MenuController()
@@ -627,13 +631,25 @@ public:
 		for (auto menu : m_menuList)
 			delete menu;
 	}
-	bool HasActiveMenu()			{	return m_menuStack.size() > 0; }
+	// True while the menu is on screen; a hidden menu counts as closed (its
+	// stack is kept only for reopening), so GetStack() is empty then too.
+	bool HasActiveMenu()			{	return m_menuStack.size() > 0 && !m_hidden; }
 	// Rampagio additions, for Settings > Search and the hotkeys.
 	const vector<MenuBase *>& GetMenus() const { return m_menuList; }
-	const vector<MenuBase *>& GetStack() const { return m_menuStack; }
+	const vector<MenuBase *>& GetStack() const { static const vector<MenuBase *> none; return m_hidden ? none : m_menuStack; }
 	MenuBase *GetTopMenu()			{	return GetActiveMenu(); }
-	void PushMenu(MenuBase *menu)	{	if (IsMenuRegistered(menu)) m_menuStack.push_back(menu); }
-	void PopMenu()					{   if (m_menuStack.size()) m_menuStack.pop_back(); }
+	void PushMenu(MenuBase *menu)	{	if (IsMenuRegistered(menu)) m_menuStack.push_back(menu), m_hidden = false; }
+	void PopMenu()					{   if (m_menuStack.size()) m_menuStack.pop_back(); if (m_menuStack.empty()) m_hidden = false; }
+	// The menu key: opens root when nothing is open, else hides or shows the
+	// menu at the submenu and row it was on. One press, one open or close.
+	void Toggle(MenuBase *root)
+	{
+		if (m_menuStack.empty())
+			PushMenu(root);
+		else
+			m_hidden = !m_hidden;
+	}
+	void CloseAll()					{	m_menuStack.clear(); m_hidden = false; }
 	void SetStatusText(string text, int ms) { m_statusText = text, m_statusTextMaxTicks = GetTickCount() + ms; }
 	bool IsMenuRegistered(MenuBase *menu)
 	{
