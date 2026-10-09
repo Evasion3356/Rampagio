@@ -182,7 +182,18 @@ void ScriptMain()
 			Overlay::SetCloseKey(MenuKey());
 
 			MenuController& menus = Ui::Controller();
-			if (Overlay::AnyOpen())
+			// While a window is open the overlay swallows key messages, so
+			// keyboard.cpp never sees the key-up of the key that opened it
+			// (NUMPAD5 on the row) and counts it as held for 5 s: closing
+			// the window then ran the row again and reopened it. Forget
+			// every key when the last window closes.
+			static bool overlayWasOpen = false;
+			const bool overlayOpen = Overlay::AnyOpen();
+			if (overlayWasOpen && !overlayOpen)
+				for (DWORD key = 0; key < 255; key++)
+					ResetKeyState(key);
+			overlayWasOpen = overlayOpen;
+			if (overlayOpen)
 			{
 				// The overlay has the keyboard and mouse; keep the game and
 				// the menu from acting on gamepad input too.

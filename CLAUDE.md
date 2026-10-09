@@ -242,6 +242,9 @@ and live checklist in `docs/HOTKEYS_PLAN.md`, built 2026-10-09, untested).
   native menu; the menu key closes it. Tools draw on the render thread from
   a snapshot and send work back with `MainThread::Post` (`src/MainThread.h`,
   run at the top of the main loop): no natives on the render thread.
+  The overlay swallows key messages while open, so `keyboard.cpp` misses
+  the key-up of the key that opened a window; `script.cpp` resets every
+  key state when the last window closes (else the row reran and reopened it).
 - `src/debug/`: Debug > Script Monitor (`docs/SCRIPT_MONITOR.md`; row in
   `src/menus/Debug.cpp`). English only, on purpose. `ScriptData` (script
   names by hash, `src/data/ScriptNames.inc` from
@@ -598,9 +601,10 @@ repo's CLAUDE.md has a "Library" section with its specifics):
   already does).
 - Rows that stand in for a sibling's INI setting use
   `SetAlwaysRestore()` (Command.h) so they come back on start whatever
-  `settings.restoretoggles` says; the fixes, Keep Weapons on Dismount,
-  the fillet patches and the advisors default to on, as the standalone
-  mods are.
+  `settings.restoretoggles` says. Only the FishingFix fixes default to
+  on (they stand down while a standalone `FishingFix.asi` is loaded);
+  Keep Weapons on Dismount, the fillet patches and the advisors stay off
+  until the user turns them on (user, 2026-10-09).
 
 Static instead, at the user's request: CigCardTest (Recovery >
 Collectibles > Cigarette Cards' Complete Set / Complete All Sets) and
