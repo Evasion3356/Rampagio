@@ -337,8 +337,8 @@ and live checklist in `docs/HOTKEYS_PLAN.md`, built 2026-10-09, untested).
   at runtime. Dino bones have no placement location; their positions are
   the `WB_DINO_BONES` scenario points in `chests_*.ymt` (radius = item
   index), in `src/data/DinoBones.inc` from `tools/extract_dino_bones.py`
-  (25 of 30; 5 records read as zero, see its docstring). Rampage's own
-  dino bone table is mostly wilderness chests and rock carvings. Card models are `s_inv_cigcard_<set>_<NN>x` (set codes in
+  (all 30; Rampage's Dino Bones table lists the same bones in the same
+  order, and the tool checks against it when given `Rampage.asi`). Card models are `s_inv_cigcard_<set>_<NN>x` (set codes in
   `src/menus/Collectibles.cpp`). The user's earlier probe
   `..\CigCardTest` documents the card tracking layers (found, turned in,
   inventory).

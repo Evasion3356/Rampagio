@@ -168,10 +168,12 @@ launches from a world scenario point.
 
 ### C. Live tests
 
-- [x] Dino Bones list shows [Found] correctly; Show on Map places the
-  `DinoBones.inc` blips (user, 2026-10-09: the New Austin ones, not yet
-  reached in the save, show; each bone not checked one by one, and 3, 5,
-  11, 27, 28 still have no position).
+- [x] Dino Bones list shows [Found] correctly (user, 2026-10-09).
+- [ ] Dino Bones Show on Map / teleports land on the bones. The first
+  `DinoBones.inc` (2026-10-09) paired positions with the wrong points; the
+  user's blips were from that. Regenerated with all 30, each within 4.4 m
+  of Rampage's table, whose rows 1-8 and 13-26 the user had used to find
+  bones (28-30 "went nowhere" in Rampage: check those three).
 - [ ] Found state flips when picking up a dino bone, rock carving,
   dreamcatcher, legendary fish; blip disappears without reopening.
 - [ ] A save with some legendaries killed shows the right ones.

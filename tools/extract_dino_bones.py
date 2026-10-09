@@ -1,81 +1,91 @@
 r"""Generates src/data/DinoBones.inc: where each dino bone is, by its index
 in the dino_bones collectable category.
 
-    python tools/extract_dino_bones.py <ymt dir> src/data/DinoBones.inc
+    python tools/extract_dino_bones.py <ymt dir> src/data/DinoBones.inc [Rampage.asi]
 
 Dino bones have no placement location (_COLLECTABLE_GET_PLACEMENT_LOCATION
-returns zero for them). dino_bones.ysc is a world brain script started from
-a WB_DINO_BONES scenario point: it reads the point's coordinates
-(_GET_SCENARIO_POINT_COORDS) and picks its item by the point's radius
-(func_2: _COLLECTABLE_GET_COLLECTABLE_ITEM_HASH(radius, "dino_bones")).
-The points are in the chests_<region>.ymt scenario files
-(x64/levels/rdr3/scenario/ in update_4.rpf). Extract them with the RDR2
-RPF Tool's headless mode, one per region:
+returns zero for them), and no script holds their coordinates.
+dino_bones.ysc is a world brain script started from a WB_DINO_BONES
+scenario point: it reads the point's coordinates (_GET_SCENARIO_POINT_COORDS)
+and picks its item by the point's radius (func_2:
+_COLLECTABLE_GET_COLLECTABLE_ITEM_HASH(radius, "dino_bones")). The points
+are in the chests_<region>.ymt scenario files (x64/levels/rdr3/scenario/ in
+update_4.rpf). Extract them with the RDR2 RPF Tool's headless mode, one per
+region:
 
     "RDR2 RPF Tool.exe" --extract <game>/update_4.rpf x64/levels/rdr3/scenario/chests_hrt.ymt <ymt dir>/chests_hrt.ymt
 
 (regions: bay bgv blu cho cml gap grt grz gua hen hrt rio roa scm tal).
 
-Each point is a 0x50-byte record: position and heading (4 floats), 8 zero
-bytes, the scenario type hash at +0x18 and the radius as a byte at +0x33.
-The files hold exactly one WB_DINO_BONES point per radius 0..29, but five
-of them (3, 5, 11, 27, 28) are the first record of their array, which in
-the extracted file shares its first 16 bytes with the structure before it,
-so their position reads as zero. Those stay { 0, 0, 0 } (the menu says the
-game has no location for them).
+The file format isn't documented here; this reads it by observation: the
+scenario type hash is a dword, the radius a byte 0x1B after it, and the
+point's position (three floats) 0x38 after it. The files hold exactly one
+WB_DINO_BONES point per radius 0..29.
 
-Rampage's own Dino Bones table doesn't help: most of its 30 coordinates are
-within a few meters of wilderness chests and rock carvings, not these
-points.
+With Rampage.asi given, each point is checked against Rampage's Dino Bones
+table (30 { x, y, z } at 0x18030C640 in the 2026-01-04 build), which lists
+the bones in the same order: every point must be within 10 m of the entry
+with its index (they're 0.6 to 4.4 m apart).
 """
 import glob
+import math
 import os
 import struct
 import sys
 
 WB_DINO_BONES = 0x99CC84E5
 COUNT = 30
+RAMPAGE_TABLE = 0x18030C640
 
 
 def read_points(ymt_dir):
     points = {}
     for path in sorted(glob.glob(os.path.join(ymt_dir, "chests_*.ymt"))):
         data = open(path, "rb").read()
-        for o in range(0, len(data) - 0x50, 16):
-            if struct.unpack_from("<I", data, o + 0x18)[0] != WB_DINO_BONES:
+        for o in range(0, len(data) - 0x44, 8):
+            if struct.unpack_from("<I", data, o)[0] != WB_DINO_BONES:
                 continue
-            radius = data[o + 0x33]
-            x, y, z = struct.unpack_from("<fff", data, o)
-            valid = all(v == v for v in (x, y, z)) and -7500 < x < 4000 and -6000 < y < 2500 \
-                and -100 < z < 1200 and abs(x) + abs(y) > 100
+            radius = data[o + 0x1B]
+            x, y, z = struct.unpack_from("<fff", data, o + 0x38)
+            if not (all(v == v for v in (x, y, z)) and -7500 < x < 4000 and -6000 < y < 2500
+                    and -100 < z < 1200 and abs(x) + abs(y) > 100):
+                sys.exit(f"{path}@{o:#x}: radius {radius} has no position ({x}, {y}, {z})")
             if radius in points:
                 sys.exit(f"radius {radius} twice: {points[radius]} and {path}@{o:#x}")
-            points[radius] = (os.path.basename(path), (x, y, z) if valid else None)
+            points[radius] = (os.path.basename(path), (x, y, z))
+    if sorted(points) != list(range(COUNT)):
+        sys.exit(f"expected radii 0..{COUNT - 1}, got {sorted(points)}")
     return points
 
 
-def main(ymt_dir, out_path):
+def check_rampage(points, asi):
+    import pefile
+    pe = pefile.PE(asi, fast_load=True)
+    data = pe.get_data(RAMPAGE_TABLE - pe.OPTIONAL_HEADER.ImageBase, COUNT * 12)
+    for index in range(COUNT):
+        theirs = struct.unpack_from("<fff", data, index * 12)
+        distance = math.dist(theirs, points[index][1])
+        if distance > 10:
+            sys.exit(f"bone {index}: {points[index]} is {distance:.1f} m from Rampage's {theirs}")
+    print(f"all {COUNT} within 10 m of Rampage's table")
+
+
+def main(ymt_dir, out_path, asi=None):
     points = read_points(ymt_dir)
-    if sorted(points) != list(range(COUNT)):
-        sys.exit(f"expected radii 0..{COUNT - 1}, got {sorted(points)}")
+    if asi:
+        check_rampage(points, asi)
 
     with open(out_path, "w", encoding="utf-8", newline="\r\n") as out:
         out.write("// Generated by tools/extract_dino_bones.py from the WB_DINO_BONES scenario\n")
         out.write("// points in chests_*.ymt. { x, y, z }, by dino_bones item index (the\n")
-        out.write("// point's radius); { 0, 0, 0 } where the file has no position. Regenerate\n")
-        out.write("// rather than edit.\n")
+        out.write("// point's radius). Regenerate rather than edit.\n")
         for index in range(COUNT):
-            ymt, at = points[index]
-            if at is None:
-                out.write(f"{{ 0.0f, 0.0f, 0.0f }}, // {index:2} unknown ({ymt})\n")
-            else:
-                x, y, z = at
-                out.write(f"{{ {x:.2f}f, {y:.2f}f, {z:.2f}f }}, // {index:2} ({ymt})\n")
-    missing = sum(1 for _, at in points.values() if at is None)
-    print(f"wrote {out_path} ({COUNT - missing} of {COUNT} with a position)")
+            ymt, (x, y, z) = points[index]
+            out.write(f"{{ {x:.2f}f, {y:.2f}f, {z:.2f}f }}, // {index:2} ({ymt})\n")
+    print(f"wrote {out_path}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
     main(*sys.argv[1:])
