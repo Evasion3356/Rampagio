@@ -575,7 +575,7 @@ kind of work. GoldHorse (including moving it to the alloc8or native
 header) belongs here too, later.
 
 Active Goal C work: `docs/COLLECTIBLES_AND_ITEMS_PLAN.md` (researched
-2026-10-08; steps A1-A6 and B1-B3 built 2026-10-08, uncompiled there and
+2026-10-08; steps A1-A6 and B1-B3 built 2026-10-08; they compile clean with MSVC,
 untested): collectible and legendary blips/lists that know what's
 already found or killed (`Collectibles.cpp`, `src/menus/Legendaries.h`),
 and Give Items built from the game's full SP item catalog
@@ -647,7 +647,7 @@ code is what the standalone mods already ran live.
    First live test: the Script Monitor checklist in `docs/SCRIPT_MONITOR.md`.
 8. Goal C: found-aware collectibles and the full item catalog
    (`docs/COLLECTIBLES_AND_ITEMS_PLAN.md`): A1-A6 and B1-B3 are written
-   but were never compiled (Linux session); build first and fix what
-   MSVC reports, then the plan's live tests (C). Its "Implementation
+   and compile clean (Debug, checked 2026-10-08); next are the plan's
+   live tests (C). Its "Implementation
    notes" list what's unverified (the new categories' locations, the
    legendary global layout).

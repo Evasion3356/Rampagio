@@ -1,7 +1,7 @@
 # Plan: found-aware collectibles and the full item catalog (Goal C)
 
-Status: researched 2026-10-08; A1-A6 and B1-B3 built 2026-10-08 (not
-compiled in that session, not live-tested; see "Implementation notes"). B4
+Status: researched 2026-10-08; A1-A6 and B1-B3 built 2026-10-08 (compiled
+clean since, not live-tested; see "Implementation notes"). B4
 and the live tests (C) are open. Two independent workstreams;
 A is smaller and fixes a real bug, so it goes first. Nothing here is
 Rampage's code or data: it comes from the 1491.50 scripts and the game's
@@ -176,7 +176,8 @@ launches from a world scenario point.
 ## Implementation notes (2026-10-08)
 
 Written in a Linux session without the game, MSVC or the decompiled
-scripts, so none of it has been compiled or run.
+scripts. A later Windows session built it: it compiles clean with MSVC
+(Debug, 2026-10-08), but none of it has been run.
 
 - A1/A2/A3/A5: `src/menus/Collectibles.cpp`. One `Category` table drives
   Dino Bones, Rock Carvings and the new entries under "More Collectibles"
