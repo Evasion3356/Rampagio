@@ -60,14 +60,14 @@ namespace
 		FFFCheat::OnTick();
 	}
 
-	// A fillet option row: on by default, as the standalone FFFCheat is.
+	// A fillet option row: off until the user turns it on.
 	void FilletToggle(MenuBase* menu, const char* id, const char* caption, bool FFFCheat::Options::* option)
 	{
-		g_fillet.*option = true;
+		g_fillet.*option = false;
 		Ui::Toggle(menu, id, caption, [option](bool on) {
 			g_fillet.*option = on;
 			FFFCheat::Reapply();
-		}, FilletTick)->SetDefault(true)->SetAlwaysRestore();
+		}, FilletTick)->SetAlwaysRestore();
 	}
 
 	void BuildFiveFingerFillet(MenuBase* minigames)
@@ -145,14 +145,14 @@ namespace
 		}
 	}
 
-	// The advisor's own row (on by default, as the standalone mod is), then its options.
+	// The advisor's own row (off until the user turns it on), then its options.
 	template <typename Option>
 	void BuildAdvisor(MenuBase* minigames, const char* title, const char* prefix, Advisor& advisor, std::span<const Option> options)
 	{
 		MenuBase* menu = Ui::Submenu(minigames, title);
 		Advisor* a = &advisor;
 		Ui::Toggle(menu, std::format("{}.enabled", prefix), "Advisor", [a](bool on) { a->setEnabled(on); },
-			[a] { AdvisorTick(*a); })->SetDefault(true)->SetAlwaysRestore();
+			[a] { AdvisorTick(*a); })->SetAlwaysRestore();
 		Ui::Describe(menu, "Reads the table's cards from the game's memory and shows them, with advice, while you play.");
 		BuildOptionRows(menu, prefix, options);
 	}
