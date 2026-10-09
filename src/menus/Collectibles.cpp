@@ -185,7 +185,41 @@ namespace
 		Numbered,    // "<singular> <n>"
 		Item,        // the collectable's own text label, else numbered
 		Subcategory, // the subcategory's text label plus a number (herbs)
+		Fish,        // the legendary fish caught at the spot, else numbered
 	};
+
+	// legendary_fishing_spot_NN -> the provision its fish gives
+	// (rcm_collect_rare_fish1 func_642). A provision's hash is also its
+	// text label, so the row shows the game's own fish name.
+	struct FishSpot
+	{
+		const char* spot;
+		const char* provision;
+	};
+	const FishSpot kFishSpots[] = {
+		{ "legendary_fishing_spot_01", "provision_fish_bullhead_catfish_legendary" },
+		{ "legendary_fishing_spot_02", "provision_fish_chain_pickerel_legendary" },
+		{ "legendary_fishing_spot_03", "provision_fish_lake_sturgeon_legendary" },
+		{ "legendary_fishing_spot_04", "provision_fish_largemouth_bass_legendary" },
+		{ "legendary_fishing_spot_05", "provision_fish_longnose_gar_legendary" },
+		{ "legendary_fishing_spot_06", "provision_fish_muskie_legendary" },
+		{ "legendary_fishing_spot_07", "provision_fish_perch_legendary" },
+		{ "legendary_fishing_spot_08", "provision_fish_redfin_pickerel_legendary" },
+		{ "legendary_fishing_spot_09", "provision_fish_rock_bass_legendary" },
+		{ "legendary_fishing_spot_10", "provision_fish_smallmouth_bass_legendary" },
+		{ "legendary_fishing_spot_11", "provision_fish_sockeye_salmon_legendary" },
+		{ "legendary_fishing_spot_12", "provision_fish_steelhead_trout_legendary" },
+		{ "legendary_fishing_spot_13", "provision_fish_bluegill_legendary" },
+		{ "legendary_fishing_spot_14", "provision_fish_northern_pike_legendary" },
+	};
+
+	Hash FishProvision(Hash spot)
+	{
+		for (const FishSpot& f : kFishSpots)
+			if (GameUtil::Joaat(f.spot) == spot)
+				return GameUtil::Joaat(f.provision);
+		return 0;
+	}
 
 	struct Category
 	{
@@ -225,8 +259,9 @@ namespace
 			{ GameUtil::Joaat("dino_bones") } },
 		{ "Rock Carvings", "rock_carvings", "Rock Carving",
 			{ GameUtil::Joaat("rock_carvings") } },
-		// rare_fish.ysc, rcm_collect_rare_fish1.ysc; the category's name is unknown.
-		{ "Legendary Fish", "legendary_fish", "Legendary Fish", { 0xC7EEA672 }, Naming::Item },
+		// rare_fish.ysc's -940661134; its items are legendary_fishing_spot_NN.
+		{ "Legendary Fish", "legendary_fish", "Legendary Fish",
+			{ GameUtil::Joaat("legendary_fishing_spot") }, Naming::Fish },
 		// gator_eggs.ysc: joaat("gator_eggs"), or 689918374 (joaat("gator_egg_nest")).
 		{ "Gator Eggs", "gator_eggs", "Gator Egg",
 			{ GameUtil::Joaat("gator_eggs"), 0x291F51A6 } },
@@ -251,6 +286,10 @@ namespace
 			return GameUtil::ItemName(c.item, numbered);
 		case Naming::Subcategory:
 			return std::format("{} {}", GameUtil::ItemName(c.subcategory, Tr(category.singular)), n);
+		case Naming::Fish:
+			if (const Hash provision = FishProvision(c.item))
+				return GameUtil::ItemName(provision, numbered);
+			return numbered;
 		default:
 			return numbered;
 		}
@@ -333,22 +372,37 @@ namespace
 
 	// ---- Legendary Animals (ours) ----
 
-	// Kill state only: the zone locations aren't known yet (Legendaries.h).
+	// The hunting zones (Legendaries.h), killed ones counting as found.
+	std::vector<Spot> LegendarySpots()
+	{
+		std::vector<Spot> spots;
+		for (int i = 0; i < Legendaries::kZoneCount; i++)
+			spots.push_back({ Legendaries::kZoneLocations[i], Legendaries::Killed(i) });
+		return spots;
+	}
+
+	BlipSet g_legendaryBlips;
+
 	void BuildLegendaryAnimals(MenuBase* parent)
 	{
-		Ui::ListMenu(parent, "Legendary Animals", [](MenuBase* list) {
+		MenuBase* menu = Ui::Submenu(parent, "Legendary Animals");
+		Ui::Describe(parent, "The 16 legendary animals' hunting zones and which ones you've killed, as the game tracks it.");
+		Ui::Toggle(menu, "collectibles.legendaryanimals.showonmap", "Show on Map",
+			[](bool on) { g_legendaryBlips.Set(on, LegendarySpots, "Legendary Animal"); },
+			[] { g_legendaryBlips.Refresh(LegendarySpots, "Legendary Animal"); });
+		Ui::ListMenu(menu, "Hunting Zones", [](MenuBase* list) {
 			int killed = 0;
 			for (int i = 0; i < Legendaries::kZoneCount; i++)
 				killed += Legendaries::Killed(i) ? 1 : 0;
 			Ui::Section(list, TrFormat("{} / {} killed", killed, Legendaries::kZoneCount));
 			for (int i = 0; i < Legendaries::kZoneCount; i++)
 			{
-				const std::string caption = std::string(Legendaries::kZones[i])
+				const std::string caption = std::string(Tr(Legendaries::kZones[i]))
 					+ (Legendaries::Killed(i) ? std::string(Tr(" ~COLOR_RED~(Killed)")) : "");
-				list->AddItem(new MenuItemLabel([caption] { return caption; }));
+				const Vector3 at = Legendaries::kZoneLocations[i];
+				Ui::Action(list, caption, [at] { return TeleportTo(at); });
 			}
 		});
-		Ui::Describe(parent, "The 16 legendary animals and which ones you've killed, as the game's hunting zones track it.");
 	}
 
 	// ---- SubCollectiblesCigaretteCards ----

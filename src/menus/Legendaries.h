@@ -9,9 +9,10 @@
 	order is hunting_zone_bear_legendary func_24 / short_update func_1141's.
 	The labels are LegendaryAnimals.inc's, so the spawner can match its rows.
 
-	TODO: zone locations. They aren't in the scripts (each zone launches
-	from a world scenario point); the map discovery each zone enables via
-	_MAP_DISCOVERY_SET_ENABLED is the other lead. Until then, state only.
+	kZoneLocations is where each zone's script starts: its world scenario
+	point in the hunting_*.ymt scenario files, generated as
+	LegendaryZones.inc by tools/extract_legendary_zones.py (each script's
+	own zone index, so in kZones' order).
 */
 
 #pragma once
@@ -30,6 +31,11 @@ namespace Legendaries
 		"Moose", "Giaguaro Panther", "Pronghorn", "Wolf",
 	};
 	inline constexpr int kZoneCount = static_cast<int>(std::size(kZones));
+
+	inline constexpr Vector3 kZoneLocations[] = {
+#include "..\data\LegendaryZones.inc"
+	};
+	static_assert(std::size(kZoneLocations) == kZoneCount);
 
 	// Global_40.f_9319[i /*4*/]: the array's size slot, then 4 slots a zone.
 	inline constexpr int kZoneArray = 40 + 9319;

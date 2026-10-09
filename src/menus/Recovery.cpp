@@ -21,6 +21,8 @@
 #include <charconv>
 #include <cstdlib>
 #include <format>
+#include <functional>
+#include <span>
 
 namespace
 {
@@ -498,23 +500,52 @@ namespace
 	// Rampage's is a hand-picked table in its binary. Rows show the game's
 	// name for the item (its hash is its text label); the internal name is
 	// the fallback and a search key.
-	struct CatalogItem { Hash key; const char* type; const char* name; };
+	struct CatalogItem { Hash key; const char* type; Hash category; const char* name; };
 	const CatalogItem kItemCatalog[] = {
 #include "..\data\ItemCatalog.inc"
 	};
 
+	// A big item type's split by the catalog's ci_category_* (names in
+	// tools/data/ci_categories.txt); items in none of its groups go under
+	// Other.
+	struct ItemGroup { const char* category; const char* caption; };
+	const ItemGroup kConsumableGroups[] = {
+		{ "ci_category_provision", "Food" },
+		{ "ci_category_consumable", "Tonics and Medicine" },
+		{ "ci_category_ingredient", "Ingredients" },
+		{ "ci_category_herbs", "Herbs" },
+		{ "ci_category_kit", "Kit" },
+	};
+	const ItemGroup kProvisionGroups[] = {
+		{ "ci_category_materials", "Materials" },
+		{ "ci_category_valuable", "Valuables" },
+		{ "ci_category_kit", "Kit" },
+		{ "ci_category_ingredient", "Ingredients" },
+		{ "ci_category_watch", "Watches" },
+	};
+	const ItemGroup kHorseEquipmentGroups[] = {
+		{ "ci_category_horse_saddle", "Saddles" },
+		{ "ci_category_horse_blanket", "Blankets" },
+		{ "ci_category_horse_horn", "Horns" },
+		{ "ci_category_horse_saddlebag", "Saddlebags" },
+		{ "ci_category_horse_stirrup", "Stirrups" },
+		{ "ci_category_horse_bedroll", "Bedrolls" },
+		{ "ci_category_horse_mane", "Manes" },
+		{ "ci_category_horse_tail", "Tails" },
+	};
+
 	// The types Give Items lists, in menu order. Clothing, weapons and
 	// horses are left to the Wardrobe, Weapon and Spawner menus.
-	struct ItemType { const char* type; const char* caption; };
+	struct ItemType { const char* type; const char* caption; std::span<const ItemGroup> groups = {}; };
 	const ItemType kItemTypes[] = {
-		{ "consumable", "Consumables" },
-		{ "provision", "Provisions" },
+		{ "consumable", "Consumables", kConsumableGroups },
+		{ "provision", "Provisions", kProvisionGroups },
 		{ "document", "Documents" },
 		{ "ammo", "Ammo" },
 		{ "kit", "Kits" },
 		{ "upgrade", "Upgrades" },
 		{ "core_item", "Core Items" },
-		{ "horse_equipment", "Horse Equipment" },
+		{ "horse_equipment", "Horse Equipment", kHorseEquipmentGroups },
 		{ "weapon_mod", "Weapon Mods" },
 		{ "weapon_decoration", "Weapon Decorations" },
 		{ "money", "Money Items" },
@@ -611,6 +642,18 @@ namespace
 		AddItemRows(results, matches);
 	}
 
+	bool ItemsOfType(const CatalogItem&) { return true; }
+
+	// The rows for a type's items that pass `filter`.
+	void AddTypeRows(MenuBase* list, std::string_view type, const std::function<bool(const CatalogItem&)>& filter)
+	{
+		std::vector<const CatalogItem*> items;
+		for (const CatalogItem& item : kItemCatalog)
+			if (type == item.type && filter(item))
+				items.push_back(&item);
+		AddItemRows(list, items);
+	}
+
 	void BuildGiveItems(MenuBase* items)
 	{
 		MenuBase* give = Ui::Submenu(items, "Give Items");
@@ -621,12 +664,27 @@ namespace
 		for (const ItemType& type : kItemTypes)
 		{
 			const std::string_view key = type.type;
-			Ui::ListMenu(give, type.caption, [key](MenuBase* list) {
-				std::vector<const CatalogItem*> items;
-				for (const CatalogItem& item : kItemCatalog)
-					if (key == item.type)
-						items.push_back(&item);
-				AddItemRows(list, items);
+			if (type.groups.empty())
+			{
+				Ui::ListMenu(give, type.caption, [key](MenuBase* list) { AddTypeRows(list, key, ItemsOfType); });
+				continue;
+			}
+			// Ours: All, then one list per group, then Other.
+			MenuBase* sub = Ui::Submenu(give, type.caption);
+			Ui::ListMenu(sub, "All", [key](MenuBase* list) { AddTypeRows(list, key, ItemsOfType); });
+			const std::span<const ItemGroup> groups = type.groups;
+			for (const ItemGroup& group : groups)
+			{
+				const Hash category = GameUtil::Joaat(group.category);
+				Ui::ListMenu(sub, group.caption, [key, category](MenuBase* list) {
+					AddTypeRows(list, key, [category](const CatalogItem& item) { return item.category == category; });
+				});
+			}
+			Ui::ListMenu(sub, "Other", [key, groups](MenuBase* list) {
+				AddTypeRows(list, key, [groups](const CatalogItem& item) {
+					return std::none_of(groups.begin(), groups.end(),
+						[&item](const ItemGroup& g) { return item.category == GameUtil::Joaat(g.category); });
+				});
 			});
 		}
 	}

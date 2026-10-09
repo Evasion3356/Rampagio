@@ -1,8 +1,9 @@
 # Plan: found-aware collectibles and the full item catalog (Goal C)
 
 Status: researched 2026-10-08; A1-A6 and B1-B3 built 2026-10-08 (compiled
-clean since, not live-tested; see "Implementation notes"). B4
-and the live tests (C) are open. Two independent workstreams;
+clean since, not live-tested; see "Implementation notes"). B4 and the
+legendary zone locations were done 2026-10-09. The live tests (C) are
+open. Two independent workstreams;
 A is smaller and fixes a real bug, so it goes first. Nothing here is
 Rampage's code or data: it comes from the 1491.50 scripts and the game's
 own files.
@@ -42,7 +43,7 @@ Its Give Items list is a hand-picked table.
 |---|---|---|
 | Dino bones | `_COLLECTABLE_GET_NUM_FOUND(item) > 0` (`dino_bones` func_16 gates the spawn); TURNED_IN is the later turn-in | `dino_bones.ysc` |
 | Rock carvings | same | `rock_carvings.ysc` |
-| Legendary fish | collectable category `0xC7EEA672` (-940661134, name unknown), same natives | `rare_fish.ysc`, `rcm_collect_rare_fish1.ysc` |
+| Legendary fish | collectable category `legendary_fishing_spot` (`0xC7EEA672`, -940661134), items `legendary_fishing_spot_01..14`, same natives | `rare_fish.ysc`, `rcm_collect_rare_fish1.ysc` |
 | Dreamcatchers | bit `2 << i` of `Global_40.f_8863.f_148` (already read) | `discoverable_generic_location.ysc` |
 | Legendary animals | `Global_40.f_9319[i /*4*/]`, i = 0..15: `.f_0` zone revealed, `.f_1` killed, `.f_2` respawn time, `.f_3` carcass/pelt pending | `hunting_zone_*.ysc`, `short_update.ysc` (~line 11326) |
 | Gator eggs | `gator_eggs` / `689918374` | `gator_eggs.ysc` |
@@ -162,8 +163,8 @@ launches from a world scenario point.
    Search row over the whole list.
 3. [x] Retire `ItemNames.inc` / `extract_items.py` once nothing uses them
    (check `Unlocks.cpp`, `Recovery.cpp`, the collectibles code first).
-4. [ ] Optional: name the `ci_category_*` hashes for finer groups
-   (brute-force against TextKeys + `ci_category_` prefixes).
+4. [x] Optional: name the `ci_category_*` hashes for finer groups
+   (2026-10-09; see "B4" under Implementation notes).
 
 ### C. Live tests (none done)
 
@@ -198,14 +199,31 @@ scripts. A later Windows session built it: it compiles clean with MSVC
   `joaat("gator_eggs")`; the code tries `gator_eggs` first and falls back
   to the other when the first has no items. Wilderness chests'
   `-1129417850` is `joaat("wilderness_chests")`. The legendary fish
-  (`0xC7EEA672`) and herb (`1777389635`) category names are still unknown.
-  Legendary fish names were not checked against `LegendaryAnimals.inc`.
+  category is `joaat("legendary_fishing_spot")` (its items are
+  `legendary_fishing_spot_NN`; rare_fish.ysc picks one by the scenario
+  point's radius). Rows are named by the fish each spot gives:
+  rcm_collect_rare_fish1 func_642 pairs spot NN with a
+  `provision_fish_*_legendary`, whose hash is its text label. Those 14
+  match `LegendaryAnimals.inc`'s fish; its 15th, Legendary Channel
+  Catfish, is the story one, with no fishing spot. The herb category
+  (`1777389635`) is still unnamed (no hit from `herb`/`plant`/`composite`
+  combinations, the strings database or the scripts' literals).
 - A4: `src/menus/Legendaries.h` (header-only, so no project change):
   zone i's killed flag is `Global(40 + 9319 + 1 + i * 4 + 1)` (array size
   slot, then 4 slots per zone), read as nonzero. Collectibles > Legendary
   Animals lists all 16 with "n / 16 killed"; the Ped Spawner's Animals
   list marks killed story legendaries (matched by LegendaryAnimals.inc
-  label). Locations: TODO (not in the scripts available to that session).
+  label). Locations (2026-10-09): each hunting_zone_* script starts from a
+  world scenario point in the hunting_<region>.ymt scenario files
+  (update_4.rpf, x64/levels/rdr3/scenario/); the 11 files hold exactly 16
+  points. `tools/extract_legendary_zones.py` reads them and matches each
+  to a script by the coordinates the script uses near its zone, giving
+  `src/data/LegendaryZones.inc` in the scripts' own zone order (each
+  script's `*uParam0 = N;`, the Global_40.f_9319 index). The panther and
+  beaver points equal long_update func_492's restriction volume centres,
+  which checks the method. Legendary Animals is now a submenu: Show on Map
+  (blips, killed ones hidden by Hide Found) and Hunting Zones (teleport
+  rows).
 - A6: the 30 new strings are translated in all 12 tables (hand-written);
   `tools/lang_sync.py` reports none missing. The category table keeps its
   `Joaat` calls on their own lines because lang_sync skips any line with
@@ -223,3 +241,14 @@ scripts. A later Windows session built it: it compiles clean with MSVC
   no other menu gives them as inventory items.
 - B3: `ItemNames.inc`, `extract_items.py` and `catalog_dump.py` are gone;
   only Give Items used the list.
+- B4 (2026-10-09): 181 of the 291 `ci_category_*` hashes are named in
+  `tools/data/ci_categories.txt`, found by joaat over
+  `ci_category_` + one or two tokens from the item names in each category
+  (plus item types and a generic word list); the strings database and
+  script literals gave nothing. `extract_catalog.py` reads that list by
+  default and writes each item's category hash into `ItemCatalog.inc`.
+  Give Items splits Consumables, Provisions and Horse Equipment into All,
+  one list per group and Other; the other types stay single lists (their
+  items are in one category, or, for weapon mods/decorations, in dozens of
+  one- or two-item ones). Unnamed big ones: `0x83E3C493` and `0xDBB9ABD6`
+  (ammo boxes and special ammo), `0x1F5EEA44` (18 upgrades).
