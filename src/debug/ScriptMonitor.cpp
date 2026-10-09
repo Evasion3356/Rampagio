@@ -935,7 +935,9 @@ namespace
 			rows.push_back(&f);
 		}
 		const ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingFixedFit;
-		if (ImGui::BeginTable("functions", 6, flags, ImVec2(0, ImGui::GetContentRegionAvail().y)))
+		// At least 8 lines: with less room left, ImGui would shrink the table to
+		// its header and hide every row (the tab scrolls instead).
+		if (ImGui::BeginTable("functions", 6, flags, ImVec2(0, (std::max)(ImGui::GetContentRegionAvail().y, ImGui::GetFontSize() * 8))))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Function", ImGuiTableColumnFlags_WidthStretch);
@@ -1114,7 +1116,10 @@ namespace
 		ImGui::SeparatorText(std::format("Native Hooks ({})", g_ui.nativeHooks.size()).c_str());
 		const ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
 			ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Resizable;
-		if (ImGui::BeginTable("nativehooks", 7, flags, ImVec2(0, ImGui::GetContentRegionAvail().y)))
+		// At least 8 lines: the selected native's controls above can use up the
+		// tab, and with no room left ImGui shrinks the table to its header,
+		// hiding the hooks and their Remove buttons. The tab scrolls instead.
+		if (ImGui::BeginTable("nativehooks", 7, flags, ImVec2(0, (std::max)(ImGui::GetContentRegionAvail().y, ImGui::GetFontSize() * 8))))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Native", ImGuiTableColumnFlags_WidthStretch);
