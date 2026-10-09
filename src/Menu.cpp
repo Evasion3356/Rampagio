@@ -285,6 +285,12 @@ namespace Ui
 			items.back()->SetPreview(model, variant);
 	}
 
+	void MapPoint(MenuBase* menu, float x, float y)
+	{
+		if (const auto& items = menu->GetItems(); !items.empty())
+			items.back()->SetMapPoint(x, y);
+	}
+
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange)
 	{
 		menu->AddItem(new MenuItemActionStatus(

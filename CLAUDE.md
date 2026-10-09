@@ -174,6 +174,17 @@ and live checklist in `docs/HOTKEYS_PLAN.md`, built 2026-10-09, untested).
   `{"<i>": {"fr": ..., ...}}`). Chinese, Japanese and Korean only render
   while the game itself runs in one of them (PokerCheat
   `docs/PITFALLS.md`).
+- `src/TeleportMap.{h,cpp}`: Settings > Theme > Teleport Map (a passive
+  overlay tool beside the menu while a teleport row with a place,
+  `Ui::MapPoint`, is selected) and Teleport > Map (an interactive window:
+  pan, zoom, click a place or right-click to teleport). The picture is
+  `res/TeleportMap.jpg` (4096 px, from a 9000 x 7004 wallpaper of the game
+  map; the user judged it fair use, 2026-10-09), embedded through
+  `Rampagio.rc` as `IDR_TELEPORT_MAP`, decoded with WIC on first use and
+  registered as an ImGui user texture, so the DX12 and Vulkan backends
+  upload it themselves. World to picture is an affine fit over seven train
+  stations (about 13 m RMS; the constants and how they were measured are in
+  the .cpp). No Guarma or Mexico on it.
 - `src/OnlineGuard.{h,cpp}`: online detection (built 2026-10-09,
   untested): script threads, net components, the ped's netObject, the
   network managers, a `ReceiveNetMessage` latch and native-hook checks,
@@ -618,14 +629,17 @@ tests (C).
 
 ## Next steps
 
-Resume point (2026-10-08). Every non-tabled Rampage submenu is ported:
-156 done, 3 partial, 5 tabled, 3 dropped, 0 pending (`docs/PORTING.md`).
+Resume point (2026-10-09). Every non-tabled Rampage submenu is ported:
+157 done, 2 partial, 5 tabled, 3 dropped, 0 pending (`docs/PORTING.md`).
 The table data Rampage keeps in its binary (effect presets, legendaries,
 overlay textures, ...) is carried over as `src/data/*.inc`, Disable
 Hitmarker uses `BytePatch`, and the menu is translated into 13
-languages. The 3 Partial rows wait on the tabled Object Editor or
-ImGui overlay windows, except Settings > Plugins (no counterpart).
-Force Player Type (Model Changer) is ported, untested. Everything builds clean (Debug); nothing is
+languages. The 2 Partial rows are World > Object Manager's Object
+Finder (tabled Object Editor) and Settings > Plugins (no counterpart).
+Hotkeys (F11 window, keyboard/mouse/pad, presets) and the Teleport Map
+were added 2026-10-09; the user tested the F11 window and the Teleport
+Map (beside the menu and the window) live: both work.
+Force Player Type (Model Changer) is ported, untested. Everything builds clean (Debug); nothing else is
 live-tested. Menu key is F5. Goal B's submodules are wired in (see
 Goal B); their rows are untested in Rampagio, though the libraries'
 code is what the standalone mods already ran live.
@@ -673,7 +687,9 @@ code is what the standalone mods already ran live.
    and no dual-renderer row model. ImGui is added only for complicated
    desk tools (script monitor, global/local editor, the reworked Debug >
    Scripts) as an optional overlay, with a native fallback where one
-   makes sense; its actions go through `MainThread::Post`.
+   makes sense; its actions go through `MainThread::Post`. A tool marked
+  `passive` only draws (no input capture, the native menu keeps running,
+  the close key leaves it): the Teleport Map beside the menu.
 7. ImGui overlay: built 2026-10-08 (`src/overlay`, from the user's
    `..\GoldenHorseCores\HerbSpawner` overlay), untested. Its eject path
    removes the hooks, waits for the render/window threads to leave them,

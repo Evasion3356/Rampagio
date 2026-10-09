@@ -24,6 +24,7 @@
 #include "MainThread.h"
 #include "debug/ScriptMonitor.h"
 #include "debug/GlobalEditor.h"
+#include "TeleportMap.h"
 #include "overlay/Overlay.h"
 #include "core/settings/Settings.h"
 #include "core/commands/Commands.h"
@@ -86,6 +87,7 @@ namespace
 		ScriptMonitor::Suspend();
 		GlobalEditor::Suspend();
 		Menus::SuspendHotkeys();
+		TeleportMap::Suspend();
 	}
 
 	// The online kill switch. Idempotent and cheap once done, so the loop
@@ -143,6 +145,7 @@ void ScriptMain()
 	BuildMenu();
 	ScriptMonitor::Register();
 	GlobalEditor::Register();
+	TeleportMap::Register();
 	LoadSettings();
 	// Resolved now so an eject can check for an active script thread
 	// (ScriptUnload); features resolve them on first use anyway.
@@ -191,6 +194,10 @@ void ScriptMain()
 			if (!OnlineGuard::IsOnline())
 				Rampagio::Commands::RunLoopedCommands();
 			Menus::TickSettings();
+			// After the menu drew: it asks for the side map while a teleport
+			// row is selected.
+			if (!OnlineGuard::IsOnline())
+				TeleportMap::Tick();
 			if (!OnlineGuard::IsOnline())
 				Menus::TickChallenges();
 		}

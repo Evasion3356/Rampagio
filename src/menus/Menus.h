@@ -47,6 +47,22 @@ namespace Menus
 	void BuildWeaponExtras(MenuBase* weapons, MenuBase* manage, MenuBase* ammo, MenuBase* mods); // WeaponSubmenus.cpp
 	void BuildVehicle(MenuBase* root);
 	void BuildTeleport(MenuBase* root);
+	// Teleport.cpp: its location table (data/Teleports.inc), which the
+	// Teleport Map (TeleportMap.h) shows too, and the teleports the map runs
+	// (script thread): to a place's exact spot, or to the ground at x, y.
+	// Both move the mount or vehicle along with the player.
+	struct TeleportPlace
+	{
+		const char* menu;    // submenu of Teleport
+		const char* nested;  // submenu inside it, or ""
+		const char* section; // section header before the row, or ""
+		const char* idPrefix;
+		const char* name;
+		float x, y, z;
+	};
+	std::span<const TeleportPlace> TeleportPlaces();
+	void TeleportToPlace(float x, float y, float z);
+	std::string TeleportToGround(float x, float y);
 	void BuildSpawner(MenuBase* root);
 	void BuildObjectSpawner(MenuBase* spawner); // ObjectSpawner.cpp
 	void BuildWorld(MenuBase* root);

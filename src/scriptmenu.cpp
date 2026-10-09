@@ -36,6 +36,7 @@
 #include "scriptmenu.h"
 #include "Descriptions.h"
 #include "Previews.h"
+#include "TeleportMap.h"
 #include "Localization.h"
 #include "PatternScan.h"
 #include "core\commands\Command.h"
@@ -632,6 +633,14 @@ void MenuBase::OnDraw()
 		MenuItemBase* active = m_items[m_activeIndex];
 		if (const unsigned int model = active->GetPreviewModel())
 			Previews::Draw(model, active->GetPreviewVariant(), Tr(active->GetCaption()));
+	}
+	// Settings > Theme > Teleport Map: the selected teleport row's place on
+	// the map beside the menu (drawn by the overlay).
+	if (count && style.teleportMap)
+	{
+		float mapX, mapY;
+		if (m_items[m_activeIndex]->GetMapPoint(mapX, mapY))
+			TeleportMap::ShowBeside(mapX, mapY, Tr(m_items[m_activeIndex]->GetCaption()));
 	}
 }
 

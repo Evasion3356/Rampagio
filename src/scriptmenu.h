@@ -62,6 +62,7 @@ struct MenuStyle
 	bool mouse = false;                         // cursor: hover, click, right-click back, wheel
 	bool inkRendering = false;                  // boxes drawn with the compendium's ink texture
 	bool spawnerPreviews = true;                // the compendium picture of the selected animal or horse
+	bool teleportMap = true;                    // the map beside the menu on teleport rows (TeleportMap.h)
 };
 
 // Rampage's Main Font and Body Font choices: Scaleform font faces.
@@ -101,6 +102,8 @@ class MenuItemBase
 	string		m_description; // Rampagio: SetDescription's text, else looked up
 	unsigned int m_previewModel = 0;
 	int			m_previewVariant = -1;
+	bool		m_hasMapPoint = false;
+	float		m_mapX = 0, m_mapY = 0;
 protected:
 	MenuItemBase(
 		float lineWidth, float lineHeight, float textLeft,
@@ -135,6 +138,10 @@ public:
 	void SetPreview(unsigned int model, int variant) { m_previewModel = model; m_previewVariant = variant; }
 	unsigned int GetPreviewModel() const { return m_previewModel; }
 	int GetPreviewVariant() const { return m_previewVariant; }
+	// Rampagio: the place the Teleport Map beside the menu shows while this
+	// row is selected (Settings > Theme > Teleport Map; TeleportMap.h).
+	void SetMapPoint(float x, float y) { m_hasMapPoint = true; m_mapX = x; m_mapY = y; }
+	bool GetMapPoint(float& x, float& y) const { x = m_mapX; y = m_mapY; return m_hasMapPoint; }
 	std::string_view GetDescription();
 
 	float GetLineWidth()  { return m_lineWidth;  }

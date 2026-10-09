@@ -35,7 +35,8 @@ namespace Overlay
 		// Written on the script thread before the overlay starts, read on the render thread.
 		std::array<Tool*, kMaxTools> g_tools = {};
 		std::atomic<int> g_tool_count = 0;
-		std::atomic<bool> g_any_open = false;
+		std::atomic<bool> g_any_open = false;    // an interactive tool: input goes to ImGui
+		std::atomic<bool> g_any_visible = false; // any tool, passive ones too: something to draw
 
 		bool g_started = false; // script thread
 		std::atomic<bool> g_init_running = false;
@@ -50,9 +51,13 @@ namespace Overlay
 
 		void UpdateAnyOpen()
 		{
-			bool any = false;
+			bool any = false, visible = false;
 			for (int i = 0; i < g_tool_count; i++)
-				any = any || g_tools[i]->open;
+			{
+				any = any || (g_tools[i]->open && !g_tools[i]->passive);
+				visible = visible || g_tools[i]->open;
+			}
+			g_any_visible = visible;
 			const bool was = g_any_open.exchange(any);
 			if (any && !was && original_ClipCursor)
 				original_ClipCursor(nullptr); // let the cursor leave the rect the game confines it to
@@ -63,10 +68,12 @@ namespace Overlay
 			}
 		}
 
+		// The close key: every interactive tool (passive ones follow the menu).
 		void CloseAll()
 		{
 			for (int i = 0; i < g_tool_count; i++)
-				g_tools[i]->open = false;
+				if (!g_tools[i]->passive)
+					g_tools[i]->open = false;
 			UpdateAnyOpen();
 		}
 
@@ -254,7 +261,7 @@ namespace Overlay
 
 	bool ShouldRender()
 	{
-		return g_any_open && !g_shutdown;
+		return g_any_visible && !g_shutdown;
 	}
 
 	HWND FindGameWindow()
@@ -379,6 +386,7 @@ namespace Overlay
 			return;
 		g_shutdown = true;
 		g_any_open = false;
+		g_any_visible = false;
 
 		// The init thread checks g_shutdown every 50 ms.
 		for (int i = 0; i < 40 && g_init_running; i++)

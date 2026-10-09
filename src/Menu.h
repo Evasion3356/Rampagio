@@ -85,6 +85,9 @@ namespace Ui
 	// while the row last added to `menu` is selected (Previews.h); variant
 	// is its outfit preset, -1 for any.
 	void Preview(MenuBase* menu, Hash model, int variant = -1);
+	// Sets the place Settings > Theme > Teleport Map shows beside the menu
+	// while the row last added to `menu` is selected (TeleportMap.h).
+	void MapPoint(MenuBase* menu, float x, float y);
 	// Shows "caption: *value" ("Not set" while empty); selecting it opens the
 	// on-screen keyboard on the current value. onChange runs after an edit.
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange = nullptr);

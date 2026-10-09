@@ -15,6 +15,9 @@
 	Tools draw on the render thread. They must not call natives or touch
 	game state there: read a snapshot the script thread made and send
 	actions back through MainThread::Post.
+
+	A passive tool only draws (the Teleport Map beside the native menu): it
+	takes no input, the menu keeps running, and the close key leaves it.
 */
 
 #pragma once
@@ -29,6 +32,7 @@ namespace Overlay
 		// Draws the tool's windows; set *open to false to close it.
 		void (*draw)(bool* open);
 		std::atomic<bool> open = false;
+		bool passive = false; // draws only; set before Register
 	};
 
 	// Registers a tool (static storage). Script thread, before Start.
@@ -37,7 +41,8 @@ namespace Overlay
 	// Opens or closes a tool; opening one starts the overlay. Script thread.
 	void SetOpen(Tool& tool, bool open);
 
-	// Whether any tool is open (input goes to the overlay).
+	// Whether any interactive tool is open (input goes to the overlay).
+	// Passive tools don't count.
 	bool AnyOpen();
 
 	// The key that closes every tool, read from the window thread.

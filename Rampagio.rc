@@ -1,0 +1,6 @@
+// Data embedded in Rampagio.asi.
+
+#include "src/Resource.h"
+
+// The Teleport Map picture (src/TeleportMap.cpp).
+IDR_TELEPORT_MAP RCDATA "res/TeleportMap.jpg"

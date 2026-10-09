@@ -3,13 +3,15 @@
 	lists (Common Locations, the region submenus and Shops and Services) are
 	Rampage's names and coordinates, carried over into data\Teleports.inc by
 	tools\extract_rampage_teleports_ida.py. Custom locations are saved to
-	Rampagio_Teleports.json. Blips lists the map location and mission
+	Rampagio_Teleports.json. Location rows carry their place for the
+	Teleport Map (TeleportMap.h), and Map opens it as a window. Blips lists the map location and mission
 	blips the scripts keep in globals (1491.50 indices, the ones Rampage
 	reads), named through Rampage's blip type table (data\BlipLabels.inc).
 */
 
 #include "Menus.h"
 #include "..\DataFile.h"
+#include "..\TeleportMap.h"
 
 #include <nlohmann/json.hpp>
 #include "..\GameUtil.h"
@@ -232,6 +234,7 @@ namespace
 			{
 				ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Mover(), x, y, z, FALSE, FALSE, TRUE);
 			});
+			Ui::MapPoint(menu, x, y);
 		}
 		if (menu->GetItemCount() == 0)
 			Ui::Section(menu, "Nothing saved yet");
@@ -254,15 +257,7 @@ namespace
 			Ui::Section(menu, "Nothing saved yet");
 	}
 
-	struct Place
-	{
-		const char* menu;    // submenu of Teleport
-		const char* nested;  // submenu inside it, or ""
-		const char* section; // section header before the row, or ""
-		const char* idPrefix;
-		const char* name;
-		float x, y, z;
-	};
+	using Place = Menus::TeleportPlace;
 
 	constexpr Place kPlaces[] = {
 #include "..\data\Teleports.inc"
@@ -302,12 +297,22 @@ namespace
 			{
 				ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Mover(), x, y, z, FALSE, FALSE, TRUE);
 			});
+			Ui::MapPoint(target, x, y);
 		}
 	}
 }
 
 namespace Menus
 {
+	std::span<const TeleportPlace> TeleportPlaces() { return kPlaces; }
+
+	void TeleportToPlace(float x, float y, float z)
+	{
+		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(Mover(), x, y, z, FALSE, FALSE, TRUE);
+	}
+
+	std::string TeleportToGround(float x, float y) { return ToGround(x, y); }
+
 	void BuildTeleport(MenuBase* root)
 	{
 		MenuBase* tp = Ui::Submenu(root, "Teleport");
@@ -315,6 +320,9 @@ namespace Menus
 		Ui::Action(tp, "teleport.teleporttowaypoint", "Teleport to Waypoint", ToWaypoint);
 		Ui::Looped(tp, "teleport.autoteleporttowaypoint", "Auto Teleport to Waypoint", AutoWaypointTick);
 		Ui::Do(tp, "teleport.removewaypoint", "Remove Waypoint", [] { MAP::CLEAR_GPS_PLAYER_WAYPOINT(); });
+		// Ours: the whole map in the overlay; click a place to go there.
+		Ui::Do(tp, "teleport.map", "Map", TeleportMap::OpenWindow);
+		Ui::Describe(tp, "The whole map in a window: drag to pan, wheel to zoom,\nclick a place or right-click anywhere to teleport");
 
 		Ui::Section(tp, "Custom Locations");
 		Ui::Action(tp, "teleport.savecurrent", "Save Current", SaveCurrent)->SetHotkeyable(false);
