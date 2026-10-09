@@ -54,3 +54,5 @@ Global Editor
 Script Tools
 Watch and edit script globals, written as the decompiled scripts write them.\nThe menu key closes it.
 Left
+Log
+Rampagio.log as it's written, in an overlay window.\nThe menu key closes it.

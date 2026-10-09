@@ -21,7 +21,7 @@ namespace Overlay
 	namespace
 	{
 		constexpr ULONGLONG kDx12ClaimDelayMs = 3000;
-		constexpr int kMaxTools = 8;
+		constexpr int kMaxTools = 16;
 
 		std::atomic<Backend> g_backend = Backend::None;
 		std::recursive_mutex g_imgui_mutex;

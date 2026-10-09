@@ -24,6 +24,7 @@
 #include "MainThread.h"
 #include "debug/ScriptMonitor.h"
 #include "debug/GlobalEditor.h"
+#include "debug/LogWindow.h"
 #include "TeleportMap.h"
 #include "overlay/Overlay.h"
 #include "core/settings/Settings.h"
@@ -86,6 +87,7 @@ namespace
 		// as they were.
 		ScriptMonitor::Suspend();
 		GlobalEditor::Suspend();
+		LogWindow::Suspend();
 		Menus::SuspendHotkeys();
 		TeleportMap::Suspend();
 	}
@@ -145,6 +147,7 @@ void ScriptMain()
 	BuildMenu();
 	ScriptMonitor::Register();
 	GlobalEditor::Register();
+	LogWindow::Register();
 	TeleportMap::Register();
 	LoadSettings();
 	// Resolved now so an eject can check for an active script thread

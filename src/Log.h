@@ -14,6 +14,10 @@
 	load to crash RDR2 when the install folder is read-only (e.g. a Rockstar
 	Launcher install under C:\Program Files). tests/LogFallbackTests covers
 	exactly that scenario.
+
+	Rampagio addition: the logger also keeps its last lines in memory
+	(Log::Recent), for Debug > Log (src/debug/LogWindow.h). That works even
+	when no file could be written.
 */
 
 #pragma once
@@ -23,15 +27,57 @@
 
 #include "..\external\spdlog\include\spdlog\spdlog.h"
 #include "..\external\spdlog\include\spdlog\sinks\basic_file_sink.h"
+#include "..\external\spdlog\include\spdlog\sinks\base_sink.h"
 
 #include "LogFallback.h"
 
+#include <cstdint>
+#include <deque>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace Log
 {
+	// The last kCapacity formatted lines, numbered from 0 in the order
+	// written, so a reader can ask for only the ones it hasn't seen.
+	class RecentSink : public spdlog::sinks::base_sink<std::mutex>
+	{
+		static constexpr size_t kCapacity = 2000;
+		std::deque<std::string> m_lines;
+		std::uint64_t m_total = 0;
+
+	protected:
+		void sink_it_(const spdlog::details::log_msg& msg) override
+		{
+			spdlog::memory_buf_t formatted;
+			formatter_->format(msg, formatted);
+			std::string line(formatted.data(), formatted.size());
+			while (!line.empty() && (line.back() == '\n' || line.back() == '\r'))
+				line.pop_back();
+			m_lines.push_back(std::move(line));
+			if (m_lines.size() > kCapacity)
+				m_lines.pop_front();
+			++m_total;
+		}
+		void flush_() override {}
+
+	public:
+		// Appends the lines numbered `since` and later still kept to `out`;
+		// returns the number the next line will get. Lines dropped from the
+		// front before they were read are skipped.
+		std::uint64_t CopySince(std::uint64_t since, std::vector<std::string>& out)
+		{
+			std::lock_guard lock(mutex_);
+			const std::uint64_t first = m_total - m_lines.size();
+			for (std::uint64_t i = (std::max)(since, first); i < m_total; ++i)
+				out.push_back(m_lines[static_cast<size_t>(i - first)]);
+			return m_total;
+		}
+	};
+
 	namespace detail
 	{
 		// Logs to preferredDir + fileName, or to fallbackDir + fileName when
@@ -79,13 +125,40 @@ namespace Log
 			return nullptr;
 		}
 
+		inline const std::shared_ptr<RecentSink>& RecentLines()
+		{
+			static const std::shared_ptr<RecentSink> sink = []
+			{
+				auto made = std::make_shared<RecentSink>();
+				made->set_pattern("[%H:%M:%S.%e] %v");
+				return made;
+			}();
+			return sink;
+		}
+
 		inline const std::shared_ptr<spdlog::logger>& GetLogger()
 		{
-			static const std::shared_ptr<spdlog::logger> logger = CreateLogger(
-				"Rampagio", LogFallback::ModuleDirectory(), L"Rampagio.log", LogFallback::FallbackDirectory());
+			static const std::shared_ptr<spdlog::logger> logger = []
+			{
+				std::shared_ptr<spdlog::logger> made;
+				try
+				{
+					made = CreateLogger("Rampagio", LogFallback::ModuleDirectory(), L"Rampagio.log", LogFallback::FallbackDirectory());
+					if (!made)
+						made = std::make_shared<spdlog::logger>("Rampagio");
+					made->sinks().push_back(RecentLines());
+				}
+				catch (...)
+				{
+				}
+				return made;
+			}();
 			return logger;
 		}
 	}
+
+	// The lines logged this session, newest last (Debug > Log).
+	inline RecentSink& Recent() { return *detail::RecentLines(); }
 
 	template <typename... Args>
 	void Write(spdlog::format_string_t<Args...> fmt, Args&&... args)

@@ -250,7 +250,9 @@ and live checklist in `docs/HOTKEYS_PLAN.md`, built 2026-10-09, untested).
   cleanup flags, `ForceCleanupFlags.inc` from
   `tools/extract_cleanup_flags.py`), `ScriptHooks` (function and native
   hooks), `ScriptMonitor` (the window), `GlobalEditor` (Debug > Global
-  Editor, watch list in `Rampagio_Globals.json`). Built on `src/ScriptBytecode.{h,cpp}`
+  Editor, watch list in `Rampagio_Globals.json`), `LogWindow` (Debug > Log:
+  the session's log lines from `Log::Recent`, the logger's in-memory
+  copy; it stands in for Rampage's dropped Window Manager). Built on `src/ScriptBytecode.{h,cpp}`
   (functions numbered as the decompiler's func_N; checked by
   `tools/check_script_functions.py`) and `src/ScriptVM.{h,cpp}` (a script VM
   detour: private patched code copies, HorseMenu's ScriptPatches way, and
@@ -630,7 +632,7 @@ tests (C).
 ## Next steps
 
 Resume point (2026-10-09). Every non-tabled Rampage submenu is ported:
-157 done, 2 partial, 5 tabled, 3 dropped, 0 pending (`docs/PORTING.md`).
+157 done, 2 partial, 4 tabled, 4 dropped, 0 pending (`docs/PORTING.md`).
 The table data Rampage keeps in its binary (effect presets, legendaries,
 overlay textures, ...) is carried over as `src/data/*.inc`, Disable
 Hitmarker uses `BytePatch`, and the menu is translated into 13

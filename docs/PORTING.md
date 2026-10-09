@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 157 done, 2 partial, 0 pending, 5 tabled, 3 dropped.
+Submenus: 157 done, 2 partial, 0 pending, 4 tabled, 4 dropped.
 
 ## Debug
 
@@ -165,7 +165,7 @@ Submenus: 157 done, 2 partial, 0 pending, 5 tabled, 3 dropped.
 | SubSettingsLoadSave | 7 | Done | Settings > Load / Save: Rampagio.json |
 | SubSettingsPremadeThemes | 26 | Done | Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own) |
 | SubSettingsXUI | 6 | Done | Settings > Theme: Max Display Options, Invert Colors, Centered Title, Ink Rendering (menu boxes drawn with the compendium texture), Spawner Previews (compendium pictures beside the Ped Spawner animal, fish and horse rows) and Teleport Map (ours: a map picture embedded in the .asi, drawn by the ImGui overlay beside the menu with the player, horse, waypoint and the selected destination; plus Teleport > Map, the whole map in a window; TeleportMap.h); Window Manager is its own tabled submenu |
-| SubWindowManager | 7 | Tabled | ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay |
+| SubWindowManager | 7 | Dropped | A launcher for Rampage's ImGui windows, each covered or not needed: Hotkeys by the F11 Hotkey window and Settings > Hotkeys, Performance by Overlay Settings > Display FPS, Sysinfo by Rampagio.log, Log by Debug > Log (ours); Close all is the menu key, and window layouts aren't saved, so Reset Windows has nothing to reset |
 
 ## Spawners
 

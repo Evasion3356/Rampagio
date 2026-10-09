@@ -14,6 +14,10 @@
 	  an ImGui window (src/debug/GlobalEditor.h) taking globals as the
 	  decompiled scripts write them, with a saved watch list.
 
+	- Log (ours; it stands in for Rampage's Settings > Window Manager, whose
+	  other windows Rampagio covers elsewhere): Rampagio.log's lines this
+	  session in an ImGui window (src/debug/LogWindow.h).
+
 	Rampage's Misc > Dev rows Global Editor and Script Tools open the same
 	windows (Misc.cpp).
 
@@ -24,6 +28,7 @@
 #include "Menus.h"
 #include "..\debug\ScriptMonitor.h"
 #include "..\debug\GlobalEditor.h"
+#include "..\debug\LogWindow.h"
 
 namespace Menus
 {
@@ -34,5 +39,7 @@ namespace Menus
 		Ui::Describe(debug, "Script threads, their functions, and function/native hooks, in an overlay window.\nThe menu key closes it.");
 		Ui::Do(debug, "debug.globaleditor", "Global Editor", [] { GlobalEditor::SetOpen(true); });
 		Ui::Describe(debug, "Watch and edit script globals, written as the decompiled scripts write them.\nThe menu key closes it.");
+		Ui::Do(debug, "debug.log", "Log", [] { LogWindow::SetOpen(true); });
+		Ui::Describe(debug, "Rampagio.log as it's written, in an overlay window.\nThe menu key closes it.");
 	}
 }

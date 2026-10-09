@@ -131,7 +131,7 @@ STATUS = {
  'SubScriptPatcher':('Done','Debug > Script Monitor > Functions: hooks named func_N or by Position, argument and return counts read from the bytecode (ours)'),
  'SubScriptEditor':('Done','Debug > Script Monitor > Thread: Restart, Kill / Kill all, Force Cleanup defaulting to the flags the script checks (ours; Rampage passes 0x800, which 9 scripts check), plus Pause/Resume (ours)'),
  'SubGlobalEditor':('Done','Debug > Global Editor (ImGui, ours): addresses as the decompiled scripts write them, a saved watch list, INT/FLOAT/BOOL/HASH/VECTOR3/TEXT_LABEL/char*'),
- 'SubWindowManager':('Tabled','ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay'),
+ 'SubWindowManager':('Dropped','A launcher for Rampage\'s ImGui windows, each covered or not needed: Hotkeys by the F11 Hotkey window and Settings > Hotkeys, Performance by Overlay Settings > Display FPS, Sysinfo by Rampagio.log, Log by Debug > Log (ours); Close all is the menu key, and window layouts aren\'t saved, so Reset Windows has nothing to reset'),
  'SubOverlaySettings':('Done','Settings > Overlay Settings'),
  'SubCreatorSettings':('Done','Spawner > Object Spawner > Cam Settings'),
  'SubDebug':('Dropped','Out of scope: the developer menu of Rampage (its logging, command console, cheat-by-id, RPF package loader, UI feed tests, crash tests); Trigger Cheat is covered by Recovery > Unlocks'),

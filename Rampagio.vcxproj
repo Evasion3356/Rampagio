@@ -93,6 +93,7 @@
     <ClInclude Include="src\ScriptVM.h" />
     <ClInclude Include="src\debug\ScriptData.h" />
     <ClInclude Include="src\debug\ScriptHooks.h" />
+    <ClInclude Include="src\debug\LogWindow.h" />
     <ClInclude Include="src\debug\ScriptMonitor.h" />
     <ClInclude Include="src\overlay\Overlay.h" />
     <ClInclude Include="src\overlay\OverlayInternal.h" />
