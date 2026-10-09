@@ -134,6 +134,7 @@ STATUS = {
  'SubWindowManager':('Tabled','ImGui windows (log, sysinfo, performance, hotkeys): waits for the ImGui overlay'),
  'SubOverlaySettings':('Done','Settings > Overlay Settings'),
  'SubCreatorSettings':('Done','Spawner > Object Spawner > Cam Settings'),
+ 'SubDebug':('Dropped','Out of scope: the developer menu of Rampage (its logging, command console, cheat-by-id, RPF package loader, UI feed tests, crash tests); Trigger Cheat is covered by Recovery > Unlocks'),
  'SubLanguageManager':('Dropped','The label translation files of Rampage; Rampagio has no translated labels'),
  'SubAbout':('Done','Settings > About Rampagio (our own credits)'),
  'SubHorseBlip':('Done','Horse > Blip'),

@@ -3,13 +3,13 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 156 done, 3 partial, 0 pending, 6 tabled, 2 dropped.
+Submenus: 156 done, 3 partial, 0 pending, 5 tabled, 3 dropped.
 
 ## Debug
 
 | Rampage submenu | Options | Status | Rampagio |
 |---|---|---|---|
-| SubDebug | 21 | Tabled |  |
+| SubDebug | 21 | Dropped | Out of scope: the developer menu of Rampage (its logging, command console, cheat-by-id, RPF package loader, UI feed tests, crash tests); Trigger Cheat is covered by Recovery > Unlocks |
 
 ## Horse
 

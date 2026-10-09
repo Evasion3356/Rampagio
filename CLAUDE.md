@@ -596,7 +596,7 @@ tests (C).
 ## Next steps
 
 Resume point (2026-10-08). Every non-tabled Rampage submenu is ported:
-156 done, 3 partial, 6 tabled, 2 dropped, 0 pending (`docs/PORTING.md`).
+156 done, 3 partial, 5 tabled, 3 dropped, 0 pending (`docs/PORTING.md`).
 The table data Rampage keeps in its binary (effect presets, legendaries,
 overlay textures, ...) is carried over as `src/data/*.inc`, Disable
 Hitmarker uses `BytePatch`, and the menu is translated into 13
@@ -631,7 +631,7 @@ code is what the standalone mods already ran live.
    them as-is; that rework is built (2026-10-08): Debug > Script Monitor
    and Global Editor cover all of Rampage's Script Tools and Global Editor
    (`docs/SCRIPT_MONITOR.md`; not live-tested). Rampage's own Debug
-   submenu (its developer menu) stays tabled. Leftovers listed in
+   submenu (its developer menu) is dropped as out of scope (2026-10-09). Leftovers listed in
    `docs/PORTING.md` rows marked Partial.
 4. Script-function caller: built (`src/ScriptFunction.h`), untested.
    Its first live test should check the four GamePointers signatures
