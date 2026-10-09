@@ -9,6 +9,7 @@
 #include "script.h"
 #include "keyboard.h"
 #include "NativeHooks.h"
+#include "OnlineGuard.h"
 #include "BytePatch.h"
 #include "ScriptVM.h"
 #include "overlay\Overlay.h"
@@ -45,6 +46,7 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 			// module goes away.
 			ScriptVM::Shutdown();
 			NativeHooks::Shutdown();
+			OnlineGuard::Shutdown();
 			YEEAHSM::StowWeaponsHook::Remove();
 			Menus::ShutdownChallenges();
 			// Last, after every MinHook user has removed its hooks.

@@ -19,9 +19,11 @@ MinHook, release workflow). PokerCheat uses the same submodule layout.
   generated `src/data/*.inc` built into Rampagio: nothing may depend on
   Rampage's files at runtime.
 - **Singleplayer only.** `script.cpp` switches every toggle off and
-  stops opening the menu once `net_main_online` is running (see
-  `GameUtil::IsOnline`), the same check Rampage uses. Keep it that way,
-  and keep online-only features out.
+  stops opening the menu for the rest of the session once
+  `OnlineGuard` (`src/OnlineGuard.{h,cpp}`, `docs/ONLINE_DETECTION_PLAN.md`)
+  detects Red Dead Online from engine memory, not only through the
+  `net_main_online` native Rampage uses (a menu can hook that). Keep it
+  that way, and keep online-only features out.
 - **Verify live before calling a feature done.** The user wants each
   claim proven in-game, not just plausible from decompiled code. Track
   feature status in the table below and never round "untested" up to
@@ -160,7 +162,13 @@ Manager lists and removes them).
   `{"<i>": {"fr": ..., ...}}`). Chinese, Japanese and Korean only render
   while the game itself runs in one of them (PokerCheat
   `docs/PITFALLS.md`).
-- `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, `PlayerMount`,
+- `src/OnlineGuard.{h,cpp}`: online detection (built 2026-10-09,
+  untested): script threads, net components, the ped's netObject, the
+  network managers, a `ReceiveNetMessage` latch and native-hook checks,
+  every 500 ms, latched; logs each signal change.
+  `docs/ONLINE_DETECTION_PLAN.md` has the design, notes and the live
+  checklist.
+- `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, OnlineGuard's latch, `PlayerMount`,
   `PlayerHorse`, `TeleportToGround`, entity pools, script globals,
   model/anim loading, `PromptText` on-screen keyboard, `Joaat`).
 - `src/DataFile.{h,cpp}`: `LoadJson`/`SaveJson` for the user's saved

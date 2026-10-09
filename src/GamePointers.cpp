@@ -42,6 +42,18 @@ namespace
 		// The function starts 0x10 bytes before the match.
 		if (auto init = Scan("InitNativeTables", "41 B0 01 44 39 51 2C 0F"))
 			p.InitNativeTables = reinterpret_cast<void*>(*init - 0x10);
+
+		// OnlineGuard's.
+		if (auto ped = Scan("GetLocalPed", "8A 05 ? ? ? ? 33 D2 84 C0 74 39 48 8B 0D ? ? ? ? 4C 8B 05 ? ? ? ? 48 C1 C9 05 48 C1 C1 20 4C 33 C1 8B C1 83 E0 1F 49 C1 C0 20 FF C0 8A C8 8A 05 ? ? ? ? 49 D3 C0 84 C0 74 06 49 8B D0 48 F7 D2 48 8B 42"))
+			p.GetLocalPed = reinterpret_cast<GamePointers::GetLocalPedFn>(*ped);
+		if (auto mgr = Scan("NetworkPlayerMgr", "48 89 5C 24 08 57 48 83 EC 30 48 8B ? ? ? ? 01 8A D9 80 F9 20"))
+			p.NetworkPlayerMgr = reinterpret_cast<void**>(PatternScan::ResolveRip(*mgr, 0xD));
+		if (auto mgr = Scan("NetworkObjectMgr", "74 44 0F B7 56 40"))
+			p.NetworkObjectMgr = reinterpret_cast<void**>(PatternScan::ResolveRip(*mgr, 0xC));
+		if (auto started = Scan("IsSessionStarted", "40 38 35 ? ? ? ? 74 4D"))
+			p.IsSessionStarted = reinterpret_cast<bool*>(PatternScan::ResolveRip(*started, 3));
+		if (auto receive = Scan("ReceiveNetMessage", "E8 ? ? ? ? EB 24 48 8D B7 90 02 00 00"))
+			p.ReceiveNetMessage = reinterpret_cast<void*>(PatternScan::ResolveRip(*receive, 1));
 		return true;
 	}
 }

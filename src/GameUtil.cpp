@@ -1,5 +1,6 @@
 #include "GameUtil.h"
 #include "Localization.h"
+#include "OnlineGuard.h"
 #include "ScriptFunction.h"
 
 #include <algorithm>
@@ -12,7 +13,7 @@ namespace GameUtil
 {
 	bool IsOnline()
 	{
-		return NETWORK::NETWORK_IS_SCRIPT_ACTIVE_BY_HASH(rage::Joaat("net_main_online"), -1, FALSE, 0) != FALSE;
+		return OnlineGuard::Latched();
 	}
 
 	Ped PlayerMount()

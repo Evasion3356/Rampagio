@@ -15,9 +15,9 @@
 
 namespace GameUtil
 {
-	// True while Red Dead Online is running (net_main_online is active).
-	// Same check Rampage's main loop uses for its own online kill switch:
-	// NETWORK_IS_SCRIPT_ACTIVE_BY_HASH(joaat("net_main_online"), -1, 0, 0).
+	// True once Red Dead Online has been detected this session: OnlineGuard's
+	// latched result (engine memory, not natives; see OnlineGuard.h).
+	// script.cpp's main loop ticks the guard.
 	bool IsOnline();
 
 	inline Hash Joaat(std::string_view s) { return rage::Joaat(s); }

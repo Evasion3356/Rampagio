@@ -24,6 +24,7 @@ namespace GamePointers
 	using ScriptVMFn = rage::eThreadState (*)(void* stack, std::int64_t** globals, bool* globalsEnabled, rage::scrProgram* program, rage::scrThreadContext* ctx);
 	using GetNativeHandlerFn = rage::scrNativeHandler (*)(rage::scrNativeHash hash);
 	using InitNativeTablesFn = bool (*)(rage::scrProgram* program);
+	using GetLocalPedFn = void* (*)(); // a CPed*
 
 	struct Pointers
 	{
@@ -37,6 +38,15 @@ namespace GamePointers
 		// instead of failing everything else.
 		GetNativeHandlerFn GetNativeHandler = nullptr;
 		void* InitNativeTables = nullptr; // an InitNativeTablesFn, for MinHook
+
+		// Only OnlineGuard uses these (docs/ONLINE_DETECTION_PLAN.md), so a
+		// miss leaves them nullptr. The managers are the globals holding the
+		// instance, which is null while there's no session.
+		GetLocalPedFn GetLocalPed = nullptr;
+		void** NetworkPlayerMgr = nullptr; // CNetworkPlayerMgr*
+		void** NetworkObjectMgr = nullptr; // CNetworkObjectMgr*
+		bool* IsSessionStarted = nullptr;
+		void* ReceiveNetMessage = nullptr; // for MinHook
 	};
 
 	// All pointers, or nullptr if any signature didn't match (logged).

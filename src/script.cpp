@@ -8,9 +8,9 @@
 	select, NUMPAD 0/Backspace/F5 to back out -- same controls as the
 	sibling mods' menus, which this is built on).
 
-	Singleplayer only: while Red Dead Online is running, every toggle is
-	switched off and the menu won't open (same rule as Rampage's own
-	net_main_online kill switch).
+	Singleplayer only: once Red Dead Online is detected, every toggle is
+	switched off and the menu won't open for the rest of the session
+	(OnlineGuard.h: engine memory rather than Rampage's single native).
 */
 
 #include "Menu.h"
@@ -18,6 +18,7 @@
 #include "LogFallback.h"
 #include "GameUtil.h"
 #include "GamePointers.h"
+#include "OnlineGuard.h"
 #include "Localization.h"
 #include "menus/Menus.h"
 #include "MainThread.h"
@@ -144,7 +145,8 @@ void ScriptMain()
 			languageRead = GetTickCount();
 		}
 
-		const bool online = GameUtil::IsOnline();
+		// Latched: once online, it stays online for the session.
+		const bool online = OnlineGuard::Tick();
 		if (online && !wasOnline)
 		{
 			Log::Write("Red Dead Online detected -- switching everything off");
@@ -175,7 +177,7 @@ void ScriptMain()
 			}
 			else
 			{
-				if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed())
+				if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed() && !OnlineGuard::Latched())
 					menus.PushMenu(Ui::Root());
 				menus.Update();
 			}

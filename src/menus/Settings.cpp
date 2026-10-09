@@ -28,6 +28,7 @@
 #include "..\Localization.h"
 #include "..\keyboard.h"
 #include "..\Log.h"
+#include "..\OnlineGuard.h"
 #include "..\core\settings\Settings.h"
 #include "..\core\settings\IStateSerializer.h"
 #include "..\core\commands\Commands.h"
@@ -762,6 +763,10 @@ namespace Menus
 
 	void TickSettings()
 	{
+		// Hotkeys run commands: check the guard's latch here as well as in
+		// the main loop (OnlineGuard.h).
+		if (OnlineGuard::Latched())
+			return;
 		HotkeyTick();
 		DrawOverlays();
 	}

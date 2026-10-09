@@ -2,6 +2,7 @@
 #include "GameUtil.h"
 #include "Localization.h"
 #include "Log.h"
+#include "OnlineGuard.h"
 #include "core\commands\Commands.h"
 
 #include <algorithm>
@@ -187,6 +188,9 @@ namespace Ui
 
 	void Push(MenuBase* menu)
 	{
+		// Read here too, not only in the main loop (OnlineGuard.h).
+		if (OnlineGuard::Latched())
+			return;
 		menu->Open();
 		g_controller.PushMenu(menu);
 	}
