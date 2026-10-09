@@ -5,7 +5,7 @@
 
 	- Initialize takes the read and write paths (LogFallback::ResolveSettings
 	  can read the game folder's copy and write to the fallback folder).
-	- A missing file starts from {}; a corrupt one is copied to
+	- A missing or empty file starts from {}; a corrupt one is copied to
 	  "<file>.bad", logged, and also starts from {}.
 	- A component added after the first load is loaded on the next Tick or
 	  Flush (HorseMenu's queue, which it marked broken: it called the

@@ -44,6 +44,13 @@ namespace Rampagio
 		std::stringstream text;
 		text << file.rdbuf();
 		file.close();
+		// LogFallback::ResolveSettings creates an empty file when it tests
+		// the folder, so empty is a first run, not corruption.
+		if (text.str().find_first_not_of(" \t\r\n") == std::string::npos)
+		{
+			Log::Write("[Settings] {} is empty, starting from defaults", LogFallback::ToUtf8(path));
+			return;
+		}
 
 		nlohmann::json parsed = nlohmann::json::parse(text.str(), nullptr, false);
 		if (parsed.is_discarded() || !parsed.is_object())

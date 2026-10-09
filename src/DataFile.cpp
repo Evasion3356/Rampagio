@@ -8,6 +8,7 @@
 #include <fstream>
 #include <set>
 #include <sstream>
+#include <string_view>
 
 namespace DataFile
 {
@@ -17,17 +18,60 @@ namespace DataFile
 		{
 			return LogFallback::ResolveSettings(LogFallback::ModuleDirectory(), fileName, LogFallback::FallbackDirectory());
 		}
+
+		// Where to read fileName from, without creating anything.
+		// ResolveSettings tests the game folder by opening the file with
+		// OPEN_ALWAYS, which leaves an empty file behind when there was none,
+		// so it's only for writes. This picks the same file it would: the
+		// game folder's copy while that's writable, else the fallback's.
+		std::wstring ReadPath(const std::wstring& fileName)
+		{
+			const std::wstring preferred = LogFallback::ModuleDirectory() + fileName;
+			if (LogFallback::FileExists(preferred) && LogFallback::CanAppend(preferred))
+				return preferred;
+			const std::wstring fallbackDir = LogFallback::FallbackDirectory();
+			if (!fallbackDir.empty() && LogFallback::FileExists(fallbackDir + fileName))
+				return fallbackDir + fileName;
+			return preferred;
+		}
+
+		// Writes through "<path>.tmp" and a rename, so an eject or crash
+		// mid-write can't leave a truncated file.
+		bool WriteAtomic(const std::wstring& path, std::string_view text, const char* caller)
+		{
+			const std::wstring temp = path + L".tmp";
+			{
+				std::ofstream os(temp, std::ios::binary | std::ios::trunc);
+				if (!os)
+				{
+					Log::Write("{} -- couldn't open {} for writing", caller, LogFallback::ToUtf8(temp));
+					return false;
+				}
+				os << text;
+				if (!os)
+					return false;
+			}
+			if (!MoveFileExW(temp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING))
+			{
+				Log::Write("{} -- couldn't replace {} (error {})", caller, LogFallback::ToUtf8(path), GetLastError());
+				return false;
+			}
+			return true;
+		}
 	}
 
 	nlohmann::json LoadJson(const std::wstring& fileName)
 	{
-		const std::wstring path = Paths(fileName).read;
+		const std::wstring path = ReadPath(fileName);
 		std::ifstream is(path, std::ios::binary);
 		if (!is)
 			return nlohmann::json::object();
 		std::stringstream text;
 		text << is.rdbuf();
 		is.close();
+		// Empty (or blank) is "nothing saved yet", not corrupt.
+		if (text.str().find_first_not_of(" \t\r\n") == std::string::npos)
+			return nlohmann::json::object();
 		nlohmann::json json = nlohmann::json::parse(text.str(), nullptr, false);
 		if (json.is_discarded() || !json.is_object())
 		{
@@ -45,20 +89,13 @@ namespace DataFile
 		const std::wstring path = Paths(fileName).write;
 		if (path.empty())
 			return false;
-		std::ofstream os(path, std::ios::binary | std::ios::trunc);
-		if (!os)
-		{
-			Log::Write("DataFile::SaveJson -- couldn't open {} for writing", LogFallback::ToUtf8(path));
-			return false;
-		}
-		os << json.dump(4);
-		return static_cast<bool>(os);
+		return WriteAtomic(path, json.dump(4), "DataFile::SaveJson");
 	}
 
 	std::vector<std::string> LoadLines(const std::wstring& fileName)
 	{
 		std::vector<std::string> lines;
-		std::ifstream is(Paths(fileName).read);
+		std::ifstream is(ReadPath(fileName));
 		std::string line;
 		while (std::getline(is, line))
 		{
@@ -73,7 +110,7 @@ namespace DataFile
 
 	std::string LoadText(const std::wstring& fileName)
 	{
-		std::ifstream is(Paths(fileName).read, std::ios::binary);
+		std::ifstream is(ReadPath(fileName), std::ios::binary);
 		std::stringstream text;
 		text << is.rdbuf();
 		return text.str();
@@ -92,14 +129,7 @@ namespace DataFile
 		const std::wstring path = Paths(fileName).write;
 		if (path.empty())
 			return false;
-		std::ofstream os(path, std::ios::binary | std::ios::trunc);
-		if (!os)
-		{
-			Log::Write("DataFile::SaveText -- couldn't open {} for writing", LogFallback::ToUtf8(path));
-			return false;
-		}
-		os << text;
-		return static_cast<bool>(os);
+		return WriteAtomic(path, text, "DataFile::SaveText");
 	}
 
 	std::vector<std::string> ListFiles(const std::wstring& folder, const std::wstring& extension)

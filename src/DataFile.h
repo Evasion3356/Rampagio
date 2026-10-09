@@ -23,8 +23,9 @@
 
 namespace DataFile
 {
-	// The file's top-level object; {} when it doesn't exist or isn't a JSON
-	// object (logged; a corrupt file is kept as "<file>.bad").
+	// The file's top-level object; {} when it doesn't exist, is empty or
+	// isn't a JSON object (logged; a corrupt file is kept as "<file>.bad").
+	// Reading never creates the file.
 	nlohmann::json LoadJson(const std::wstring& fileName);
 	bool SaveJson(const std::wstring& fileName, const nlohmann::json& json);
 
