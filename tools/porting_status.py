@@ -24,7 +24,7 @@ STATUS = {
  'SubSelfPedMetaTags':('Done','Player > Wardrobe > Meta Ped Tags'),
  'SubSelfPedMetaExpressions':('Done','Player > Wardrobe > Meta Ped Expressions: names from the MetaPedExpression list alloc8or links'),
  'SubSelfCustomizations':('Done','Player > Wardrobe > Overlay Textures: TX Id and Palette Id pick from the tables of Rampage (data/OverlayTextures.inc); the hashes can also be typed in'),
- 'SubSelfModelChanger':('Partial','Player > Wardrobe > Model Changer: Force Player Type not ported'),
+ 'SubSelfModelChanger':('Done','Player > Wardrobe > Model Changer; Force Player Type is a Player Type choice plus a looped toggle that puts the story globals back when switched off (ours)'),
  'SubModelChangerPeds':('Done','Player > Wardrobe > Model Changer > Humans: models from the game scripts, grouped by prefix'),
  'SubModelChangerPedsList':('Done','Player > Wardrobe > Model Changer > Humans > <group>'),
  'SubModelChangerHorses':('Done','Player > Wardrobe > Model Changer > Horses: one list from the game scripts'),

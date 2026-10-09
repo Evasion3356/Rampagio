@@ -585,13 +585,13 @@ and Give Items built from the game's full SP item catalog
 ## Next steps
 
 Resume point (2026-10-08). Every non-tabled Rampage submenu is ported:
-150 done, 5 partial, 10 tabled, 2 dropped, 0 pending (`docs/PORTING.md`).
+156 done, 3 partial, 6 tabled, 2 dropped, 0 pending (`docs/PORTING.md`).
 The table data Rampage keeps in its binary (effect presets, legendaries,
 overlay textures, ...) is carried over as `src/data/*.inc`, Disable
 Hitmarker uses `BytePatch`, and the menu is translated into 13
-languages. The 5 Partial rows wait on tabled areas or the ImGui overlay,
-except Force Player Type (needs live testing first) and Settings >
-Plugins (no counterpart). Everything builds clean (Debug); nothing is
+languages. The 3 Partial rows wait on the tabled Object Editor or
+ImGui overlay windows, except Settings > Plugins (no counterpart).
+Force Player Type (Model Changer) is ported, untested. Everything builds clean (Debug); nothing is
 live-tested. Menu key is F5. Goal B's submodules are wired in (see
 Goal B); their rows are untested in Rampagio, though the libraries'
 code is what the standalone mods already ran live.

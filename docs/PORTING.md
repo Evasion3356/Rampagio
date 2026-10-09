@@ -3,7 +3,7 @@
 Each Rampage submenu (`Submenus::SubXxx`, see `tools/rampage_inventory.md`) and where Rampagio has it.
 "Options" counts Rampage's static interactive rows. Statuses: Done (every row has an equivalent), Partial, Pending, Tabled (set aside for now), Dropped (online only, or Rampage infrastructure with no Rampagio counterpart). Nothing is live-tested yet.
 
-Submenus: 155 done, 4 partial, 0 pending, 6 tabled, 2 dropped.
+Submenus: 156 done, 3 partial, 0 pending, 6 tabled, 2 dropped.
 
 ## Debug
 
@@ -109,7 +109,7 @@ Submenus: 155 done, 4 partial, 0 pending, 6 tabled, 2 dropped.
 | SubSelfCustomizations | 4 | Done | Player > Wardrobe > Overlay Textures: TX Id and Palette Id pick from the tables of Rampage (data/OverlayTextures.inc); the hashes can also be typed in |
 | SubSelfFacialAnimations | 4 | Done | Player > Animations > Facial Animations |
 | SubSelfFacialHair | 4 | Done | Player > Wardrobe > Hair and Weight |
-| SubSelfModelChanger | 8 | Partial | Player > Wardrobe > Model Changer: Force Player Type not ported |
+| SubSelfModelChanger | 8 | Done | Player > Wardrobe > Model Changer; Force Player Type is a Player Type choice plus a looped toggle that puts the story globals back when switched off (ours) |
 | SubSelfOutfitSaver | 3 | Done | Player > Wardrobe > Outfits: saved in Rampagio_Outfits.json (ours; Rampage writes an XML per outfit) |
 | SubSelfPedMetaExpressions | 0 | Done | Player > Wardrobe > Meta Ped Expressions: names from the MetaPedExpression list alloc8or links |
 | SubSelfPedMetaTags | 7 | Done | Player > Wardrobe > Meta Ped Tags |

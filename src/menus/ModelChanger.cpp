@@ -7,8 +7,12 @@
 
 	Changing model sets Global_1835009, which stops medium_update from
 	checking (and restoring) the player's model; Reset clears it and the
-	game puts Arthur or John back. Not ported: Force Player Type (rewrites
-	several story globals; needs live testing first).
+	game puts Arthur or John back.
+
+	Force Player Type makes the game treat the player as Arthur, sick
+	Arthur or John without changing model, by rewriting the story state
+	medium_update reads (see ForcePlayerTypeTick). Rampage writes it every
+	frame and leaves it on toggle-off; ours puts the values it found back.
 */
 
 #include "Menus.h"
@@ -173,6 +177,94 @@ namespace
 		}
 	}
 
+	// Force Player Type. medium_update keeps the story character in
+	// Global_1946054.f_1 (func_889: Arthur, sick Arthur or John), the
+	// player model in Global_1935630.f_2, and per-character state in
+	// Global_12106[Global_1347702.f_2858 /*7*/].f_1 (sick Arthur is 5, as
+	// Rampage writes); _SET_PED_ACTIVE_PLAYER_TYPE takes joaat("Arthur") or
+	// joaat("John") (func_887).
+	struct PlayerType
+	{
+		int character;
+		Hash model;
+		int state; // -1: John's entry is left alone, as Rampage does
+		Hash type;
+	};
+	const PlayerType kPlayerTypes[] = {
+		{ -2125499975, kArthur, 0, 0xE1B02E5B },
+		{ -449205311, kArthur, 5, 0xE1B02E5B },
+		{ 1160113249, kJohn, -1, 0xD7AE28D0 },
+	};
+	int g_playerType = 0;
+
+	struct PlayerTypeSlots
+	{
+		UINT64* character;
+		UINT64* model;
+		UINT64* state;
+	};
+
+	bool FindPlayerTypeSlots(PlayerTypeSlots& out)
+	{
+		UINT64* character = GameUtil::Global(1946054 + 1);
+		UINT64* model = GameUtil::Global(1935630 + 2);
+		UINT64* index = GameUtil::Global(1347702 + 2858);
+		UINT64* size = GameUtil::Global(12106); // the array's size slot
+		if (!character || !model || !index || !size)
+			return false;
+		const int i = static_cast<int>(*index);
+		if (i < 0 || i >= static_cast<int>(*size))
+			return false;
+		out = { character, model, GameUtil::Global(12106 + 1 + i * 7 + 1) };
+		return out.state != nullptr;
+	}
+
+	// What the globals held before the first forced frame, put back on off.
+	bool g_savedPlayerType = false;
+	UINT64 g_savedCharacter = 0, g_savedModel = 0, g_savedState = 0;
+
+	void ForcePlayerTypeTick()
+	{
+		if (SCRIPT::IS_LOADING_SCREEN_VISIBLE())
+			return;
+		PlayerTypeSlots slots;
+		if (!FindPlayerTypeSlots(slots))
+			return;
+		if (!g_savedPlayerType)
+		{
+			g_savedCharacter = *slots.character;
+			g_savedModel = *slots.model;
+			g_savedState = *slots.state;
+			g_savedPlayerType = true;
+		}
+		const PlayerType& t = kPlayerTypes[g_playerType];
+		*reinterpret_cast<int*>(slots.character) = t.character;
+		*reinterpret_cast<int*>(slots.model) = static_cast<int>(t.model);
+		if (t.state >= 0)
+			*reinterpret_cast<int*>(slots.state) = t.state;
+		const Ped ped = Me();
+		PED::_SET_PED_ACTIVE_PLAYER_TYPE(ped, t.type);
+		PED::_UPDATE_PED_VARIATION(ped, FALSE, TRUE, TRUE, TRUE, FALSE);
+	}
+
+	void ForcePlayerTypeOff()
+	{
+		if (!g_savedPlayerType)
+			return;
+		g_savedPlayerType = false;
+		PlayerTypeSlots slots;
+		if (!FindPlayerTypeSlots(slots))
+			return;
+		*slots.character = g_savedCharacter;
+		*slots.model = g_savedModel;
+		*slots.state = g_savedState;
+		const Ped ped = Me();
+		const Hash model = ENTITY::GET_ENTITY_MODEL(ped);
+		if (model == kArthur || model == kJohn)
+			PED::_SET_PED_ACTIVE_PLAYER_TYPE(ped, model == kJohn ? 0xD7AE28D0 : 0xE1B02E5B);
+		PED::_UPDATE_PED_VARIATION(ped, FALSE, TRUE, TRUE, TRUE, FALSE);
+	}
+
 	bool Available(const char* name)
 	{
 		const Hash h = GameUtil::Joaat(name);
@@ -191,6 +283,8 @@ namespace Menus
 	void BuildModelChanger(MenuBase* wardrobe)
 	{
 		MenuBase* changer = Ui::Submenu(wardrobe, "Model Changer");
+		Ui::Choice(changer, "modelchanger.playertype", "Player Type", { "Arthur", "Arthur Sick", "John" }, &g_playerType);
+		Ui::Looped(changer, "modelchanger.forceplayertype", "Force Player Type", ForcePlayerTypeTick, ForcePlayerTypeOff);
 		Ui::Do(changer, "modelchanger.reset", "Reset", ResetModel);
 		Ui::Looped(changer, "modelchanger.autoreset", "Auto-Reset", AutoResetTick);
 		Ui::Toggle(changer, "modelchanger.copymodelonly", "Copy Model Only", [](bool on) { g_copyModelOnly = on; });
