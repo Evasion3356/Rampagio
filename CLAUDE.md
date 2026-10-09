@@ -47,9 +47,12 @@ Menu key: **F5** by default (Settings > Core > Menu Key, saved as
 user's request. Don't load Rampage and
 Rampagio together with default keys. Controls: NUMPAD 8/2 to move,
 NUMPAD 5 to select, NUMPAD 0/Backspace/F5 to go back; on a gamepad RB +
-Left opens it and the d-pad, A and B navigate. F11 on a command row binds
-a hotkey: the keys held together, released to finish (Settings > Hotkey
-Manager lists and removes them).
+Left opens it and the d-pad, A and B navigate. F11 on a command row opens
+the Hotkey window (ImGui: its bindings, gesture/action drop-downs, Clear,
+Add Key); Y on a pad binds from the native menu. A binding is keys, mouse
+buttons, wheel or pad buttons held together, released to finish. A command can have several bindings, a
+chain runs one command; presets run several (Settings > Hotkeys, design
+and live checklist in `docs/HOTKEYS_PLAN.md`, built 2026-10-09, untested).
 
 ## Layout
 
@@ -64,7 +67,8 @@ Manager lists and removes them).
 - `src/core/`: HorseMenu's settings and command system, adapted
   (`docs/CONFIG_REWRITE_PLAN.md` has the design and its decisions).
   `settings/Settings` keeps `Rampagio.json` as `IStateSerializer`
-  components (`general`, `style`, `themes`, `commands`, `hotkeys`),
+  components (`general`, `style`, `themes`, `commands`, `hotkeys`,
+  `presets`),
   writing at most once a second and on eject. `Tick` snapshots dirty
   components into the JSON every frame; `TryFlush` (detach) only writes
   that snapshot and never runs component code. `commands/` holds
@@ -73,7 +77,11 @@ Manager lists and removes them).
   `Suspend`), `BoolCommand`/`LoopedCommand`, `ValueCommands.h`
   (`IntCommand`, `FloatCommand`, `ListCommand`, `StringCommand`,
   `ColorCommand`, optionally writing through the feature's own variable),
-  `ActionCommand` and `HotkeySystem` (key chains by command id). Only
+  `ActionCommand`, `HotkeySystem` (bindings by command id: input chains
+  over one `InputId` space for keys, mouse, wheel and pad, with a gesture
+  and an action; the host polls `WatchedInputs()` and passes what's held
+  to `Update`) and `HotkeyPresets` (`preset.<slug>` commands running
+  steps). `src/HotkeyInput.{h,cpp}` reads the inputs. Only
   `src/core/*.cpp`, `DataFile.cpp`, `Settings.cpp`, the four collection
   menus, `Spawner.cpp` (vehicle JSON Loader) and `debug/GlobalEditor.cpp` include the full `<nlohmann/json.hpp>`; headers use
   `json_fwd.hpp`.
@@ -129,8 +137,12 @@ Manager lists and removes them).
   Rampage's breaks.
 - `src/menus/Settings.cpp`: Settings, the `general`/`style`/`themes`
   components and `settings.*` commands (`RegisterSettings`,
-  `ApplyLoadedSettings`), plus the F11 binding flow, hotkeys and
-  overlays every frame (`Menus::TickSettings`).
+  `ApplyLoadedSettings`), plus the overlays every frame
+  (`Menus::TickSettings`). `src/menus/Hotkeys.cpp`: Settings > Hotkeys
+  (options, Hotkey Manager, Presets), the F11 Hotkey window and Y binding,
+  and running the bindings every frame (`Menus::TickHotkeys`). Its window
+  text is English; `tools/lang_sync.py` skips `ImGui::` lines and lines
+  marked `// overlay text`.
 - `src/menus/PedEditor.cpp`: the Ped Editor and `Menus::Target`. The
   Player submenus in `PlayerSubmenus.cpp`, `PlayerActions.cpp` and
   `Wardrobe.cpp` act on `Target::Get()` (their `Me()`), which is the ped

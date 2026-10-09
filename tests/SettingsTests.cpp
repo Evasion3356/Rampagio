@@ -15,11 +15,14 @@
 #include "..\src\core\commands\ValueCommands.h"
 #include "..\src\core\commands\ActionCommand.h"
 #include "..\src\core\commands\HotkeySystem.h"
+#include "..\src\core\commands\HotkeyPresets.h"
 
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
+#include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <fstream>
 #include <set>
 #include <sstream>
@@ -244,33 +247,124 @@ namespace
 		new ActionCommand("test.hk.shiftg", "Shift G", "", [&] { shiftCalls++; return std::string(); });
 		const std::wstring path = FilePath("hotkeys.json");
 		Settings::Initialize(path);
-		HotkeySystem::Bind("test.hk.g", { 'G' });
-		HotkeySystem::Bind("test.hk.shiftg", { VK_SHIFT, 'G' });
-		HotkeySystem::Bind("test.hk.missing", { 'H' });
+		HotkeySystem::Bind("test.hk.g", std::vector<InputId>{ 'G' });
+		HotkeySystem::Bind("test.hk.shiftg", std::vector<InputId>{ VK_SHIFT, 'G' });
+		HotkeySystem::Bind("test.hk.missing", std::vector<InputId>{ 'H' });
 
-		std::set<int> down;
-		auto isDown = [&down](int vk) { return down.contains(vk); };
-		HotkeySystem::Update(isDown); // clears the "held while binding" state
-		down = { 'G' };
-		HotkeySystem::Update(isDown);
-		HotkeySystem::Update(isDown);
+		std::uint32_t now = 1000;
+		auto update = [&now](std::vector<InputId> down) { now += 16; return HotkeySystem::Update(down, now); };
+		update({}); // clears the "held while binding" state
+		update({ 'G' });
+		update({ 'G' });
 		Check(calls == 1, "chain fires once per press");
-		down = {};
-		HotkeySystem::Update(isDown);
-		down = { VK_SHIFT, 'G' };
-		HotkeySystem::Update(isDown);
+		update({});
+		update({ VK_SHIFT, 'G' });
 		Check(shiftCalls == 1 && calls == 1, "shorter chain inside a longer one doesn't fire");
+		update({});
+		update({ VK_SHIFT });
+		update({ VK_SHIFT, 'G' });
+		Check(shiftCalls == 2 && calls == 1, "chain completes in any order");
 
 		Settings::Flush();
 		const nlohmann::json saved = ReadJson(path)["hotkeys"];
-		Check(saved["test.hk.shiftg"] == nlohmann::json::array({ VK_SHIFT, 'G' }), "hotkeys saved by name");
+		Check(saved["test.hk.shiftg"] == nlohmann::json::array({ nlohmann::json::array({ VK_SHIFT, 'G' }) }), "plain hotkeys saved as their chain");
 		Check(saved.contains("test.hk.missing"), "binding for an unknown command kept");
 
-		HotkeySystem::Bind("test.hk.shiftg", { 'G' });
+		HotkeySystem::Bind("test.hk.shiftg", std::vector<InputId>{ 'G' });
 		Check(!HotkeySystem::GetBindings().contains("test.hk.g"), "binding a used chain removes it from the other command");
+		Check(HotkeySystem::GetBindings().at("test.hk.shiftg").size() == 2, "a command keeps several bindings");
 		HotkeySystem::Clear("test.hk.shiftg");
 		Settings::Reload();
 		Check(HotkeySystem::GetBindings().size() == 3, "Reload reads the saved bindings back");
+
+		// Old files: one flat chain per command.
+		WriteText(path, R"({"hotkeys":{"test.hk.g":[71]}})");
+		Settings::Reload();
+		Check(HotkeySystem::GetBindings().at("test.hk.g").front().keys == std::vector<InputId>{ 'G' }, "old flat chain loads");
+	}
+
+	void HotkeyModes()
+	{
+		auto* toggle = new BoolCommand("test.hk.toggle", "Toggle");
+		auto* list = new ListCommand("test.hk.list", "List", "", { "a", "b", "c" });
+		auto* number = new IntCommand("test.hk.int", "Int", "", 0, 100, 5, 0);
+		static int taps = 0, longs = 0;
+		new ActionCommand("test.hk.tap", "Tap", "", [&] { taps++; return std::string(); });
+		new ActionCommand("test.hk.long", "Long", "", [&] { longs++; return std::string(); });
+		const std::wstring path = FilePath("hotkeymodes.json");
+		WriteText(path, "{}");
+		Settings::Initialize(path);
+		HotkeySystem::SetLongPressMs(500);
+		const InputId pad = kPadBase + 3;
+		HotkeySystem::Bind("test.hk.toggle", Hotkey{ { 'Q' }, HotkeyGesture::Press, { HotkeyMode::Hold } });
+		HotkeySystem::Bind("test.hk.list", Hotkey{ { pad, 'W' }, HotkeyGesture::Press, { HotkeyMode::Next } });
+		HotkeySystem::Bind("test.hk.int", Hotkey{ { 'E' }, HotkeyGesture::Press, { HotkeyMode::Set, 40 } });
+		HotkeySystem::Bind("test.hk.tap", Hotkey{ { 'R' } });
+		HotkeySystem::Bind("test.hk.long", Hotkey{ { 'R' }, HotkeyGesture::Long });
+
+		std::uint32_t now = 5000;
+		auto at = [&now](std::uint32_t t, std::vector<InputId> down) { now = t; HotkeySystem::Update(down, now); };
+		at(5000, {});
+		at(5016, { 'Q' });
+		Check(toggle->GetState(), "hold: on while held");
+		at(5032, {});
+		Check(!toggle->GetState(), "hold: back off on release");
+
+		at(6000, { pad, 'W' });
+		Check(list->GetState() == 1, "next steps a list");
+		at(6300, { pad, 'W' });
+		Check(list->GetState() == 1, "no repeat before the delay");
+		at(6400, { pad, 'W' });
+		Check(list->GetState() == 2, "next repeats while held");
+		at(6500, {});
+
+		at(7000, { 'E' });
+		Check(number->GetState() == 40, "set puts a number to the value");
+		at(7016, {});
+
+		at(8000, { 'R' });
+		at(8100, {});
+		Check(taps == 1 && longs == 0, "tap: the press binding fires on a quick release");
+		at(9000, { 'R' });
+		at(9600, { 'R' });
+		at(9700, {});
+		Check(taps == 1 && longs == 1, "long press: only the long binding fires");
+
+		Check(HotkeySystem::FindConflict({ 'R' }, HotkeyGesture::Long, "test.hk.tap") == std::optional<std::string>("test.hk.long"), "conflict found by chain and gesture");
+		Check(HotkeySystem::PadChainUses(pad) == false && HotkeySystem::PadChainUses('W') == true, "pad chain lookup");
+
+		Settings::Flush();
+		const nlohmann::json saved = ReadJson(path)["hotkeys"];
+		Check(saved["test.hk.int"][0]["action"] == "set" && saved["test.hk.int"][0]["value"] == 40, "set binding saved with its value");
+		Check(saved["test.hk.long"][0]["gesture"] == "long", "long press saved");
+		Settings::Reload();
+		const Hotkey& loaded = HotkeySystem::GetBindings().at("test.hk.list").front();
+		Check(loaded.action.mode == HotkeyMode::Next && loaded.keys.size() == 2, "modes load back");
+	}
+
+	void Presets()
+	{
+		auto* a = new BoolCommand("test.preset.a", "A");
+		auto* n = new IntCommand("test.preset.n", "N", "", 0, 10, 1, 0);
+		const std::wstring path = FilePath("presets.json");
+		WriteText(path, "{}");
+		Settings::Initialize(path);
+		const std::string id = HotkeyPresets::Create("Combat Kit");
+		Check(id == "preset.combatkit", "preset id from its name");
+		HotkeyPresets::AddStep(id, { "test.preset.a", { HotkeyMode::Set, 1 } });
+		HotkeyPresets::AddStep(id, { "test.preset.n", { HotkeyMode::Set, 7 } });
+		HotkeyPresets::AddStep(id, { "test.preset.missing", {} });
+		Command* command = Commands::GetCommand(id);
+		Check(command != nullptr, "preset registers a command");
+		command->Call();
+		Check(a->GetState() && n->GetState() == 7, "preset runs its steps");
+		Check(HotkeyPresets::Get(id)->command->LastRan() == 2, "missing step skipped");
+
+		Settings::Flush();
+		Settings::Reload();
+		Check(HotkeyPresets::Get(id) && HotkeyPresets::Get(id)->steps.size() == 3 && Commands::GetCommand(id) == command, "preset reloads, keeping its command");
+		HotkeyPresets::Delete(id);
+		Check(!Commands::GetCommand(id), "deleting a preset removes its command");
 	}
 
 	void Transient()
@@ -325,6 +419,7 @@ int main()
 	g_dir = fs::temp_directory_path() / ("RampagioSettingsTests_" + std::to_string(GetCurrentProcessId()));
 	fs::create_directories(g_dir);
 	HotkeySystem::GetInstance(); // components exist before the first load, as in ScriptMain
+	HotkeyPresets::GetInstance();
 
 	RoundTrip();
 	Clamping();
@@ -334,6 +429,8 @@ int main()
 	Suspend();
 	RestoreOff();
 	Hotkeys();
+	HotkeyModes();
+	Presets();
 	Transient();
 	Throttle();
 	TryFlushSnapshot();

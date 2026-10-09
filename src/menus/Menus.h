@@ -10,7 +10,9 @@
 #include "..\Menu.h"
 #include "..\Localization.h"
 
+#include <functional>
 #include <span>
+#include <string>
 
 namespace Menus
 {
@@ -67,8 +69,8 @@ namespace Menus
 	// Debug.cpp: Debug > Script Monitor (src/debug/ScriptMonitor.h).
 	void BuildDebug(MenuBase* root);
 	void BuildSettings(MenuBase* root);
-	// Settings.cpp. RegisterSettings creates the "general", "style",
-	// "themes" and "hotkeys" parts of Rampagio.json (before
+	// Settings.cpp. RegisterSettings creates the "general", "style"
+	// and "themes" parts of Rampagio.json and calls RegisterHotkeys (before
 	// Settings::Initialize); ApplyLoadedSettings applies the loaded command
 	// states, honouring settings.restoretoggles unless restoreAll (Load
 	// Settings restores everything); TickSettings runs hotkeys and overlays
@@ -76,6 +78,19 @@ namespace Menus
 	void RegisterSettings();
 	void ApplyLoadedSettings(bool restoreAll = false);
 	void TickSettings();
+	// Hotkeys.cpp (docs/HOTKEYS_PLAN.md): Settings > Hotkeys, the F11 Hotkey
+	// window (ImGui overlay) and Y-on-a-pad binding, and running the
+	// bindings every frame (TickHotkeys, from TickSettings). RegisterHotkeys
+	// creates the "hotkeys" and "presets" parts of Rampagio.json and the
+	// window (from RegisterSettings); SuspendHotkeys closes the window and
+	// ends a capture (online kill switch, eject). CaptureKey waits for one
+	// keyboard key (the menu key row).
+	inline constexpr DWORD kHotkeyBindKey = VK_F11;
+	void BuildHotkeys(MenuBase* settings);
+	void RegisterHotkeys();
+	void TickHotkeys();
+	void SuspendHotkeys();
+	void CaptureKey(const std::string& prompt, std::function<void(int)> done);
 
 	// The player's posse (Posse.cpp), shared with the spawners.
 	namespace Posse

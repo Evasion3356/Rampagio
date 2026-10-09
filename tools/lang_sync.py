@@ -12,7 +12,8 @@ The English strings are the literals in the menu sources (src/menus,
 Menu.cpp, GameUtil.cpp, Descriptions.cpp, and the sibling advisors'
 option tables, external/*/src/*CheatConfig.cpp) that read as text
 rather than identifiers, plus src/data/Descriptions.inc's descriptions, minus
-src/lang/ignore.txt. A string that's never drawn costs nothing, so the
+src/lang/ignore.txt and the English-only overlay text (ImGui calls and
+lines marked "// overlay text", Hotkeys.cpp's window). A string that's never drawn costs nothing, so the
 filter errs on keeping. Text built at runtime must use Tr/TrFormat with a
 literal template (Localization.h) to be found.
 
@@ -44,7 +45,7 @@ SOURCES = ["menus/*.cpp", "Menu.cpp", "GameUtil.cpp", "Descriptions.cpp"]
 SUBMODULE_SOURCES = ["../external/*/src/*CheatConfig.cpp"]
 
 LITERAL = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
-SKIP_LINE = re.compile(r"^\s*(//|#include)|Log::Write|Joaat\(|VAR_STRING|DataFile::|Ui::Id\(|assert\(|REQUEST_ANIM_DICT|TASK_PLAY_ANIM")
+SKIP_LINE = re.compile(r"^\s*(//|#include)|// overlay text|ImGui::|Log::Write|Joaat\(|VAR_STRING|DataFile::|Ui::Id\(|assert\(|REQUEST_ANIM_DICT|TASK_PLAY_ANIM")
 ENTRY = re.compile(r'^\{\s*"((?:[^"\\]|\\.)*)",\s*"((?:[^"\\]|\\.)*)"\s*\},?\s*$')
 
 

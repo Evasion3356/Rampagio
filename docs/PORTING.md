@@ -101,7 +101,7 @@ Submenus: 156 done, 3 partial, 0 pending, 5 tabled, 3 dropped.
 | SubPlaySpeechRegular | 2 | Done | Player > Play Speech > Regular Speeches: 208 lines from the game scripts (Rampage's table has 502); one Display All for every list |
 | SubPlaySpeechVignettes | 3 | Done | Player > Play Speech > Vignettes: Rampagio_SpeechVignettes.txt, re-read on open |
 | SubPlayerConfigFlags | 2 | Done | Player > Config Flags: flag by number (no names), shows current state (ours) |
-| SubPlayerPosse | 11 | Done | Player > Posse: commands are menu rows, bindable to keys with F11 (Settings > Hotkey Manager); Add Aimed/Nearest Ped, Teleport, Dismiss and Delete rows (ours) |
+| SubPlayerPosse | 11 | Done | Player > Posse: commands are menu rows, bindable to keys, mouse or pad buttons with F11 or Y (Settings > Hotkeys); Add Aimed/Nearest Ped, Teleport, Dismiss and Delete rows (ours) |
 | SubPlayerProofs | 9 | Done | Player > Player Proofs: re-applied every frame (ours) |
 | SubSelf | 38 | Done | Player |
 | SubSelfAnimationsCustom | 7 | Done | Player > Animations > Custom Animations: the Custom Flag submenu is a typed Custom Flags row (decimal or 0x hex) |
@@ -158,7 +158,7 @@ Submenus: 156 done, 3 partial, 0 pending, 5 tabled, 3 dropped.
 | SubCreatorSettings | 2 | Done | Spawner > Object Spawner > Cam Settings |
 | SubLanguageManager | 2 | Dropped | The label translation files of Rampage; Rampagio has no translated labels |
 | SubOverlaySettings | 17 | Done | Settings > Overlay Settings |
-| SubSettings | 1 | Partial | Settings: Search, Core, Theme, Hotkey Manager (F11 on a row binds it, ours), Load / Save; Gamepad Open Key is a combo choice; Language picks one of the 13 compiled-in translations or follows the game (ours); Plugins has no Rampagio counterpart |
+| SubSettings | 1 | Partial | Settings: Search, Core, Theme, Hotkeys (F11 or Y on a row binds keyboard, mouse or pad chains; hold/step/set actions, long press, pad layer button, presets; ours, docs/HOTKEYS_PLAN.md), Load / Save; Gamepad Open Key is a combo choice; Language picks one of the 13 compiled-in translations or follows the game (ours); Plugins has no Rampagio counterpart |
 | SubSettingsColor | 12 | Done | Settings > Theme: eight colors, Main Font and Body Font (the faces of Rampage), Menu Title, menu position and Max Display Options |
 | SubSettingsCore | 10 | Done | Settings > Core: Gamepad Controls, Menu Sounds, Mouse Controls (ours: hover, click, right-click back, wheel), Show Controller Screen; welcome/ToS/update/landing rows dropped |
 | SubSettingsCustomThemes | 2 | Done | Settings > Theme > Custom Themes: the themes component of Rampagio.json |

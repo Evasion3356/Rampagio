@@ -114,6 +114,9 @@ namespace Rampagio
 
 		const std::string& GetName() const { return m_Name; }
 		const std::string& GetLabel() const { return m_Label; }
+		// For commands the user names (hotkey presets); row captions stay
+		// fixed.
+		void SetLabel(std::string label) { m_Label = std::move(label); }
 		const std::string& GetDescription() const { return m_Description; }
 		std::uint32_t GetHash() const { return m_Hash; }
 	};

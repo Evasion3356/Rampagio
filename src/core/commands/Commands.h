@@ -5,7 +5,8 @@
 	Rampagio additions: duplicate names are refused and logged (AddCommand
 	returns false), lookup by name, ForEach in registration order (the
 	Hotkey Manager and Search list them), ApplyLoaded (HorseMenu's
-	EnableBoolCommands, plus settings.restoretoggles) and Suspend/Resume
+	EnableBoolCommands, plus settings.restoretoggles), RemoveCommand (for
+	the hotkey presets) and Suspend/Resume
 	for the online kill switch, which undo every feature without touching
 	the saved states.
 */
@@ -52,6 +53,9 @@ namespace Rampagio
 		// False (and logged) if the name is taken or isn't a valid id.
 		static bool AddCommand(Command* command);
 		static void AddLoopedCommand(LoopedCommand* command);
+		// For commands made and deleted at runtime (hotkey presets): a
+		// command's own pointers elsewhere must be gone first.
+		static void RemoveCommand(Command* command);
 
 		template <typename T = Command>
 		static T* GetCommand(std::uint32_t hash)

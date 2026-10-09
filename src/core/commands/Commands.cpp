@@ -75,6 +75,18 @@ namespace Rampagio
 		return true;
 	}
 
+	void Commands::RemoveCommand(Command* command)
+	{
+		Commands& self = GetInstance();
+		if (auto it = self.m_ByName.find(command->GetName()); it != self.m_ByName.end() && it->second == command)
+		{
+			self.m_ByName.erase(it);
+			self.m_ByHash.erase(command->GetHash());
+		}
+		std::erase(self.m_Ordered, command);
+		std::erase(self.m_LoopedCommands, command);
+	}
+
 	void Commands::AddLoopedCommand(LoopedCommand* command)
 	{
 		GetInstance().m_LoopedCommands.push_back(command);

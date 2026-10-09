@@ -13,6 +13,7 @@
     <ClCompile Include="..\src\core\commands\BoolCommand.cpp" />
     <ClCompile Include="..\src\core\commands\ValueCommands.cpp" />
     <ClCompile Include="..\src\core\commands\HotkeySystem.cpp" />
+    <ClCompile Include="..\src\core\commands\HotkeyPresets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\core\settings\Settings.h" />
@@ -24,6 +25,7 @@
     <ClInclude Include="..\src\core\commands\ValueCommands.h" />
     <ClInclude Include="..\src\core\commands\ActionCommand.h" />
     <ClInclude Include="..\src\core\commands\HotkeySystem.h" />
+    <ClInclude Include="..\src\core\commands\HotkeyPresets.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{028EB23D-7AF6-45BF-B726-7C9A1742D650}</ProjectGuid>

@@ -14,6 +14,7 @@
     <!-- As in ChallengeCheat, keyboard.cpp and scriptmenu.cpp are built in
          Release too: the F5 menu is this mod's whole interface. -->
     <ClCompile Include="src\keyboard.cpp" />
+    <ClCompile Include="src\HotkeyInput.cpp" />
     <ClCompile Include="src\KeyNames.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Previews.cpp" />
@@ -52,6 +53,7 @@
     <ClCompile Include="src\core\commands\BoolCommand.cpp" />
     <ClCompile Include="src\core\commands\ValueCommands.cpp" />
     <ClCompile Include="src\core\commands\HotkeySystem.cpp" />
+    <ClCompile Include="src\core\commands\HotkeyPresets.cpp" />
     <ClCompile Include="external\minhook\src\hook.c" />
     <ClCompile Include="external\minhook\src\buffer.c" />
     <ClCompile Include="external\minhook\src\trampoline.c" />
@@ -63,6 +65,7 @@
     <ClInclude Include="external\ScriptHookSDK\inc\natives.h" />
     <ClInclude Include="external\ScriptHookSDK\inc\types.h" />
     <ClInclude Include="src\keyboard.h" />
+    <ClInclude Include="src\HotkeyInput.h" />
     <ClInclude Include="src\KeyNames.h" />
     <ClInclude Include="src\Previews.h" />
     <ClInclude Include="src\script.h" />
@@ -100,6 +103,7 @@
     <ClInclude Include="src\core\commands\ValueCommands.h" />
     <ClInclude Include="src\core\commands\ActionCommand.h" />
     <ClInclude Include="src\core\commands\HotkeySystem.h" />
+    <ClInclude Include="src\core\commands\HotkeyPresets.h" />
     <ClInclude Include="external\RDR-Classes\rage\joaat.hpp" />
     <ClInclude Include="external\spdlog\include\spdlog\spdlog.h" />
     <ClInclude Include="external\spdlog\include\spdlog\sinks\basic_file_sink.h" />

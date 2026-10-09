@@ -53,3 +53,4 @@ Script threads, their functions, and function/native hooks, in an overlay window
 Global Editor
 Script Tools
 Watch and edit script globals, written as the decompiled scripts write them.\nThe menu key closes it.
+Left

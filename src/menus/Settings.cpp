@@ -12,10 +12,8 @@
 	parts, and the settings.* commands (menu key, wrap width, restore
 	toggles). Command states and hotkeys are saved by src/core/commands.
 
-	Hotkeys (ours): highlight a command row and press F11, then the key or
-	keys to bind (held together, released to finish; Esc cancels). The
-	chain then runs that command with the menu closed. The premade themes
-	are our own presets, not Rampage's 26.
+	Settings > Hotkeys and the F11 binding flow are in Hotkeys.cpp. The
+	premade themes are our own presets, not Rampage's 26.
 
 	Not ported: Rampage's plugins, language files, ImGui windows (Window
 	Manager), fonts, teleport map, welcome/ToS/update
@@ -49,8 +47,6 @@ using Rampagio::HotkeySystem;
 
 namespace
 {
-	constexpr DWORD kBindKey = VK_F11;
-
 	// --- style and themes ------------------------------------------------------------
 
 	struct NamedColor
@@ -349,7 +345,7 @@ namespace
 	bool IsUsableMenuKey(int vk)
 	{
 		DWORD parsed = 0;
-		return vk > 0 && vk < 0xFF && vk != static_cast<int>(kBindKey) && vk != VK_ESCAPE
+		return vk > 0 && vk < 0xFF && vk != static_cast<int>(Menus::kHotkeyBindKey) && vk != VK_ESCAPE
 			&& KeyNames::Parse(KeyNames::Format(static_cast<DWORD>(vk)), parsed) && parsed == static_cast<DWORD>(vk);
 	}
 
@@ -416,136 +412,6 @@ namespace
 		}
 		if (!found)
 			Ui::Section(results, "No matches (list menus only count once opened)");
-	}
-
-	// --- hotkeys ---------------------------------------------------------------------------
-
-	enum class Capture
-	{
-		None,
-		Hotkey,  // a key chain for g_bindingCommand
-		MenuKey, // one key for settings.menukey
-	};
-	Capture g_capture = Capture::None;
-	Rampagio::Command* g_bindingCommand = nullptr;
-	std::vector<int> g_chain;
-
-	bool IsNavigationKey(DWORD vk)
-	{
-		return vk == VK_NUMPAD0 || vk == VK_NUMPAD2 || vk == VK_NUMPAD4 || vk == VK_NUMPAD5 || vk == VK_NUMPAD6 || vk == VK_NUMPAD8
-			|| vk == VK_BACK || vk == VK_RETURN || vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL
-			|| vk == VK_UP || vk == VK_DOWN || vk == VK_LEFT || vk == VK_RIGHT || vk == kBindKey || vk == static_cast<DWORD>(MenuKey());
-	}
-
-	void StartCapture(Capture capture, Rampagio::Command* command, const std::string& prompt)
-	{
-		g_capture = capture;
-		g_bindingCommand = command;
-		g_chain.clear();
-		Ui::Controller().SetStatusText(TrFormat("{} (Esc cancels)", Tr(prompt)), 10000);
-	}
-
-	void FinishCapture()
-	{
-		MenuController& menus = Ui::Controller();
-		if (g_capture == Capture::Hotkey)
-		{
-			HotkeySystem::Bind(g_bindingCommand->GetName(), g_chain);
-			menus.SetStatusText(TrFormat("{} bound to {}", HotkeySystem::ChainLabel(g_chain), Tr(g_bindingCommand->GetLabel())), 3000);
-		}
-		else if (g_capture == Capture::MenuKey)
-		{
-			const int vk = g_chain.front();
-			if (IsUsableMenuKey(vk) && !KeyNames::IsReserved(static_cast<DWORD>(vk)))
-			{
-				g_menuKey->SetState(vk);
-				menus.SetStatusText(TrFormat("Menu key: {}", KeyNames::Format(static_cast<DWORD>(vk))), 3000);
-			}
-			else
-				menus.SetStatusText(TrFormat("{} can't open the menu", HotkeySystem::KeyLabel(vk)), 3000);
-		}
-		g_capture = Capture::None;
-		g_chain.clear();
-	}
-
-	// Collects the keys held while binding; the chain is done once every
-	// key in it is released.
-	void CaptureTick()
-	{
-		if (IsKeyJustUp(VK_ESCAPE))
-		{
-			g_capture = Capture::None;
-			Ui::Controller().SetStatusText("Cancelled", 2000);
-			return;
-		}
-		for (DWORD vk = 0x08; vk < 0xFF; ++vk)
-			if (vk != VK_ESCAPE && !IsNavigationKey(vk) && IsKeyDown(vk) && std::find(g_chain.begin(), g_chain.end(), static_cast<int>(vk)) == g_chain.end())
-				if (g_capture == Capture::Hotkey || g_chain.empty())
-					g_chain.push_back(static_cast<int>(vk));
-		if (!g_chain.empty() && std::none_of(g_chain.begin(), g_chain.end(), [](int vk) { return IsKeyDown(static_cast<DWORD>(vk)); }))
-		{
-			for (int vk : g_chain)
-				ResetKeyState(static_cast<DWORD>(vk)); // don't fire the new binding at once
-			FinishCapture();
-		}
-	}
-
-	// A fired hotkey's status text, translated (Command::StatusText is
-	// English: src/core doesn't depend on the game).
-	std::string HotkeyStatus(Rampagio::Command* command)
-	{
-		if (auto* toggle = dynamic_cast<Rampagio::BoolCommand*>(command))
-			return TrFormat(toggle->GetState() ? "{}: on" : "{}: off", Tr(toggle->GetLabel()));
-		if (auto* list = dynamic_cast<Rampagio::ListCommand*>(command))
-			return std::format("{}: {}", Tr(list->GetLabel()), Tr(list->GetSelected()));
-		return command->StatusText();
-	}
-
-	void HotkeyTick()
-	{
-		MenuController& menus = Ui::Controller();
-		if (g_capture != Capture::None)
-			return CaptureTick();
-		if (menus.HasActiveMenu())
-		{
-			if (IsKeyJustUp(kBindKey))
-				if (MenuBase* menu = menus.GetTopMenu())
-				{
-					const int index = menu->GetActiveItemIndex();
-					const auto& items = menu->GetItems();
-					if (index < 0 || index >= static_cast<int>(items.size()))
-						return;
-					Rampagio::Command* command = items[index]->GetCommand();
-					if (command && command->IsRegistered() && command->Hotkeyable())
-						StartCapture(Capture::Hotkey, command, TrFormat("Press the key(s) for {}", Tr(command->GetLabel())));
-					else
-						menus.SetStatusText("This row can't be bound", 2500);
-				}
-			return;
-		}
-		if (Rampagio::Command* fired = HotkeySystem::Update([](int vk) { return IsKeyDown(static_cast<DWORD>(vk)); }))
-			menus.SetStatusText(HotkeyStatus(fired), 1500);
-	}
-
-	void BuildHotkeyManager(MenuBase* settings)
-	{
-		Ui::ListMenu(settings, "Hotkey Manager", [](MenuBase* menu)
-		{
-			Ui::Section(menu, "F11 on a row binds it; select one to remove it");
-			if (HotkeySystem::GetBindings().empty())
-				Ui::Section(menu, "No hotkeys");
-			for (const auto& [name, chain] : HotkeySystem::GetBindings())
-			{
-				Rampagio::Command* command = Commands::GetCommand(name);
-				const std::string label = command ? std::string(Tr(command->GetLabel())) : TrFormat("{} (not found)", name);
-				Ui::Action(menu, HotkeySystem::ChainLabel(chain) + ": " + label, [name, label]
-				{
-					HotkeySystem::Clear(name);
-					Ui::Controller().ReopenActiveLater();
-					return TrFormat("Removed {}", label);
-				});
-			}
-		});
 	}
 
 	// --- overlays --------------------------------------------------------------------------
@@ -705,7 +571,20 @@ namespace Menus
 		g_menuKey = new MenuKeyCommand();
 		core->AddItem(new MenuItemActionStatus(
 			[] { return TrFormat("Menu Key: {}", KeyNames::Format(static_cast<DWORD>(MenuKey()))); },
-			[] { StartCapture(Capture::MenuKey, nullptr, "Press the new menu key"); return std::string(); }));
+			[]
+			{
+				CaptureKey("Press the new menu key", [](int vk)
+				{
+					if (IsUsableMenuKey(vk) && !KeyNames::IsReserved(static_cast<DWORD>(vk)))
+					{
+						g_menuKey->SetState(vk);
+						Ui::Controller().SetStatusText(TrFormat("Menu key: {}", KeyNames::Format(static_cast<DWORD>(vk))), 3000);
+					}
+					else
+						Ui::Controller().SetStatusText(TrFormat("{} can't open the menu", HotkeySystem::KeyLabel(static_cast<Rampagio::InputId>(vk))), 3000);
+				});
+				return std::string();
+			}));
 		core->AddItem(new StyleFlagItem("Gamepad Controls", &MenuStyle::gamepad));
 		core->AddItem(new StyleFlagItem("Menu Sounds", &MenuStyle::sounds));
 		core->AddItem(new StyleFlagItem("Mouse Controls", &MenuStyle::mouse));
@@ -715,7 +594,7 @@ namespace Menus
 		Ui::Do(core, "settings.showcontrols", "Show Controller Screen", ShowControls);
 
 		BuildThemes(Ui::Submenu(settings, "Theme"));
-		BuildHotkeyManager(settings);
+		BuildHotkeys(settings);
 
 		MenuBase* io = Ui::Submenu(settings, "Load / Save");
 		Ui::Section(io, "Saved to Rampagio.json as you change things");
@@ -749,7 +628,7 @@ namespace Menus
 		static ThemesComponent themes;
 		g_style = &style;
 		g_themes = &themes;
-		HotkeySystem::GetInstance();
+		RegisterHotkeys();
 		Commands::GetInstance();
 	}
 
@@ -769,7 +648,7 @@ namespace Menus
 		// Hotkeys run commands: check here as well as in the main loop.
 		if (OnlineGuard::IsOnline())
 			return;
-		HotkeyTick();
+		TickHotkeys();
 		DrawOverlays();
 	}
 }

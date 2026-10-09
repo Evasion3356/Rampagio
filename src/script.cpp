@@ -85,6 +85,7 @@ namespace
 		// as they were.
 		ScriptMonitor::Suspend();
 		GlobalEditor::Suspend();
+		Menus::SuspendHotkeys();
 	}
 
 	// The online kill switch. Idempotent and cheap once done, so the loop

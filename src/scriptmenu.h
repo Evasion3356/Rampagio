@@ -606,6 +606,7 @@ class MenuController
 	string	m_statusText;
 	DWORD	m_statusTextMaxTicks;
 	bool	m_reopenPending = false;
+	bool	m_inputBlocked = false;
 
 	void InputWait(int ms)		{	m_inputTurnOnTime = GetTickCount() + ms; }
 	bool InputIsOnWait()		{	return m_inputTurnOnTime > GetTickCount(); }
@@ -650,7 +651,7 @@ public:
 	}
 	void OnInput()
 	{
-		if (InputIsOnWait())
+		if (InputIsOnWait() || m_inputBlocked)
 			return;
 		if (auto menu = GetActiveMenu())
 			if (int waitTime = menu->OnInput())
@@ -665,6 +666,9 @@ public:
 	// a row can ask for its own list to refresh without deleting itself
 	// mid-call.
 	void ReopenActiveLater()		{	m_reopenPending = true; }
+	// Rampagio addition: the menu ignores input while a hotkey is being
+	// bound (Settings.cpp), so the keys and buttons only go to the binding.
+	void BlockInput(bool blocked)	{	m_inputBlocked = blocked; }
 	void Update()
 	{
 		OnDraw();
