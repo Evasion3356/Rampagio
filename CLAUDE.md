@@ -331,10 +331,14 @@ and live checklist in `docs/HOTKEYS_PLAN.md`, built 2026-10-09, untested).
   the source (rows with literal captions only).
 - `src/data/Dreamcatchers.inc`: the 20 dreamcatcher coordinates, generated
   by `tools/extract_collectibles.py` from `discoverable_generic_location`.
-  Cigarette cards, dino bones and rock carvings need no data file: the
+  Cigarette cards and rock carvings need no data file: the
   menu reads the game's collectable categories (`CIGARETTE_CARDS`,
   `dino_bones`, `rock_carvings`) and `_COLLECTABLE_GET_PLACEMENT_LOCATION`
-  at runtime. Card models are `s_inv_cigcard_<set>_<NN>x` (set codes in
+  at runtime. Dino bones have no placement location; their positions are
+  the `WB_DINO_BONES` scenario points in `chests_*.ymt` (radius = item
+  index), in `src/data/DinoBones.inc` from `tools/extract_dino_bones.py`
+  (25 of 30; 5 records read as zero, see its docstring). Rampage's own
+  dino bone table is mostly wilderness chests and rock carvings. Card models are `s_inv_cigcard_<set>_<NN>x` (set codes in
   `src/menus/Collectibles.cpp`). The user's earlier probe
   `..\CigCardTest` documents the card tracking layers (found, turned in,
   inventory).

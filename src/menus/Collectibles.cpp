@@ -8,7 +8,10 @@
 	(the same natives the rcm_collect_*, dino_bones and rock_carvings
 	scripts use); their locations come from
 	_COLLECTABLE_GET_PLACEMENT_LOCATION, which rock_carvings reads for its
-	own placement. Dreamcatchers aren't a collectable category:
+	own placement. Dino bones have none: dino_bones starts from a
+	WB_DINO_BONES scenario point and picks its item by the point's radius,
+	so their locations are those points (DinoBones.inc, by item index).
+	Dreamcatchers aren't a collectable category:
 	discoverable_generic_location keeps their coordinates in a script
 	function (extracted to Dreamcatchers.inc) and marks each found in a
 	bit of Global_40.f_8863.f_148.
@@ -42,6 +45,7 @@
 
 #include <algorithm>
 #include <format>
+#include <span>
 
 namespace
 {
@@ -164,7 +168,14 @@ namespace
 		return COLLECTABLE::_COLLECTABLE_GET_NUM_FOUND(item) > 0 || COLLECTABLE::_COLLECTABLE_GET_NUM_TURNED_IN(item) > 0;
 	}
 
-	std::vector<Collectable> CategoryItems(Hash category)
+	// Locations by item index for categories whose items have no placement
+	// location (tools/extract_dino_bones.py).
+	const Vector3 kDinoBones[] = {
+#include "..\data\DinoBones.inc"
+	};
+
+	// fallback: used for item i when the game has no placement location.
+	std::vector<Collectable> CategoryItems(Hash category, std::span<const Vector3> fallback = {})
 	{
 		std::vector<Collectable> items;
 		const int count = COLLECTABLE::_COLLECTABLE_CATEGORY_GET_NUM_COLLECTABLES(category, 0);
@@ -173,8 +184,10 @@ namespace
 			const Hash item = COLLECTABLE::_COLLECTABLE_GET_COLLECTABLE_ITEM_HASH(i, category, 0);
 			if (item == 0)
 				continue;
-			items.push_back({ item, COLLECTABLE::_COLLECTABLE_GET_SUBCATEGORY(item),
-				COLLECTABLE::_COLLECTABLE_GET_PLACEMENT_LOCATION(item), CollectableFound(item) });
+			Vector3 at = COLLECTABLE::_COLLECTABLE_GET_PLACEMENT_LOCATION(item);
+			if (at.x == 0.0f && at.y == 0.0f && at.z == 0.0f && i < static_cast<int>(fallback.size()))
+				at = fallback[i];
+			items.push_back({ item, COLLECTABLE::_COLLECTABLE_GET_SUBCATEGORY(item), at, CollectableFound(item) });
 		}
 		return items;
 	}
@@ -229,6 +242,7 @@ namespace
 		Hash hashes[2];        // the category; a second candidate where unsure
 		Naming naming = Naming::Numbered;
 		bool tracksFound = true; // false for things that respawn (herbs)
+		std::span<const Vector3> locations = {}; // by item index, where the game has none
 		BlipSet blips;
 
 		// The first candidate the game has items for.
@@ -243,7 +257,7 @@ namespace
 		std::vector<Spot> Spots() const
 		{
 			std::vector<Spot> spots;
-			for (const Collectable& c : CategoryItems(Resolve()))
+			for (const Collectable& c : CategoryItems(Resolve(), locations))
 				spots.push_back({ c.location, tracksFound && c.found });
 			return spots;
 		}
@@ -252,11 +266,11 @@ namespace
 	// Category hashes from the 1491.50 scripts (docs/COLLECTIBLES_AND_ITEMS_PLAN.md).
 	// The Joaat calls get their own lines: tools/lang_sync.py skips lines
 	// with one, which would hide the captions.
-	// Only dino bones and rock carvings are known to have placement
-	// locations; the others are untested (rows without one say so).
+	// Only rock carvings are known to have placement locations; dino bones
+	// use kDinoBones, the others are untested (rows without one say so).
 	Category g_categories[] = {
 		{ "Dino Bones", "dino_bones", "Dino Bone",
-			{ GameUtil::Joaat("dino_bones") } },
+			{ GameUtil::Joaat("dino_bones") }, Naming::Numbered, true, kDinoBones },
 		{ "Rock Carvings", "rock_carvings", "Rock Carving",
 			{ GameUtil::Joaat("rock_carvings") } },
 		// rare_fish.ysc's -940661134; its items are legendary_fishing_spot_NN.
@@ -305,7 +319,7 @@ namespace
 			[c, source](bool on) { c->blips.Set(on, source, c->singular); },
 			[c, source] { c->blips.Refresh(source, c->singular); });
 		Ui::ListMenu(menu, "Locations", [c](MenuBase* list) {
-			const std::vector<Collectable> items = CategoryItems(c->Resolve());
+			const std::vector<Collectable> items = CategoryItems(c->Resolve(), c->locations);
 			if (items.empty())
 			{
 				Ui::Section(list, "The game has none of these");
