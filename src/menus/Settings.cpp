@@ -3,8 +3,8 @@
 	submenus that have a Rampagio counterpart: SubSettingsCore,
 	SubSettingsLoadSave, SubSettingsColor with SubSettingsPremadeThemes and
 	SubSettingsCustomThemes, SubOverlaySettings, SubSettingsXUI's Max
-	Display Options, Invert Colors, Centered Title, Smooth Scroller and
-	Scroll Smoothness, plus Search and the Hotkey Manager. The About page is
+	Display Options, Invert Colors, Centered Title, Smooth Scroller,
+	Scroll Smoothness, Ink Rendering and Spawner Previews (Previews.h), plus Search and the Hotkey Manager. The About page is
 	Rampagio's own (SubAbout).
 
 	Saved data is all in Rampagio.json (src/core/settings): this file owns
@@ -18,7 +18,7 @@
 	are our own presets, not Rampage's 26.
 
 	Not ported: Rampage's plugins, language files, ImGui windows (Window
-	Manager), fonts, teleport map and spawner previews, welcome/ToS/update
+	Manager), fonts, teleport map, welcome/ToS/update
 	screens and mouse control (still to come, see CLAUDE.md).
 */
 
@@ -135,6 +135,8 @@ namespace
 			j["smoothScroll"] = style.smoothScroll;
 			j["scrollSmoothness"] = style.scrollSmoothness;
 			j["mouse"] = style.mouse;
+			j["inkRendering"] = style.inkRendering;
+			j["spawnerPreviews"] = style.spawnerPreviews;
 		}
 		void LoadStateImpl(nlohmann::json& j) override
 		{
@@ -153,6 +155,8 @@ namespace
 			ReadValue(j, "smoothScroll", style.smoothScroll);
 			ReadValue(j, "scrollSmoothness", style.scrollSmoothness);
 			ReadValue(j, "mouse", style.mouse);
+			ReadValue(j, "inkRendering", style.inkRendering);
+			ReadValue(j, "spawnerPreviews", style.spawnerPreviews);
 			if (auto it = j.find("title"); it != j.end() && it->is_string())
 				style.title = it->get<std::string>();
 			style.titleFont = std::clamp(style.titleFont, 0, static_cast<int>(std::size(kTitleFonts)) - 1);
@@ -324,12 +328,16 @@ namespace
 		MenuItemToggle* centered = Ui::Toggle(theme, "Centered Title", [](bool on) { Style().centeredTitle = on; StyleChanged(); });
 		MenuItemToggle* smooth = Ui::Toggle(theme, "Smooth Scroller", [](bool on) { Style().smoothScroll = on; StyleChanged(); });
 		Ui::Number(theme, "Scroll Smoothness", &Style().scrollSmoothness, 1, 20, 1, StyleChanged);
+		MenuItemToggle* ink = Ui::Toggle(theme, "Ink Rendering", [](bool on) { Style().inkRendering = on; StyleChanged(); });
+		MenuItemToggle* previews = Ui::Toggle(theme, "Spawner Previews", [](bool on) { Style().spawnerPreviews = on; StyleChanged(); });
 		// The style loads after the menus are built: show its values on open.
-		theme->SetOnOpen([invert, centered, smooth](MenuBase*)
+		theme->SetOnOpen([invert, centered, smooth, ink, previews](MenuBase*)
 		{
 			invert->SetState(Style().invertColors);
 			centered->SetState(Style().centeredTitle);
 			smooth->SetState(Style().smoothScroll);
+			ink->SetState(Style().inkRendering);
+			previews->SetState(Style().spawnerPreviews);
 		});
 	}
 

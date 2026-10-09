@@ -255,6 +255,8 @@ namespace
 				Ui::Action(m, n, [n] { return SpawnHorse(n); });
 			else
 				Ui::Action(m, n, [n] { return SpawnPed(n); });
+			if (horses || n.starts_with("a_c_") || n.starts_with("A_C_"))
+				Ui::Preview(m, GameUtil::Joaat(n));
 		}
 	}
 
@@ -271,6 +273,7 @@ namespace
 			const bool killed = zone >= 0 && Legendaries::Killed(zone);
 			Ui::Action(m, killed ? l.label + std::string(Tr(" ~COLOR_RED~(Killed)")) : std::string(l.label),
 				[model, preset] { return SpawnPed(model, preset); });
+			Ui::Preview(m, GameUtil::Joaat(model), preset);
 		}
 	}
 

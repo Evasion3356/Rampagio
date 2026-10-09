@@ -16,6 +16,7 @@
     <ClCompile Include="src\keyboard.cpp" />
     <ClCompile Include="src\KeyNames.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Previews.cpp" />
     <ClCompile Include="src\script.cpp" />
     <ClCompile Include="src\scriptmenu.cpp" />
     <ClCompile Include="src\PatternScan.cpp" />
@@ -62,6 +63,7 @@
     <ClInclude Include="external\ScriptHookSDK\inc\types.h" />
     <ClInclude Include="src\keyboard.h" />
     <ClInclude Include="src\KeyNames.h" />
+    <ClInclude Include="src\Previews.h" />
     <ClInclude Include="src\script.h" />
     <ClInclude Include="src\scriptmenu.h" />
     <ClInclude Include="src\Log.h" />

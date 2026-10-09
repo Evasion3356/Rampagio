@@ -275,6 +275,12 @@ namespace Ui
 			items.back()->SetDescription(std::move(text));
 	}
 
+	void Preview(MenuBase* menu, Hash model, int variant)
+	{
+		if (const auto& items = menu->GetItems(); !items.empty())
+			items.back()->SetPreview(model, variant);
+	}
+
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange)
 	{
 		menu->AddItem(new MenuItemActionStatus(

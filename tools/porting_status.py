@@ -126,7 +126,7 @@ STATUS = {
  'SubSettingsColor':('Done','Settings > Theme: eight colors, Main Font and Body Font (the faces of Rampage), Menu Title, menu position and Max Display Options'),
  'SubSettingsPremadeThemes':('Done','Settings > Theme > Premade Themes: our own seven presets (Rampage has 26 of its own)'),
  'SubSettingsCustomThemes':('Done','Settings > Theme > Custom Themes: the themes component of Rampagio.json'),
- 'SubSettingsXUI':('Partial','Settings > Theme: Max Display Options, Invert Colors and Centered Title; Teleport Map, Spawner Previews and Ink Rendering are overlay windows that wait for the ImGui overlay (with the tabled Window Manager)'),
+ 'SubSettingsXUI':('Partial','Settings > Theme: Max Display Options, Invert Colors, Centered Title, Ink Rendering (menu boxes drawn with the compendium texture) and Spawner Previews (compendium pictures beside the Ped Spawner's animal, fish and horse rows); Teleport Map not ported yet; Window Manager is tabled'),
  'SubScriptTools':('Done','Debug > Script Monitor (ImGui, ours): its Script Monitor, Script Patcher, Script Loader (Start Script, stack size preselected from the table of Rampage), Script Terminator (Kill / Kill all) and Force Cleanup All Scripts (flags the scripts check, not only 0x800)'),
  'SubScriptPatcher':('Done','Debug > Script Monitor > Functions: hooks named func_N or by Position, argument and return counts read from the bytecode (ours)'),
  'SubScriptEditor':('Done','Debug > Script Monitor > Thread: Restart, Kill / Kill all, Force Cleanup defaulting to the flags the script checks (ours; Rampage passes 0x800, which 9 scripts check), plus Pause/Resume (ours)'),

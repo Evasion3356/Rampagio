@@ -35,6 +35,7 @@
 
 #include "scriptmenu.h"
 #include "Descriptions.h"
+#include "Previews.h"
 #include "Localization.h"
 #include "PatternScan.h"
 #include "core\commands\Command.h"
@@ -147,10 +148,23 @@ namespace
 		return n;
 	}
 
-	// A box centered at x, y, as Rampage draws its menu boxes.
+	// A box centered at x, y, as Rampage draws its menu boxes. Settings >
+	// Theme > Ink Rendering draws the compendium's photo background tinted
+	// with the color instead, as Rampage's does (a flat box until the
+	// dictionary has loaded).
 	void DrawBox(float x, float y, float width, float height, ColorRgba color)
 	{
 		color = Shown(color);
+		constexpr const char* kInkDict = "pausemenu_compendium";
+		if (Style().inkRendering)
+		{
+			if (TXD::HAS_STREAMED_TEXTURE_DICT_LOADED(kInkDict))
+			{
+				GRAPHICS::DRAW_SPRITE(kInkDict, "compendium_photo_bg", x, y, width, height, 0.0f, color.r, color.g, color.b, color.a, FALSE);
+				return;
+			}
+			TXD::REQUEST_STREAMED_TEXTURE_DICT(kInkDict, FALSE);
+		}
 		GRAPHICS::DRAW_RECT(x, y, width, height, color.r, color.g, color.b, color.a, FALSE, TRUE);
 	}
 }
@@ -609,6 +623,15 @@ void MenuBase::OnDraw()
 			for (size_t i = 0; i < s_lines.size(); i++)
 				DrawMenuText(s_lines[i], x + 0.004f, boxTop + 0.001f + static_cast<float>(i) * 0.02f, kDescriptionScale, style.text);
 		}
+	}
+
+	// Settings > Theme > Spawner Previews: the selected row's picture
+	// beside the menu.
+	if (count && style.spawnerPreviews)
+	{
+		MenuItemBase* active = m_items[m_activeIndex];
+		if (const unsigned int model = active->GetPreviewModel())
+			Previews::Draw(model, active->GetPreviewVariant(), Tr(active->GetCaption()));
 	}
 }
 

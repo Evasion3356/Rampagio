@@ -81,6 +81,10 @@ namespace Ui
 	// is selected (lines split by '\n'), for rows the description tables
 	// (src/Descriptions.h) don't cover.
 	void Describe(MenuBase* menu, std::string text);
+	// Sets the model whose picture Settings > Theme > Spawner Previews shows
+	// while the row last added to `menu` is selected (Previews.h); variant
+	// is its outfit preset, -1 for any.
+	void Preview(MenuBase* menu, Hash model, int variant = -1);
 	// Shows "caption: *value" ("Not set" while empty); selecting it opens the
 	// on-screen keyboard on the current value. onChange runs after an edit.
 	void Text(MenuBase* menu, const std::string& caption, std::string* value, std::function<void()> onChange = nullptr);
