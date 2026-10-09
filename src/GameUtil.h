@@ -102,10 +102,15 @@ namespace GameUtil
 	// The inventory's root "character" GUID, the parent of everything in it.
 	ItemGuid CharacterGuid(int inventoryId);
 
-	// Adds `quantity` of `item` the way the game's scripts do by default
-	// (flow_controller's add path, as worked out in CigCardTest): satchel,
-	// else wardrobe, else the item's default slot under the character.
-	// On failure `error` says why.
+	// The singleplayer inventory the game is using: the backup one while
+	// it's active, else kInventorySp.
+	int ActiveSpInventory();
+
+	// Adds `quantity` of `item` to ActiveSpInventory() the way the game's
+	// scripts do (flow_controller func_698's slot choice): upgrades in the
+	// upgrade slot or under the wardrobe, else satchel, wardrobe, currency
+	// or the item's default slot under the character. Logs the attempt and
+	// checks the item count rose. On failure `error` says why.
 	bool AddInventoryItem(Hash item, int quantity, std::string& error);
 
 	// Adds `quantity` of `item` through the game's own add function,
@@ -114,6 +119,11 @@ namespace GameUtil
 	// document on the twelfth card and the journal's progress. False if the
 	// call couldn't run (logged).
 	bool AddInventoryItemViaScript(Hash item, int quantity);
+
+	// The game's own pickup toast for `quantity` of `item` (flow_controller
+	// func_610), which AddInventoryItem doesn't show. False if the call
+	// couldn't run (logged).
+	bool ShowItemToast(Hash item, int quantity);
 
 	// An item's name in the game's current language: the item hash is
 	// also its text label. `fallback` if the game has no text for it.

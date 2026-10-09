@@ -345,6 +345,7 @@ namespace
 		std::string error;
 		if (!GameUtil::AddInventoryItem(item, amount, error))
 			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+		GameUtil::ShowItemToast(item, amount);
 		return TrFormat("Added {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
 	}
 
@@ -523,19 +524,14 @@ namespace
 		{ "ci_category_ingredient", "Ingredients" },
 		{ "ci_category_watch", "Watches" },
 	};
-	const ItemGroup kHorseEquipmentGroups[] = {
-		{ "ci_category_horse_saddle", "Saddles" },
-		{ "ci_category_horse_blanket", "Blankets" },
-		{ "ci_category_horse_horn", "Horns" },
-		{ "ci_category_horse_saddlebag", "Saddlebags" },
-		{ "ci_category_horse_stirrup", "Stirrups" },
-		{ "ci_category_horse_bedroll", "Bedrolls" },
-		{ "ci_category_horse_mane", "Manes" },
-		{ "ci_category_horse_tail", "Tails" },
-	};
 
 	// The types Give Items lists, in menu order. Clothing, weapons and
-	// horses are left to the Wardrobe, Weapon and Spawner menus.
+	// horses are left to the Wardrobe, Weapon and Spawner menus. Left out
+	// as not giveable here: horse equipment (its parent is a horse, the
+	// game refuses it under the character), weapon mods and decorations
+	// (per weapon, nothing says which), core_item (the inventory's own
+	// containers), money (debts and Online cash), advert (no names) and
+	// other (Online currencies: gold bars, nuggets).
 	struct ItemType { const char* type; const char* caption; std::span<const ItemGroup> groups = {}; };
 	const ItemType kItemTypes[] = {
 		{ "consumable", "Consumables", kConsumableGroups },
@@ -544,13 +540,6 @@ namespace
 		{ "ammo", "Ammo" },
 		{ "kit", "Kits" },
 		{ "upgrade", "Upgrades" },
-		{ "core_item", "Core Items" },
-		{ "horse_equipment", "Horse Equipment", kHorseEquipmentGroups },
-		{ "weapon_mod", "Weapon Mods" },
-		{ "weapon_decoration", "Weapon Decorations" },
-		{ "money", "Money Items" },
-		{ "advert", "Adverts" },
-		{ "other", "Other" },
 	};
 
 	bool Giveable(const CatalogItem& item)
@@ -577,21 +566,30 @@ namespace
 		const Hash item = entry.key;
 		if (g_giveMethod == 1)
 		{
+			const int inventory = GameUtil::ActiveSpInventory();
+			const int before = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
 			if (!GameUtil::AddInventoryItemViaScript(item, g_giveAmount))
 				return "flow_controller call failed (see log)";
-			return "";
+			const int after = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
+			Log::Write("[Inventory] Script add {:#x} x{} to inventory {}: count {} -> {}", item, g_giveAmount, inventory, before, after);
+			if (after <= before)
+				return TrFormat("~COLOR_RED~Error:~s~ {}", Tr("The game accepted the item but it isn't in the inventory"));
 		}
-		std::string error;
-		if (!GameUtil::AddInventoryItem(item, g_giveAmount, error))
-			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+		else
+		{
+			std::string error;
+			if (!GameUtil::AddInventoryItem(item, g_giveAmount, error))
+				return TrFormat("~COLOR_RED~Error:~s~ {}", Tr(error));
+			GameUtil::ShowItemToast(item, g_giveAmount);
+		}
 		return TrFormat("Added {}x {}", g_giveAmount, GameUtil::ItemName(item, CatalogFallback(entry)));
 	}
 
-	// One row per item the item database knows, sorted by the name shown;
-	// items the game has no text for go last, under their internal name.
+	// One row per item the item database knows and the game has a name
+	// for, sorted by that name. Unnamed items are internal or Online-only.
 	void AddItemRows(MenuBase* list, const std::vector<const CatalogItem*>& items)
 	{
-		struct Row { std::string caption; bool named; const CatalogItem* item; };
+		struct Row { std::string caption; const CatalogItem* item; };
 		std::vector<Row> rows;
 		rows.reserve(items.size());
 		for (const CatalogItem* item : items)
@@ -599,14 +597,10 @@ namespace
 			if (!ItemValid(item->key))
 				continue;
 			std::string shown = GameUtil::ItemName(item->key, "");
-			const bool named = !shown.empty();
-			rows.push_back({ named ? std::move(shown) : CatalogFallback(*item), named, item });
+			if (!shown.empty())
+				rows.push_back({ std::move(shown), item });
 		}
-		std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
-			if (a.named != b.named)
-				return a.named;
-			return a.caption < b.caption;
-		});
+		std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) { return a.caption < b.caption; });
 		for (const Row& row : rows)
 		{
 			const CatalogItem* item = row.item;

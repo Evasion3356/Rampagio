@@ -239,6 +239,15 @@ scripts. A later Windows session built it: it compiles clean with MSVC
   their internal name or hex hash. Search matches game and internal
   names. Horse equipment and weapon mods/decorations are included because
   no other menu gives them as inventory items.
+- B2 revised (2026-10-09, after the user's first live look): the native add
+  put upgrades in the wrong slot, horse equipment needs a horse as parent,
+  and many lists were unnamed hashes or Online items. Give Items now lists
+  only Consumables, Provisions, Documents, Ammo, Kits and Upgrades, and
+  only items the game has a name for. `AddInventoryItem` picks the slot by
+  item type (SLOTID_UPGRADE or under the wardrobe for upgrades, as Rampage
+  does), uses the backup inventory while the game does, logs each add and
+  fails unless the item count rose. Live report: Aged Pirate Rum was
+  accepted but never showed in the satchel; cause not yet known.
 - B3: `ItemNames.inc`, `extract_items.py` and `catalog_dump.py` are gone;
   only Give Items used the list.
 - B4 (2026-10-09): 181 of the 291 `ci_category_*` hashes are named in

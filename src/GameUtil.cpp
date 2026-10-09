@@ -1,5 +1,6 @@
 #include "GameUtil.h"
 #include "Localization.h"
+#include "Log.h"
 #include "ScriptFunction.h"
 
 #include <algorithm>
@@ -168,6 +169,28 @@ namespace GameUtil
 		return std::string(name);
 	}
 
+	int ActiveSpInventory()
+	{
+		// flow_controller func_738: the backup inventory while the game uses it.
+		return INVENTORY::_INVENTORY_IS_USING_BACKUP_INVENTORY() ? kInventorySpBackup : kInventorySp;
+	}
+
+	namespace
+	{
+		// The item's GUID under `parent` in `slotId`.
+		ItemGuid ChildGuid(int inventoryId, ItemGuid parent, Hash item, Hash slotId)
+		{
+			ItemGuid child;
+			INVENTORY::INVENTORY_GET_GUID_FROM_ITEMID(inventoryId, parent.Ptr(), item, slotId, child.Ptr());
+			return child;
+		}
+
+		void SetParent(SlotGuid& slot, const ItemGuid& parent)
+		{
+			std::copy(std::begin(parent.w), std::end(parent.w), slot.w);
+		}
+	}
+
 	bool AddInventoryItem(Hash item, int quantity, std::string& error)
 	{
 		if (item == 0 || !ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item, 0))
@@ -175,32 +198,65 @@ namespace GameUtil
 			error = "Item is invalid";
 			return false;
 		}
+		const int inventory = ActiveSpInventory();
 
-		// Parent: the character, in the first slot the item fits.
+		// The item's type (ITEMDATABASE_FILLOUT_ITEM_INFO's f_2) picks the
+		// parent and slot, as flow_controller func_698 and Rampage do.
+		std::uint64_t info[8] = {};
+		const Hash type = ITEMDATABASE::ITEMDATABASE_FILLOUT_ITEM_INFO(item, reinterpret_cast<Any*>(info))
+			? static_cast<Hash>(info[2]) : 0;
+
+		const ItemGuid character = CharacterGuid(inventory);
 		SlotGuid slot;
-		const ItemGuid character = CharacterGuid(kInventorySp);
-		std::copy(std::begin(character.w), std::end(character.w), slot.w);
-		if (INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_SATCHEL")))
+		SetParent(slot, character);
+		// Under the wardrobe item, in the item's default slot there.
+		auto underWardrobe = [&] {
+			SetParent(slot, ChildGuid(inventory, character, Joaat("WARDROBE"), Joaat("SLOTID_WARDROBE")));
+			slot.w[4] = INVENTORY::_GET_DEFAULT_ITEM_SLOT_INFO(item, Joaat("WARDROBE"));
+		};
+		if (type == Joaat("UPGRADE"))
+		{
+			if (INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_UPGRADE")))
+				slot.w[4] = Joaat("SLOTID_UPGRADE");
+			else
+				underWardrobe();
+		}
+		else if (type == Joaat("CLOTHING") && !INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_WARDROBE")))
+			underWardrobe();
+		else if (INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_SATCHEL")))
 			slot.w[4] = Joaat("SLOTID_SATCHEL");
 		else if (INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_WARDROBE")))
 			slot.w[4] = Joaat("SLOTID_WARDROBE");
+		else if (INVENTORY::_INVENTORY_FITS_SLOT_ID(item, Joaat("SLOTID_CURRENCY")))
+			slot.w[4] = Joaat("SLOTID_CURRENCY");
 		else
 			slot.w[4] = INVENTORY::_GET_DEFAULT_ITEM_SLOT_INFO(item, Joaat("character"));
 		if (!INVENTORY::_INVENTORY_IS_GUID_VALID(slot.Ptr()))
 		{
+			Log::Write("[Inventory] {:#x} (type {:#x}): no valid parent GUID in inventory {}", item, type, inventory);
 			error = "Couldn't build the slot GUID";
 			return false;
 		}
 
 		// The item's own GUID within that slot.
 		ItemGuid itemGuid;
-		INVENTORY::INVENTORY_GET_GUID_FROM_ITEMID(kInventorySp, slot.Ptr(), item, slot.Slot(), itemGuid.Ptr());
+		INVENTORY::INVENTORY_GET_GUID_FROM_ITEMID(inventory, slot.Ptr(), item, slot.Slot(), itemGuid.Ptr());
 
+		const int before = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
 		// The reason the game's scripts pass with their own grants.
 		constexpr Hash kAddReason = 752097756;
-		if (!INVENTORY::_INVENTORY_ADD_ITEM_WITH_GUID(kInventorySp, itemGuid.Ptr(), slot.Ptr(), item, slot.Slot(), quantity, kAddReason))
+		const bool added = INVENTORY::_INVENTORY_ADD_ITEM_WITH_GUID(inventory, itemGuid.Ptr(), slot.Ptr(), item, slot.Slot(), quantity, kAddReason) != FALSE;
+		const int after = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
+		Log::Write("[Inventory] Add {:#x} x{} (type {:#x}) to inventory {}, slot {:#x}: {} (count {} -> {})",
+			item, quantity, type, inventory, slot.Slot(), added ? "accepted" : "refused", before, after);
+		if (!added)
 		{
 			error = "The game refused the item";
+			return false;
+		}
+		if (after <= before)
+		{
+			error = "The game accepted the item but it isn't in the inventory";
 			return false;
 		}
 		return true;
@@ -219,5 +275,19 @@ namespace GameUtil
 		// The reason the game's scripts pass with their own grants.
 		constexpr Hash kAddReason = 752097756;
 		return g_addItemScript.Call(item, quantity, FALSE, FALSE, FALSE, kAddReason, 0, 0, 0, FALSE);
+	}
+
+	// flow_controller func_610(item, quantity, bRead, bReason, b4): the
+	// item pickup toast ("ITEM_GET_PUMP": icon, name, count, sound) that
+	// func_290 shows after an add. Position 0x158B4.
+	namespace
+	{
+		ScriptFunction g_itemToastScript("flow_controller",
+			"22 05 17 00 00 66 00 37 FC 84 1C 63 15 03 00 50 05 00 66 00 2F 39 ? ? ? 05 8B 03 00 50 05 00 66 00 37 53 4F BC 6B 15");
+	}
+
+	bool ShowItemToast(Hash item, int quantity)
+	{
+		return g_itemToastScript.Call(item, quantity, FALSE, FALSE, FALSE);
 	}
 }
