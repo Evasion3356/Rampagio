@@ -190,6 +190,12 @@ namespace
 		return !image.Contains(handler);
 	}
 
+	// The readers and the pass are templates on the pass copy N (Tick 0,
+	// TickAlt 1), so each copy is separate code, and each reader latches
+	// the moment it sees online, without waiting for the pass's verdict.
+	using OnlineGuard::detail::Latch;
+
+	template <int N>
 	void ReadThreads(const GamePointers::Pointers* p, Raw& r)
 	{
 		const rage::joaat_t netMainOnline = rage::Joaat("net_main_online");
@@ -207,8 +213,11 @@ namespace
 			}
 		}
 		r.threadsOk = true;
+		if (r.netMainThread || r.componentThreads > 0)
+			Latch<N>();
 	}
 
+	template <int N>
 	void ReadPed(const GamePointers::Pointers* p, Raw& r)
 	{
 		if (!p->GetLocalPed)
@@ -219,8 +228,11 @@ namespace
 		// CDynamicEntity::m_NetObject
 		r.pedNetObject = *reinterpret_cast<void**>(ped + 0xE0) != nullptr;
 		r.pedOk = true;
+		if (r.pedNetObject)
+			Latch<N>();
 	}
 
+	template <int N>
 	void ReadManagers(const GamePointers::Pointers* p, Raw& r)
 	{
 		if (p->NetworkPlayerMgr)
@@ -236,16 +248,22 @@ namespace
 			// Not "count > 1": solo and invite-only sessions are online too.
 			r.playerMgrSession = r.localPlayer && r.playerCount >= 1;
 			r.playerMgrOk = true;
+			if (r.playerMgrSession)
+				Latch<N>();
 		}
 		if (p->IsSessionStarted)
 		{
 			r.sessionStarted = *p->IsSessionStarted;
 			r.sessionFlagOk = true;
+			if (r.sessionStarted)
+				Latch<N>();
 		}
 		if (p->NetworkObjectMgr)
 		{
 			r.objectMgr = *p->NetworkObjectMgr;
 			r.objectMgrOk = true;
+			if (r.objectMgr)
+				Latch<N>();
 		}
 		if (p->ScriptGlobals)
 		{
@@ -255,9 +273,12 @@ namespace
 					r.blockMask |= 1ull << i;
 			}
 			r.globalsOk = true;
+			if (r.blockMask & kOnlineBlockMask)
+				Latch<N>();
 		}
 	}
 
+	template <int N>
 	void ReadHandlers(const GamePointers::Pointers* p, const ImageRange& image, Raw& r)
 	{
 		if (!p->GetNativeHandler)
@@ -271,6 +292,7 @@ namespace
 			if (!handler || IsHooked(handler, image))
 			{
 				r.hookedHandler = i;
+				Latch<N>();
 				break;
 			}
 		}
@@ -279,16 +301,65 @@ namespace
 
 	// Each part is guarded on its own, so one faulting read only leaves its
 	// own signals unknown. No C++ objects with destructors in here (SEH).
+	template <int N>
 	void ReadRaw(const GamePointers::Pointers* p, const ImageRange& image, Raw& r)
 	{
-		__try { ReadThreads(p, r); }
+		__try { ReadThreads<N>(p, r); }
 		__except (EXCEPTION_EXECUTE_HANDLER) { r.threadsOk = false; }
-		__try { ReadPed(p, r); }
+		__try { ReadPed<N>(p, r); }
 		__except (EXCEPTION_EXECUTE_HANDLER) { r.pedOk = false; }
-		__try { ReadManagers(p, r); }
+		__try { ReadManagers<N>(p, r); }
 		__except (EXCEPTION_EXECUTE_HANDLER) { r.playerMgrOk = r.sessionFlagOk = r.objectMgrOk = r.globalsOk = false; }
-		__try { ReadHandlers(p, image, r); }
-		__except (EXCEPTION_EXECUTE_HANDLER) { r.handlersOk = true; r.hookedHandler = 0; }
+		__try { ReadHandlers<N>(p, image, r); }
+		__except (EXCEPTION_EXECUTE_HANDLER) { r.handlersOk = true; r.hookedHandler = 0; Latch<N>(); }
+	}
+
+	// Draws the per-run token (OnlineGuard.h) at load, before anything can
+	// read IsOnline: until then the zeroed state reads online.
+	bool InitState()
+	{
+		using namespace OnlineGuard::detail;
+		std::uint64_t seed = __rdtsc() ^ (static_cast<std::uint64_t>(GetCurrentProcessId()) << 32) ^ reinterpret_cast<std::uintptr_t>(&seed);
+		for (;;)
+		{
+			// splitmix64
+			seed += 0x9E3779B97F4A7C15;
+			std::uint64_t z = seed;
+			z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
+			z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
+			z ^= z >> 31;
+			g_key.store(z, std::memory_order_relaxed);
+			bool usable = z != 0;
+			for (int i = 0; i < kStateCopies + kQuickSlots; i++)
+				usable = usable && Expected(i) != 0;
+			if (usable)
+				break;
+		}
+		for (int i = 0; i < kStateCopies; i++)
+			g_state[i].store(Expected(i), std::memory_order_relaxed);
+		// Encoded nulls: the slots sit out until the pointers resolve.
+		for (int j = 0; j < kQuickSlots; j++)
+			g_quick[j].store(Expected(kStateCopies + j), std::memory_order_relaxed);
+		return true;
+	}
+	[[maybe_unused]] const bool g_stateReady = InitState();
+
+	// Hands the read sites the two addresses they check themselves, once.
+	// They're taken from GamePointers only here, so nulling those later
+	// changes nothing.
+	void PublishQuickSlots(const GamePointers::Pointers* p)
+	{
+		using namespace OnlineGuard::detail;
+		static bool published = false;
+		if (published)
+			return;
+		published = true;
+		const std::uintptr_t addresses[kQuickSlots] = {
+			reinterpret_cast<std::uintptr_t>(p->IsSessionStarted),
+			reinterpret_cast<std::uintptr_t>(p->NetworkObjectMgr),
+		};
+		for (int j = 0; j < kQuickSlots; j++)
+			g_quick[j].store(addresses[j] ^ Expected(kStateCopies + j), std::memory_order_relaxed);
 	}
 
 	// Signal 7: set from the network thread.
@@ -303,7 +374,7 @@ namespace
 	{
 		g_netMessages.fetch_add(1, std::memory_order_relaxed);
 		g_sawNetTraffic.store(true, std::memory_order_relaxed);
-		OnlineGuard::detail::g_latched.store(true, std::memory_order_relaxed);
+		Latch();
 		return g_receiveOriginal(a1, connectionMgr, frame);
 	}
 
@@ -428,21 +499,10 @@ namespace
 			Log::Write("OnlineGuard: signal \"{}\" sits out (no online-only blocks known yet)", kSignalNames[kGlobalBlocks]);
 	}
 
-	// One pass over every signal.
-	void RunPass()
+	// Logs copy 0's pass: every reading the first time, then each change,
+	// the cross-check (signal 9) and the switch to online.
+	void LogPass(const Raw& raw, bool nativeOnline)
 	{
-		static const ImageRange image = MainImage();
-		const GamePointers::Pointers* p = GamePointers::Get();
-		LogUnresolvedOnce(p);
-
-		Raw raw{};
-		raw.hookedHandler = -1;
-		if (p)
-		{
-			InstallNetHook(p);
-			ReadRaw(p, image, raw);
-		}
-		const bool nativeOnline = NETWORK::NETWORK_IS_SCRIPT_ACTIVE_BY_HASH(rage::Joaat("net_main_online"), -1, FALSE, 0) != FALSE;
 		const Readings s = Evaluate(raw, nativeOnline);
 
 		// Every change is logged: in story mode nothing should ever change.
@@ -462,14 +522,10 @@ namespace
 		g_last = s;
 		g_haveLast = true;
 
-		bool online = false;
 		bool memoryOnline = false;
 		for (int i = 0; i < kSignalCount; i++)
 		{
-			if (s[i] != Reading::Online)
-				continue;
-			online = true;
-			if (IsMemorySignal(i))
+			if (s[i] == Reading::Online && IsMemorySignal(i))
 				memoryOnline = true;
 		}
 
@@ -485,10 +541,7 @@ namespace
 			Log::Write("OnlineGuard: a session native is hooked, so the session is treated as online");
 		}
 
-		if (online)
-			OnlineGuard::detail::g_latched.store(true, std::memory_order_relaxed);
-
-		if (OnlineGuard::Latched() && !g_reportedSwitch)
+		if (OnlineGuard::IsOnline() && !g_reportedSwitch)
 		{
 			g_reportedSwitch = true;
 			std::string fired;
@@ -500,6 +553,30 @@ namespace
 			Log::Write("OnlineGuard: online (latched for the session). Signals: {}", fired.empty() ? "none yet" : fired);
 			LogDetails(raw);
 		}
+	}
+
+	// One pass over every signal. Copy 0 also logs; copy 1 only latches.
+	template <int N>
+	void RunPass()
+	{
+		static const ImageRange image = MainImage();
+		const GamePointers::Pointers* p = GamePointers::Get();
+		if constexpr (N == 0)
+			LogUnresolvedOnce(p);
+
+		Raw raw{};
+		raw.hookedHandler = -1;
+		if (p)
+		{
+			InstallNetHook(p);
+			PublishQuickSlots(p);
+			ReadRaw<N>(p, image, raw);
+		}
+		const bool nativeOnline = NETWORK::NETWORK_IS_SCRIPT_ACTIVE_BY_HASH(rage::Joaat("net_main_online"), -1, FALSE, 0) != FALSE;
+		if (nativeOnline)
+			Latch<N>();
+		if constexpr (N == 0)
+			LogPass(raw, nativeOnline);
 	}
 }
 
@@ -516,7 +593,18 @@ namespace OnlineGuard
 		if (netNews || nowMs >= g_nextEvalMs)
 		{
 			g_nextEvalMs = nowMs + kIntervalMs;
-			RunPass();
+			RunPass<0>();
+		}
+	}
+
+	void TickAlt()
+	{
+		static ULONGLONG nextEvalMs = 0;
+		const ULONGLONG nowMs = GetTickCount64();
+		if (nowMs >= nextEvalMs)
+		{
+			nextEvalMs = nowMs + kIntervalMs;
+			RunPass<1>();
 		}
 	}
 

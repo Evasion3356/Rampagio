@@ -34,10 +34,26 @@ and need checking on build 1491.50 before anything relies on them.
   manager pointers, player count, global blocks, ReceiveNetMessage call
   count). The guard keeps ticking after the switch, so the log also
   records step 3 of the verification.
-- Hardening: the latch is an inline atomic (`OnlineGuard::Latched()`),
-  read by the main loop, the menu-open path in `script.cpp`, `Ui::Push`
-  and `Menus::TickSettings` (hotkeys). Not done: the optional `.text`
-  self-hash, and release signing.
+- Hardening (2026-10-09, user: no patch checks or hook guards, just no
+  single point of failure; header comment of `OnlineGuard.h`):
+  - `OnlineGuard::IsOnline()` (and `GameUtil::IsOnline`) are
+    `__forceinline`; every read site has its own copy. Checked in the
+    Release build's disassembly: 9 inlined copies (`gs:[60h]` reads).
+  - The latch is three copies of a per-run random token (offline only
+    while all match), so writing 0/false to any of them reads online.
+  - Each read site also checks the session flag and the object manager
+    itself, through addresses stored XOR-encoded with the token; an
+    overwritten slot decodes outside RDR2.exe and reads online.
+  - The pass exists twice (`RunPass<0>` from `Tick` in the main loop,
+    `RunPass<1>` from `TickAlt` in `Menus::TickSettings`), and every
+    reader latches on its own finding; the native check, the
+    ReceiveNetMessage detour and a fault in the hook check latch too.
+  - `script.cpp` runs the kill switch (`EnforceOffline`, idempotent)
+    every frame while online, at the top and again at the end of the
+    frame, and gates each step (menu, looped commands, challenges,
+    hotkeys, `Ui::Push`) with its own read.
+  - Not done: the optional `.text` self-hash and release signing (the
+    user ruled out self-checks).
 - Until verification step 1 passes, a false positive in story mode
   suspends Rampagio for the session; the log names the signal.
 

@@ -87,6 +87,20 @@ namespace
 		GlobalEditor::Suspend();
 	}
 
+	// The online kill switch. Idempotent and cheap once done, so the loop
+	// runs it every frame while online instead of once on the transition:
+	// there's no "already switched off" flag to flip back.
+	void EnforceOffline()
+	{
+		static bool logged = false;
+		if (!logged)
+			Log::Write("Red Dead Online detected -- switching everything off");
+		logged = true;
+		// Undoes every command without changing its saved state.
+		UndoFeatures();
+		MainThread::Clear();
+	}
+
 	// No C++ objects here, so it can use SEH: a hook that faults during
 	// unload is logged instead of taking the game down.
 	bool UndoFeaturesGuarded()
@@ -134,7 +148,6 @@ void ScriptMain()
 	GamePointers::Get();
 	FindMenuTextFormat();
 
-	bool wasOnline = false;
 	DWORD languageRead = 0;
 	while (true)
 	{
@@ -145,23 +158,15 @@ void ScriptMain()
 			languageRead = GetTickCount();
 		}
 
-		// Latched: once online, it stays online for the session.
+		// Online latches for the session. Each step below reads the guard
+		// itself (force-inlined), rather than one cached bool, so no single
+		// branch or patched call lets the features run online.
 		OnlineGuard::Tick();
-		const bool online = OnlineGuard::Latched();
-		if (online && !wasOnline)
+		if (OnlineGuard::IsOnline())
 		{
-			Log::Write("Red Dead Online detected -- switching everything off");
-			// Undoes every command without changing its saved state; stays
-			// suspended for the rest of the session.
-			Rampagio::Commands::Suspend();
-			Ui::DisableAllToggles();
-			ScriptMonitor::Suspend();
-			GlobalEditor::Suspend();
-			MainThread::Clear();
+			EnforceOffline();
 		}
-		wasOnline = online;
-
-		if (!online)
+		else
 		{
 			// Actions from the ImGui tools, then their snapshot.
 			MainThread::Run();
@@ -176,16 +181,23 @@ void ScriptMain()
 				// the menu from acting on gamepad input too.
 				PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
 			}
-			else
+			else if (!OnlineGuard::IsOnline())
 			{
-				if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed() && !OnlineGuard::Latched())
+				if (!menus.HasActiveMenu() && MenuInput::MenuSwitchPressed() && !OnlineGuard::IsOnline())
 					menus.PushMenu(Ui::Root());
 				menus.Update();
 			}
-			Rampagio::Commands::RunLoopedCommands();
+			if (!OnlineGuard::IsOnline())
+				Rampagio::Commands::RunLoopedCommands();
 			Menus::TickSettings();
-			Menus::TickChallenges();
+			if (!OnlineGuard::IsOnline())
+				Menus::TickChallenges();
 		}
+		// Again at the end, so a latch set during the frame (TickAlt, the
+		// network detour, a read site) switches everything off before the
+		// game runs another frame with it on.
+		if (OnlineGuard::IsOnline())
+			EnforceOffline();
 		Rampagio::Settings::Tick();
 
 		WAIT(0);

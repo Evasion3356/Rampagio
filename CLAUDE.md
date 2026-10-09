@@ -165,7 +165,10 @@ Manager lists and removes them).
 - `src/OnlineGuard.{h,cpp}`: online detection (built 2026-10-09,
   untested): script threads, net components, the ped's netObject, the
   network managers, a `ReceiveNetMessage` latch and native-hook checks,
-  every 500 ms, latched; logs each signal change.
+  every 500 ms, latched; logs each signal change. Hardened against
+  single patches (inlined reads, token-encoded latch, two pass copies;
+  see the header comment): read `OnlineGuard::IsOnline()` at each
+  place that must stop, never cache it in a bool.
   `docs/ONLINE_DETECTION_PLAN.md` has the design, notes and the live
   checklist.
 - `src/GameUtil.{h,cpp}`: shared helpers (`IsOnline`, OnlineGuard's latch, `PlayerMount`,

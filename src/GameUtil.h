@@ -18,11 +18,11 @@ namespace GameUtil
 {
 	// True once Red Dead Online has been detected this session: OnlineGuard's
 	// latched result (engine memory, not natives; see OnlineGuard.h).
-	// script.cpp's main loop ticks the guard. Force-inlined like Latched(),
-	// so every caller reads the latch itself (OnlineGuard.h).
+	// script.cpp's main loop ticks the guard. Force-inlined like
+	// OnlineGuard::IsOnline, so every caller checks for itself.
 	__forceinline bool IsOnline()
 	{
-		return OnlineGuard::Latched();
+		return OnlineGuard::IsOnline();
 	}
 
 	inline Hash Joaat(std::string_view s) { return rage::Joaat(s); }

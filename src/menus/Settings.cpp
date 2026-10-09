@@ -763,9 +763,11 @@ namespace Menus
 
 	void TickSettings()
 	{
-		// Hotkeys run commands: check the guard's latch here as well as in
-		// the main loop (OnlineGuard.h).
-		if (OnlineGuard::Latched())
+		// The guard's second pass copy, called from here rather than the main
+		// loop so the two sit in different functions (OnlineGuard.h).
+		OnlineGuard::TickAlt();
+		// Hotkeys run commands: check here as well as in the main loop.
+		if (OnlineGuard::IsOnline())
 			return;
 		HotkeyTick();
 		DrawOverlays();

@@ -189,7 +189,7 @@ namespace Ui
 	void Push(MenuBase* menu)
 	{
 		// Read here too, not only in the main loop (OnlineGuard.h).
-		if (OnlineGuard::Latched())
+		if (OnlineGuard::IsOnline())
 			return;
 		menu->Open();
 		g_controller.PushMenu(menu);
