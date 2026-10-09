@@ -6,6 +6,7 @@
 
 #include "script.h"
 #include "ExtraNatives.h"
+#include "OnlineGuard.h"
 #include "..\external\RDR-Classes\rage\joaat.hpp"
 
 #include <cstdint>
@@ -17,8 +18,12 @@ namespace GameUtil
 {
 	// True once Red Dead Online has been detected this session: OnlineGuard's
 	// latched result (engine memory, not natives; see OnlineGuard.h).
-	// script.cpp's main loop ticks the guard.
-	bool IsOnline();
+	// script.cpp's main loop ticks the guard. Force-inlined like Latched(),
+	// so every caller reads the latch itself (OnlineGuard.h).
+	__forceinline bool IsOnline()
+	{
+		return OnlineGuard::Latched();
+	}
 
 	inline Hash Joaat(std::string_view s) { return rage::Joaat(s); }
 

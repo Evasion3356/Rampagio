@@ -32,13 +32,17 @@ namespace OnlineGuard
 		inline std::atomic<bool> g_latched{ false };
 	}
 
-	// Evaluates the signals every 500 ms (the network latch at once) and
-	// returns the latched state.
-	bool Tick();
+	// Evaluates the signals every 500 ms (the network latch at once). It
+	// returns nothing on purpose: callers read Latched(), so patching Tick
+	// to report "offline" isn't possible, only skipping it, and the
+	// ReceiveNetMessage detour still sets the latch then.
+	void Tick();
 
-	// The latched state, inline so each caller reads it itself instead of
-	// going through one function a menu could patch.
-	inline bool Latched()
+	// The latched state. Force-inlined (in Release; Debug inlines nothing)
+	// so each caller reads the atomic itself: a menu would have to patch
+	// every read site instead of one function. Clearing the atomic doesn't
+	// stick either, since every pass sets it again while a signal is online.
+	__forceinline bool Latched()
 	{
 		return detail::g_latched.load(std::memory_order_relaxed);
 	}

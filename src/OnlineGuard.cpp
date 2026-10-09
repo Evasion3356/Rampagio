@@ -505,7 +505,7 @@ namespace
 
 namespace OnlineGuard
 {
-	bool Tick()
+	void Tick()
 	{
 		const ULONGLONG nowMs = GetTickCount64();
 		// The network latch doesn't wait for the 500 ms pass, and after the
@@ -518,7 +518,6 @@ namespace OnlineGuard
 			g_nextEvalMs = nowMs + kIntervalMs;
 			RunPass();
 		}
-		return Latched();
 	}
 
 	void Shutdown()

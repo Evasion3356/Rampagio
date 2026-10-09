@@ -1,6 +1,5 @@
 #include "GameUtil.h"
 #include "Localization.h"
-#include "OnlineGuard.h"
 #include "ScriptFunction.h"
 
 #include <algorithm>
@@ -11,11 +10,6 @@
 
 namespace GameUtil
 {
-	bool IsOnline()
-	{
-		return OnlineGuard::Latched();
-	}
-
 	Ped PlayerMount()
 	{
 		const Ped ped = PLAYER::PLAYER_PED_ID();

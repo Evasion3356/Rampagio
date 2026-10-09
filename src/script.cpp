@@ -146,7 +146,8 @@ void ScriptMain()
 		}
 
 		// Latched: once online, it stays online for the session.
-		const bool online = OnlineGuard::Tick();
+		OnlineGuard::Tick();
+		const bool online = OnlineGuard::Latched();
 		if (online && !wasOnline)
 		{
 			Log::Write("Red Dead Online detected -- switching everything off");
