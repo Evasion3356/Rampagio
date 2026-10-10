@@ -533,7 +533,7 @@ namespace
 		{ "foraged", "Berries and Mushrooms" },
 		{ "snacks", "Snacks and Sweets" },
 		{ "vices", "Alcohol and Tobacco" },
-		{ "other", "Other" },
+		{ "horse", "Horse Treats" },
 	};
 	const ItemGroup kDocumentGroups[] = {
 		{ "cards", "Cigarette Cards" },

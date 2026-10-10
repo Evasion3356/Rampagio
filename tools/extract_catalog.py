@@ -279,14 +279,14 @@ def provision_subgroup(name, props):
         return "meat"
     if "CI_TAG_ITEM_HERB" in props:
         return "foraged"
-    if name.endswith("_CAN"):
-        return "canned"
+    if name.endswith("_CAN") or name == "CONSUMABLE_OFFAL":
+        return "canned"  # the offal tin sits with the cans in the Rancher pouch
+    if name in ("CONSUMABLE_PEPPERMINT", "CONSUMABLE_SUGARCUBE") or "CI_TAG_ITEM_HORSE_ITEM" in props:
+        return "horse"
     if "CI_TAG_ITEM_ALCOHOL" in props or "CI_TAG_ITEM_TOBACCO" in props:
         return "vices"
     if FRESH_FOOD in props:
         return "fresh"
-    if name == "CONSUMABLE_OFFAL" or "CI_TAG_ITEM_HORSE_ITEM" in props:
-        return "other"
     return "snacks"
 
 
