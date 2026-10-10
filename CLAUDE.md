@@ -42,6 +42,23 @@ instead of restarting. Tests (build Debug, run the exe from `bin\Debug`):
 `tests\LogFallbackTests.vcxproj`, `tests\SettingsTests.vcxproj` (the
 settings and command core in `src/core`) and `tests\XmlTests.vcxproj`.
 
+### Releasing
+
+Same flow as the siblings (BlackjackCheat, PokerCheat): move the
+`[Unreleased]` entries in `docs/CHANGELOG.md` under a `## [X.Y.Z] - date`
+heading, commit, then `git tag -a X.Y -m "X.Y.Z - summary"` and
+`git push origin master X.Y`. `.github/workflows/release.yml` checks out
+the tag with all submodules, builds and runs every `tests\*.vcxproj`,
+builds the Release `.asi` (checked 2026-10-09: `bin\Release\Rampagio.asi`,
+about 9 MB, builds clean with `/p:PostBuildEventUseInBuild=false`), zips it
+as `Rampagio-X.Y.zip` (no INI: settings live in `Rampagio.json`), and
+publishes a GitHub release named "Rampagio X.Y.Z" with that changelog
+section as its notes. The Nexus step is skipped until `NEXUS_MOD_ID` and
+`NEXUS_FILE_ID` in the workflow are filled in (it also needs the
+`NEXUS_API_KEY` repo secret). The submodule pins must be pushed commits,
+or the runner's checkout fails. "Run workflow" on the Actions tab
+re-releases an existing tag. Not run on GitHub yet.
+
 Menu key: **F5** by default (Settings > Core > Menu Key, saved as
 `settings.menukey` in `Rampagio.json`), the same key Rampage uses, at the
 user's request. Don't load Rampage and
