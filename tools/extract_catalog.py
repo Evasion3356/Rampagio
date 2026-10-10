@@ -226,8 +226,6 @@ def classify(r):
         return None if name.endswith("_NONE") else ("fishing", None)  # the bait tins too
     if name in INTERNAL:
         return None
-    if any(tag == "CI_TAG_CATEGORY_UPGRADES_LEDGER" for tag, kind in tags):
-        return None  # filed under the ledger page, not the satchel (Gritty Fish: added, never shown)
     if "CI_TAG_ITEM_TRINKET" in props or "CI_TAG_ITEM_TALISMAN" in props:
         return ("trinkets", None)
     # Story items: the game's Keepsakes and Keychain folders, plus
