@@ -257,7 +257,37 @@ def classify(r):
         if "CI_TAG_ITEM_ANIMAL_FEATHER" in props or folder == "CI_TAG_FOLDER_CRAFT_FEATHERS":
             return ("materials", "feathers")
         return ("materials", "parts")
+    if page == "provisions":
+        return ("provisions", provision_subgroup(name, props))
     return (page, None) if page else None
+
+
+# The provisions page's own tags (names not found yet): fresh produce, bread
+# and cheese.
+FRESH_FOOD = "0x83B522A3"
+
+
+def provision_subgroup(name, props):
+    """The Provisions list an item goes in. Cooked meat comes in a plain dish
+    and one per herb (Oregano/Thyme/Wild Mint) for every animal, so the herb
+    ones get lists of their own instead of doubling every row."""
+    for tag, sub in (("CI_TAG_ITEM_COOKED_OREGANO", "oregano"), ("CI_TAG_ITEM_COOKED_THYME", "thyme"),
+                     ("CI_TAG_ITEM_COOKED_MINT", "mint")):
+        if tag in props:
+            return sub
+    if "CI_TAG_ITEM_COOKED" in props:
+        return "meat"
+    if "CI_TAG_ITEM_HERB" in props:
+        return "foraged"
+    if name.endswith("_CAN"):
+        return "canned"
+    if "CI_TAG_ITEM_ALCOHOL" in props or "CI_TAG_ITEM_TOBACCO" in props:
+        return "vices"
+    if FRESH_FOOD in props:
+        return "fresh"
+    if name == "CONSUMABLE_OFFAL" or "CI_TAG_ITEM_HORSE_ITEM" in props:
+        return "other"
+    return "snacks"
 
 
 def print_schema(path, names):

@@ -521,6 +521,20 @@ namespace
 		{ "legendary", "Legendary Animal Parts" },
 		{ "parts", "Horns, Claws and Teeth" },
 	};
+	// Cooked meat has a plain dish and one per herb for every animal; the herb
+	// ones get lists of their own so the rows don't double up.
+	const ItemGroup kProvisionGroups[] = {
+		{ "meat", "Cooked Meat" },
+		{ "oregano", "Oregano Meat" },
+		{ "thyme", "Thyme Meat" },
+		{ "mint", "Wild Mint Meat" },
+		{ "canned", "Canned Goods" },
+		{ "fresh", "Fresh Food" },
+		{ "foraged", "Berries and Mushrooms" },
+		{ "snacks", "Snacks and Sweets" },
+		{ "vices", "Alcohol and Tobacco" },
+		{ "other", "Other" },
+	};
 	const ItemGroup kDocumentGroups[] = {
 		{ "cards", "Cigarette Cards" },
 		{ "letters", "Letters" },
@@ -536,7 +550,7 @@ namespace
 	};
 	struct ItemList { const char* group; const char* caption; std::span<const ItemGroup> groups = {}; const char* description = nullptr; };
 	const ItemList kItemLists[] = {
-		{ "provisions", "Provisions" },
+		{ "provisions", "Provisions", kProvisionGroups },
 		{ "remedies", "Remedies" },
 		{ "ingredients", "Ingredients" },
 		{ "kit", "Kit" },

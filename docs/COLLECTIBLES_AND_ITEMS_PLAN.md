@@ -293,3 +293,4 @@ scripts. A later Windows session built it: it compiles clean with MSVC
 - Recovery > Items (2026-10-09) is Unlimited Items, Max Items, Give Items
   and an Inventory submenu holding the other rows (add/remove, wipe,
   backup, snapshot). Command ids are unchanged.
+- Provisions subgroups (2026-10-09): the page's 95 items were one list with a plain, Oregano, Thyme and Wild Mint dish per animal. `provision_subgroup()` in `tools/extract_catalog.py` now splits them from the item tags: Cooked Meat (15), Oregano / Thyme / Wild Mint Meat (11 each; `CI_TAG_ITEM_COOKED_*`), Canned Goods (10, `_CAN` names), Fresh Food (9, tag `0x83B522A3`: produce, bread roll, cheese), Berries and Mushrooms (9, `CI_TAG_ITEM_HERB`), Snacks and Sweets (10), Alcohol and Tobacco (7) and Other (haycube, offal). Untested in game.
