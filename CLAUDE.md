@@ -53,9 +53,9 @@ builds the Release `.asi` (checked 2026-10-09: `bin\Release\Rampagio.asi`,
 about 9 MB, builds clean with `/p:PostBuildEventUseInBuild=false`), zips it
 as `Rampagio-X.Y.zip` (no INI: settings live in `Rampagio.json`), and
 publishes a GitHub release named "Rampagio X.Y.Z" with that changelog
-section as its notes. The Nexus step adds the zip as a new version of
-the main file (`NEXUS_FILE_ID`; it needs the
-`NEXUS_API_KEY` repo secret). The submodule pins must be pushed commits,
+section as its notes. There is no Nexus step (removed 2026-10-10: Nexus
+banned the mod for being a clean-room reverse engineering of Rampage;
+the user will host it elsewhere). The submodule pins must be pushed commits,
 or the runner's checkout fails. "Run workflow" on the Actions tab
 re-releases an existing tag. Not run on GitHub yet.
 
@@ -389,7 +389,7 @@ alloc8or's for some hashes (e.g. its `_SET_ATTRIBUTE_OVERPOWER_AMOUNT` is
 Shared files: `src/LogFallback.h` and `BuildTools/Find-RDR2GameDir.ps1`
 are identical in all sibling repos, so port any fix to every copy.
 `.github/workflows/release.yml` matches the siblings except for its env
-block (no INI; the Nexus ids are for mod page 10950, set 2026-10-09).
+block (no INI) and the missing Nexus step.
 
 Conventions (shared with the siblings): CRLF on disk
 (`.gitattributes` `* text=auto eol=crlf`; Git Bash `sed -i` silently

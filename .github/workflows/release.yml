@@ -1,20 +1,11 @@
-# Builds the Release .asi, publishes it as a GitHub release and uploads it to
-# Nexus Mods.
+# Builds the Release .asi and publishes it as a GitHub release.
 #
 # Runs when a version tag (e.g. 1.4) is pushed, or by hand from the Actions
 # tab ("Run workflow") for a tag that already exists. Steps: run every unit
 # test project under tests/, build the Release .asi, take the release notes
 # from the changelog section matching the tag, zip the .asi with the default
-# INI the build generates (for mods that have one), create (or refresh) the
-# GitHub release, then add the zip on Nexus Mods as a new version of the
-# mod's main file. The Nexus step archives the version it replaces, sets the
-# mod's version to the tag and adds the changelog entry. A manual run only
-# uploads to Nexus when "nexus" is ticked, so re-running for an old tag
-# doesn't upload it twice.
-#
-# Nexus needs the NEXUS_API_KEY repository secret (a personal API key from
-# https://www.nexusmods.com/settings/api-keys). NEXUS_MOD_ID is the mod's v3
-# API id, not the number in the mod page URL.
+# INI the build generates (for mods that have one), and create (or refresh)
+# the GitHub release.
 #
 # Vendored into every sibling ASI project; only the env block below differs.
 
@@ -28,10 +19,6 @@ on:
       tag:
         description: Existing tag to build and release (e.g. 1.4)
         required: true
-      nexus:
-        description: Also upload it to Nexus Mods as a new version
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -42,8 +29,6 @@ env:
   CHANGELOG: docs/CHANGELOG.md
   # No INI: settings live in Rampagio.json, created on first start.
   INI: ''
-  NEXUS_MOD_ID: '12987981114054'
-  NEXUS_FILE_ID: '8120943'
 
 jobs:
   release:
@@ -86,9 +71,7 @@ jobs:
           if ($LASTEXITCODE) { throw "Release build failed" }
           if (-not (Test-Path $env:ASI)) { throw "$env:ASI was not produced" }
 
-      # Tag 1.4 matches "## [1.4.0]" (or "## [1.4]") in the changelog. Nexus
-      # keeps its changelog one line per entry, so its copy has each wrapped
-      # bullet joined back onto one line.
+      # Tag 1.4 matches "## [1.4.0]" (or "## [1.4]") in the changelog.
       - name: Release notes from changelog
         id: notes
         shell: pwsh
@@ -102,18 +85,6 @@ jobs:
           $body = @(for ($i = $start + 1; $i -lt $lines.Count -and $lines[$i] -notmatch '^## '; $i++) { $lines[$i] })
           (($body -join "`n").Trim()) | Set-Content notes.md -Encoding utf8
           "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
-
-          $entries = [System.Collections.Generic.List[string]]::new()
-          foreach ($line in $body) {
-            $text = $line.Trim()
-            if (-not $text) { continue }
-            if ($entries.Count -eq 0 -or $text -match '^([-*] |#)') { $entries.Add($text) }
-            else { $entries[$entries.Count - 1] += " $text" }
-          }
-          $delimiter = "CHANGELOG_$([guid]::NewGuid().ToString('N'))"
-          "changelog<<$delimiter" >> $env:GITHUB_OUTPUT
-          $entries >> $env:GITHUB_OUTPUT
-          $delimiter >> $env:GITHUB_OUTPUT
 
       # The download: the .asi, plus the default INI the Release build
       # generates from the mod's own Config code (tools/IniGen) for mods that
@@ -144,22 +115,3 @@ jobs:
             gh release create $env:TAG $env:ZIP $env:ASI --title $title --notes-file notes.md --verify-tag
           }
           if ($LASTEXITCODE) { throw "Publishing the release failed" }
-
-      # Pinned to a commit rather than a tag, since it is handed the API key.
-      - name: Upload to Nexus Mods
-        if: github.event_name == 'push' || inputs.nexus
-        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
-        with:
-          api_key: ${{ secrets.NEXUS_API_KEY }}
-          mod_id: ${{ env.NEXUS_MOD_ID }}
-          file_id: ${{ env.NEXUS_FILE_ID }}
-          filename: ${{ env.ZIP }}
-          display_name: ${{ env.PROJECT }}
-          version: ${{ env.TAG }}
-          category: main
-          # false moves the previous version to "Old versions", where it stays
-          # downloadable; true archives it, which hides it from users.
-          archive_existing_version: false
-          update_mod_version: true
-          primary_mod_manager_download: true
-          changelog: ${{ steps.notes.outputs.changelog }}
