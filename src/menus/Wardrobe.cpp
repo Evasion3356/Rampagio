@@ -643,6 +643,57 @@ namespace
 		return g ? reinterpret_cast<float*>(&g[11120]) : nullptr;
 	}
 
+	float g_weight = 0.0f;
+	bool g_lockWeight = false;
+	bool g_lockHair = false;
+
+	void ReadWeight()
+	{
+		if (const float* w = WeightSlot())
+			g_weight = *w;
+	}
+
+	// Makes the game re-apply the player's body after a weight write.
+	void RefreshBody()
+	{
+		if (UINT64* refresh = GameUtil::Global(1347477))
+		{
+			refresh[201] = 1;
+			refresh[198] = 0;
+			refresh[200] = 0;
+		}
+	}
+
+	void SetWeight()
+	{
+		if (float* slot = WeightSlot())
+		{
+			*slot = std::clamp(g_weight, -100.0f, 100.0f);
+			RefreshBody();
+		}
+	}
+
+	// Lock Weight / Lock Hair hold the values shown above: the game moves
+	// weight over time and grows hair back. The sliders are the targets.
+	void LockWeightTick()
+	{
+		const float* w = WeightSlot();
+		if (w && *w != g_weight)
+			SetWeight();
+	}
+
+	void LockHairTick()
+	{
+		UINT64* g = Global40();
+		if (!g)
+			return;
+		for (int i = 0; i < 3; i++)
+			if (static_cast<int>(g[7732 + 5 * i]) != g_beard[i])
+				SetBeard(i);
+		if (static_cast<int>(g[7749]) != g_hair)
+			SetHair();
+	}
+
 	// After the write Rampage raises Global_1347477.f_201 and clears f_198
 	// and f_200, which makes the game re-apply the player's body.
 	std::string ChangeWeight()
@@ -834,10 +885,7 @@ namespace Menus
 	{
 		// SubSelfFacialHair ("Hair and Weight").
 		MenuBase* hair = Ui::Submenu(wardrobe, "Hair and Weight");
-		hair->AddItem(new MenuItemLabel([] {
-			const float* w = WeightSlot();
-			return TrFormat("Current Weight: {:.0f}", w ? *w : 0.0f);
-		}));
+		Ui::Number(hair, "wardrobe.weight", "Weight", &g_weight, -100.0f, 100.0f, 1.0f, SetWeight);
 		Ui::Action(hair, "wardrobe.changeweight", "Change Weight", ChangeWeight)->SetHotkeyable(false);
 		const char* const kBeard[] = { "Chin Length", "Chops Length", "Stache Length" };
 		for (int i = 0; i < 3; i++)
@@ -852,8 +900,12 @@ namespace Menus
 		Ui::Do(hair, "wardrobe.gotobarber", "Go to Barber", [] {
 			ENTITY::SET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), -307.223f, 821.904f, 118.738f, true, true, true, false);
 		});
-		hair->SetOnOpen([](MenuBase*) { ReadHair(); });
+		hair->SetOnOpen([](MenuBase*) { ReadHair(); if (!g_lockWeight) ReadWeight(); });
 		Ui::Transient(hair);
+		Ui::Looped(hair, "wardrobe.lockweight", "Lock Weight", [] { if (!g_lockWeight) { g_lockWeight = true; ReadWeight(); } LockWeightTick(); },
+			[] { g_lockWeight = false; })->SetAlwaysRestore();
+		Ui::Looped(hair, "wardrobe.lockhair", "Lock Hair", [] { if (!g_lockHair) { g_lockHair = true; ReadHair(); } LockHairTick(); },
+			[] { g_lockHair = false; })->SetAlwaysRestore();
 
 		// SubSelfPedMetaTags.
 		MenuBase* tags = Menus::Shared().metaTags = Ui::Submenu(wardrobe, "Meta Ped Tags");

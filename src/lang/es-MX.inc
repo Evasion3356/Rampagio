@@ -98,3 +98,5 @@
 { "While held, the game ignores the other pad buttons\n(moving and looking still work), so combos with it only run hotkeys", "Mientras se mantiene, el juego ignora los demás botones del control\n(moverse y mirar siguen funcionando), así que las combinaciones con él solo ejecutan atajos" },
 { "Your horse can run super fast.\n[SHIFT] - Sprint", "Tu caballo corre muy rápido.\n[SHIFT] - Correr" },
 { "Your ped can run super fast.\nTo activate press sprint.", "Tu personaje corre muy rápido.\nPresiona correr para activarlo." },
+{ "Lock Weight", "Bloquear peso" },
+{ "Lock Hair", "Bloquear pelo" },
