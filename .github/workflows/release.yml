@@ -42,10 +42,8 @@ env:
   CHANGELOG: docs/CHANGELOG.md
   # No INI: settings live in Rampagio.json, created on first start.
   INI: ''
-  # Rampagio has no Nexus page yet: with these empty the Nexus step is
-  # skipped. Fill both in once the mod page and its main file exist.
-  NEXUS_MOD_ID: ''
-  NEXUS_FILE_ID: ''
+  NEXUS_MOD_ID: '12987981114054'
+  NEXUS_FILE_ID: '8120943'
 
 jobs:
   release:
@@ -149,7 +147,7 @@ jobs:
 
       # Pinned to a commit rather than a tag, since it is handed the API key.
       - name: Upload to Nexus Mods
-        if: env.NEXUS_FILE_ID != '' && (github.event_name == 'push' || inputs.nexus)
+        if: github.event_name == 'push' || inputs.nexus
         uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
         with:
           api_key: ${{ secrets.NEXUS_API_KEY }}
