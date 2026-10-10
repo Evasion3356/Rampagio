@@ -5,22 +5,34 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-### Changed
-- Settings, toggle states, themes and hotkeys are saved in one file,
-  Rampagio.json, as you change them (it replaces Rampagio.ini,
-  Rampagio_Settings.ini, Rampagio_Toggles.ini and Rampagio_Themes.ini).
-  Number, choice and text values are saved too. Settings > Load / Save >
-  Toggles you left ticked come back on at the next start.
-  "Load Settings" re-reads the file and applies it.
-- Ejecting Rampagio (ScriptHookRDR2's Ctrl+R reload) switches its
-  features off first, where the game allows it.
-- Hotkeys can be key combinations (F11 on a row, hold the keys, let go)
-  and work for rows in menus that were never opened.
-- The menu key is set in Settings > Core > Menu Key.
-- Saved teleports, outfits, horses and spooner sets are JSON files
-  (Rampagio_Teleports.json, ...). Old .ini files aren't read.
+## [1.0.0] - 2026-10-09
+
+First release. A singleplayer trainer menu for RDR2 (game build 1491.50,
+ScriptHookRDR2), opened with F5.
 
 ### Added
-- F5 menu with Player (Invincible, Heal, Clean, Clear Bounty), Horse
-  (Invincible, Heal), Teleport (To Waypoint) and World (Time +1 Hour).
-- Switches itself off in Red Dead Online.
+- Menus for Player, Horse, Weapons, Vehicles, Teleport, Spawners, World,
+  Recovery and Miscellaneous, with a description under the selected row.
+- Teleport map window: pan, zoom, click a place or right-click to teleport.
+- Recovery > Give Items from the game's full singleplayer item catalog,
+  and collectible and legendary lists that know what you have already
+  found or killed.
+- Hotkeys: bind any command to keys, mouse buttons, the wheel or gamepad
+  buttons, as combinations, with gestures and presets that run several
+  commands (F11 on a row; Y on a gamepad).
+- Themes, menu position and size, sounds and optional mouse controls.
+- Debug tools: Script Monitor, Global Editor and an in-game log window.
+- Keyboard, mouse and gamepad control.
+- The menu in the game's 13 languages, following the game's language or
+  the one picked in Settings.
+- Fishing and Dead Eye fixes, Keep Weapons on Dismount, Five Finger Fillet,
+  the poker, blackjack and dominoes advisors and the challenge helpers,
+  built in from their standalone mods.
+- Settings, toggle states, themes and hotkeys are saved in one file,
+  Rampagio.json, as you change them. Toggles you left ticked come back on
+  at the next start; Settings > Load / Save > Load Settings re-reads the
+  file. Saved teleports, outfits, horses and spooner sets are JSON files
+  (Rampagio_Teleports.json, ...).
+- Switches itself off, and stays off for the session, in Red Dead Online.
+- Ejecting Rampagio (ScriptHookRDR2's Ctrl+R reload) switches its features
+  off first, where the game allows it.
