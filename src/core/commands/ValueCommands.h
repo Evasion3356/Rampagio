@@ -77,21 +77,12 @@ namespace Rampagio
 		void SaveState(nlohmann::json& value) override;
 		void LoadState(const nlohmann::json& value) override;
 
-		void ApplyLoaded(bool restoreFeatures) override
+		void ApplyLoaded() override
 		{
 			if (!m_Saved)
 				return;
 			T saved = std::move(*m_Saved);
 			m_Saved.reset();
-			// Values with a change hook act on the game: restoring them is a
-			// feature state. Plain values are parameters and always load.
-			if (m_OnChange && !restoreFeatures)
-			{
-				if (!(saved == Ref()))
-					this->KeepSavedValue();
-				return;
-			}
-			this->DropSavedValue();
 			if (saved == Ref())
 				return;
 			Ref() = std::move(saved);

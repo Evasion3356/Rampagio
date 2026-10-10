@@ -370,7 +370,6 @@ namespace
 		MenuKeyCommand() : Rampagio::IntCommand("settings.menukey", "Menu Key", "", 1, 0xFE, 1, VK_F5, &MenuKey()) {}
 	};
 
-	Rampagio::BoolCommand* g_restoreToggles = nullptr;
 	MenuKeyCommand* g_menuKey = nullptr;
 
 	// --- search ----------------------------------------------------------------------------
@@ -479,7 +478,7 @@ namespace
 		Ui::Looped(o, "settings.overlay.temperature", "Display Temperature", TemperatureOverlay);
 		Ui::Looped(o, "settings.overlay.waypoint", "Display Waypoint Distance", WaypointOverlay);
 		// These act on the game, so they're feature states (overlay.*, not
-		// settings.*): they follow settings.restoretoggles.
+		// settings.*).
 		Ui::Toggle(o, "overlay.playercores", "Always Show Player Cores", [](bool on) { HUD::_SHOW_PLAYER_CORES(on); });
 		Ui::Toggle(o, "overlay.horsecores", "Always Show Horse Cores", [](bool on) { HUD::_SHOW_HORSE_CORES(on); });
 		Ui::Looped(o, "overlay.honor", "Always Show Honor", [] { HUD::_ENABLE_HUD_CONTEXT_THIS_FRAME(HUD_CTX_HONOR_SHOW); });
@@ -610,7 +609,7 @@ namespace Menus
 		Ui::Action(io, "Load Settings", []
 		{
 			Rampagio::Settings::Reload();
-			ApplyLoadedSettings(true); // asked for, so toggles too
+			ApplyLoadedSettings();
 			return std::string("Settings loaded");
 		});
 		Ui::Action(io, "Restore Defaults", []
@@ -620,7 +619,6 @@ namespace Menus
 			StyleChanged();
 			return std::string("Defaults restored");
 		});
-		g_restoreToggles = Ui::Toggle(io, "settings.restoretoggles", "Restore Toggles on Start", nullptr);
 
 		BuildOverlays(settings);
 		BuildAbout(settings);
@@ -637,12 +635,9 @@ namespace Menus
 		Commands::GetInstance();
 	}
 
-	void ApplyLoadedSettings(bool restoreAll)
+	void ApplyLoadedSettings()
 	{
-		// restoretoggles is a settings. command, so it always loads; it then
-		// decides whether the other feature states do on start.
-		g_restoreToggles->ApplyLoaded(true);
-		Commands::ApplyLoaded(restoreAll || g_restoreToggles->GetState());
+		Commands::ApplyLoaded();
 	}
 
 	void TickSettings()

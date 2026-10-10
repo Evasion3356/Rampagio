@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "Сбросить по умолчанию" },
 { "Restore Loot", "Восстановить добычу" },
 { "Restore Snapshot", "Восстановить снимок" },
-{ "Restore Toggles on Start", "Восстанавливать переключатели при запуске" },
 { "Restores your inventory from the snapshot slot.", "Восстанавливает инвентарь из снимка." },
 { "Resume", "Продолжить" },
 { "Returns impact Coordinates.", "Показывает координаты попадания." },

@@ -672,7 +672,7 @@ namespace Menus
 		{
 			HorseStat* stat = &s;
 			Ui::Number(stats, Ui::Id("horse.stat", s.name), s.name, &s.value, 0, s.max, 1,
-				[stat] { OnMount([stat](Ped m) { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, stat->attribute, stat->value); }); }, true)->SetAlwaysRestore();
+				[stat] { OnMount([stat](Ped m) { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, stat->attribute, stat->value); }); }, true);
 		}
 		stats->SetOnOpen([](MenuBase*) {
 			if (const Ped m = Mount())

@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "기본값 복원" },
 { "Restore Loot", "전리품 복구" },
 { "Restore Snapshot", "스냅샷 복원" },
-{ "Restore Toggles on Start", "시작 시 토글 복원" },
 { "Restores your inventory from the snapshot slot.", "스냅샷에서 인벤토리를 복원합니다." },
 { "Resume", "재개" },
 { "Returns impact Coordinates.", "충돌 좌표를 알려줍니다." },

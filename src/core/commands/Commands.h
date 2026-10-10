@@ -5,7 +5,7 @@
 	Rampagio additions: duplicate names are refused and logged (AddCommand
 	returns false), lookup by name, ForEach in registration order (the
 	Hotkey Manager and Search list them), ApplyLoaded (HorseMenu's
-	EnableBoolCommands, plus settings.restoretoggles), RemoveCommand (for
+	EnableBoolCommands), RemoveCommand (for
 	the hotkey presets) and Suspend/Resume
 	for the online kill switch, which undo every feature without touching
 	the saved states.
@@ -78,7 +78,7 @@ namespace Rampagio
 		// Ticks every looped command that's on (not while suspended).
 		static void RunLoopedCommands();
 		// Applies the states LoadState read; see Command::ApplyLoaded.
-		static void ApplyLoaded(bool restoreFeatures);
+		static void ApplyLoaded();
 		static void ResetToDefaults();
 
 		static void Suspend();

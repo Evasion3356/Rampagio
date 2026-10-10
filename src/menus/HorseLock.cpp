@@ -133,7 +133,7 @@ namespace Menus::HorseLock
 		g_targets = std::move(targets);
 		Ui::Looped(stats, "horse.keepcoresgolden", "Keep Cores Golden", GoldenCoresTick);
 		Ui::Describe(stats, "Keeps your main horse's health and stamina cores gold, mounted or not.");
-		Ui::Looped(stats, "horse.lockstats", "Lock Stats", [] { g_locked = true; LockTick(); }, [] { g_locked = false; })->SetAlwaysRestore();
+		Ui::Looped(stats, "horse.lockstats", "Lock Stats", [] { g_locked = true; LockTick(); }, [] { g_locked = false; });
 		Ui::Describe(stats, "Holds your main horse at the values below: the game forgets the ranks on reload, and weight drifts.");
 	}
 

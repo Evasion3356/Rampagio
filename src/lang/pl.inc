@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "Przywróć domyślne" },
 { "Restore Loot", "Przywróć łup" },
 { "Restore Snapshot", "Przywróć migawkę" },
-{ "Restore Toggles on Start", "Przywracaj przełączniki przy starcie" },
 { "Restores your inventory from the snapshot slot.", "Przywraca ekwipunek z migawki." },
 { "Resume", "Wznów" },
 { "Returns impact Coordinates.", "Zwraca współrzędne trafienia." },

@@ -266,13 +266,64 @@ namespace
 			FIRE::ADD_OWNED_EXPLOSION(Me(), at.x, at.y, at.z, type, 1.0f, TRUE, FALSE, 0.0f);
 	}
 
-	// Rampage tops up a fixed list of ammo types after every shot; ours
-	// tops up the type the current weapon uses.
+	// Rampage adds 400 of all 63 ammo types while the ped is shooting. Ours
+	// tops up only what is in use. The type the weapon reports
+	// (GET_PED_AMMO_TYPE_FROM_WEAPON) is the plain one (AMMO_REVOLVER) even
+	// while special ammo (Express Explosive) is loaded, so that alone tops
+	// up the wrong type; the type that is really consumed is found by its
+	// count dropping. Dual-wielded guns with different ammo are covered the
+	// same way, and so is anything else that spends ammo.
+	const Hash kExtraAmmo[] = { 0x62cec038, 0x39714c4f, 0x8e919f27, 0xb392591e, 0x020c7a4a, 0x22e119a9,
+		0x9ab3e5c1, 0x87ba17e6, 0xead00129, 0x631c84fc, 0x656a2f3b, 0xba2d509b };
+
 	void InfiniteAmmoTick()
 	{
 		const Ped ped = Me();
-		if (PED::IS_PED_SHOOTING(ped))
-			WEAPON::_ADD_AMMO_TO_PED_BY_TYPE(ped, WEAPON::GET_PED_AMMO_TYPE_FROM_WEAPON(ped, CurrentWeapon()), 400, ADD_REASON_DEFAULT);
+		static std::vector<Hash> types;
+		static std::vector<int> last;
+		if (types.empty())
+		{
+			for (const AmmoType& type : kAmmo)
+				types.push_back(GameUtil::Joaat(type.name));
+			types.insert(types.end(), std::begin(kExtraAmmo), std::end(kExtraAmmo));
+			last.assign(types.size(), -1);
+		}
+		for (size_t i = 0; i < types.size(); i++)
+		{
+			const int now = WEAPON::GET_PED_AMMO_BY_TYPE(ped, types[i]);
+			if (last[i] >= 0 && now < last[i])
+			{
+				WEAPON::_ADD_AMMO_TO_PED_BY_TYPE(ped, types[i], 400, ADD_REASON_DEFAULT);
+				Log::Write("[Ammo] Infinite Ammo: type {:#x} dropped {} -> {}, now {}", types[i], last[i], now, WEAPON::GET_PED_AMMO_BY_TYPE(ped, types[i]));
+				last[i] = WEAPON::GET_PED_AMMO_BY_TYPE(ped, types[i]);
+			}
+			else
+				last[i] = now;
+		}
+		// The loaded type, asked the way the game's scripts do
+		// (short_update, native3): the ammo type of the weapon object in each
+		// hand. The drop check above is the fallback.
+		const int objects[4] = {
+			WEAPON::_GET_PED_WEAPON_OBJECT(ped, TRUE),
+			WEAPON::_GET_PED_WEAPON_OBJECT(ped, FALSE),
+			ENTITY::GET_OBJECT_INDEX_FROM_ENTITY_INDEX(WEAPON::GET_CURRENT_PED_WEAPON_ENTITY_INDEX(ped, 0)),
+			ENTITY::GET_OBJECT_INDEX_FROM_ENTITY_INDEX(WEAPON::GET_CURRENT_PED_WEAPON_ENTITY_INDEX(ped, 1)),
+		};
+		Hash loaded[4] = {};
+		for (size_t i = 0; i < std::size(objects); i++)
+		{
+			if (!objects[i] || !ENTITY::DOES_ENTITY_EXIST(objects[i]))
+				continue;
+			loaded[i] = WEAPON::_GET_CURRENT_PED_WEAPON_AMMO_TYPE(ped, objects[i]);
+			if (loaded[i])
+				WEAPON::_ADD_AMMO_TO_PED_BY_TYPE(ped, loaded[i], 400, ADD_REASON_DEFAULT);
+		}
+		static Hash lastLoaded[4] = { 1, 1, 1, 1 };
+		if (!std::equal(std::begin(loaded), std::end(loaded), std::begin(lastLoaded)))
+		{
+			std::copy(std::begin(loaded), std::end(loaded), std::begin(lastLoaded));
+			Log::Write("[Ammo] Infinite Ammo: loaded type by object (right {:#x}, left {:#x}, attach 0 {:#x}, attach 1 {:#x})", loaded[0], loaded[1], loaded[2], loaded[3]);
+		}
 	}
 
 	void NoReloadTick()
@@ -767,7 +818,7 @@ namespace Menus
 		BuildWeaponExtras(weapons, manage, ammo, mods);
 		Ui::Toggle(weapons, "weapon.disabledualwield", "Disable Dual Wield", [](bool on) { WEAPON::_SET_ALLOW_DUAL_WIELD(Me(), !on); });
 		// Off until the user turns it on; then it comes back on start like an option.
-		Ui::Looped(weapons, "weapon.keepweaponsondismount", "Keep Weapons on Dismount", KeepWeaponsTick, KeepWeaponsOff)->SetAlwaysRestore();
+		Ui::Looped(weapons, "weapon.keepweaponsondismount", "Keep Weapons on Dismount", KeepWeaponsTick, KeepWeaponsOff);
 		Ui::Section(weapons, "Weapon Mods");
 		Ui::Looped(weapons, "weapon.slowmotiononaiming", "Slow Motion on Aiming", SlowMoAimTick, [] { MISC::SET_TIME_SCALE(1.0f); });
 		Ui::Looped(weapons, "weapon.firstpersononaim", "First Person on Aim", FirstPersonAimTick);

@@ -30,19 +30,11 @@ namespace Rampagio
 		bool m_Hotkeyable = true;
 		bool m_Registered = false;
 		bool m_Transient = false;
-		bool m_KeepSaved = false;
-		bool m_AlwaysRestore = false;
 
 	protected:
 		virtual void OnCall() = 0;
-		// Marks the state for saving. A kept saved value (KeepSavedValue) is
-		// dropped: the user changed the state, so the file follows it again.
+		// Marks the state for saving.
 		void MarkDirty();
-		// ApplyLoaded didn't apply the saved value (settings.restoretoggles
-		// off): leave it in the file instead of overwriting it with the
-		// default, until the state is changed.
-		void KeepSavedValue() { m_KeepSaved = true; }
-		void DropSavedValue() { m_KeepSaved = false; }
 
 	public:
 		Command(std::string name, std::string label, std::string description = {});
@@ -54,18 +46,12 @@ namespace Rampagio
 		// Whether this command has a value to save (actions don't).
 		virtual bool HasState() const { return false; }
 		virtual void SaveState(nlohmann::json& value) {}
-		// Reads a saved value. It isn't applied until ApplyLoaded, so
-		// Commands can decide which saved states to restore.
+		// Reads a saved value. It isn't applied until ApplyLoaded.
 		virtual void LoadState(const nlohmann::json& value) {}
-		// Applies what LoadState read. restoreFeatures is
-		// settings.restoretoggles (always true for "settings." commands):
-		// when false, toggles and values with a change hook keep their
-		// defaults, and the file keeps the saved value so turning
-		// restoretoggles on later still brings it back; plain values
-		// (parameters for an action) still load.
-		virtual void ApplyLoaded(bool restoreFeatures) {}
-		// Back to the value it was built with, through its hooks, and saved
-		// (a kept saved value is dropped).
+		// Applies what LoadState read, through the hooks: a toggle saved as
+		// on comes back on.
+		virtual void ApplyLoaded() {}
+		// Back to the value it was built with, through its hooks, and saved.
 		virtual void ResetToDefault() {}
 		// Online kill switch: undo the feature without changing or saving
 		// the state, and stop ticking. Resume re-applies it.
@@ -94,19 +80,6 @@ namespace Rampagio
 		}
 		// Whether Rampagio.json holds this command's state.
 		bool IsSaved() const { return HasState() && !m_Transient && m_Registered; }
-		// Whether saving leaves the file's value alone (see KeepSavedValue).
-		bool KeepsSavedValue() const { return m_KeepSaved; }
-
-		// Restores the saved state on start even when
-		// settings.restoretoggles is off, as "settings." commands do: for
-		// toggles that are options rather than features (the sibling mods'
-		// rows, which their standalone ASIs keep in an INI).
-		Command* SetAlwaysRestore()
-		{
-			m_AlwaysRestore = true;
-			return this;
-		}
-		bool AlwaysRestore() const { return m_AlwaysRestore || m_Name.rfind("settings.", 0) == 0; }
 
 		// False when another command already had this name; this one still
 		// works for its row but isn't saved or bindable.

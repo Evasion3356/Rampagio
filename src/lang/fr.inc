@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "Rétablir les valeurs par défaut" },
 { "Restore Loot", "Restaurer le butin" },
 { "Restore Snapshot", "Restaurer l'instantané" },
-{ "Restore Toggles on Start", "Rétablir les bascules au démarrage" },
 { "Restores your inventory from the snapshot slot.", "Restaure votre inventaire depuis l'instantané." },
 { "Resume", "Reprendre" },
 { "Returns impact Coordinates.", "Renvoie les coordonnées de l'impact." },

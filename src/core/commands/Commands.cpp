@@ -24,7 +24,6 @@ namespace Rampagio
 
 	void Command::MarkDirty()
 	{
-		m_KeepSaved = false;
 		if (IsSaved())
 			Commands::MarkDirty();
 	}
@@ -108,10 +107,10 @@ namespace Rampagio
 				command->Tick();
 	}
 
-	void Commands::ApplyLoaded(bool restoreFeatures)
+	void Commands::ApplyLoaded()
 	{
 		for (Command* command : GetInstance().m_Ordered)
-			command->ApplyLoaded(restoreFeatures || command->AlwaysRestore());
+			command->ApplyLoaded();
 	}
 
 	void Commands::ResetToDefaults()
@@ -143,7 +142,7 @@ namespace Rampagio
 	void Commands::SaveStateImpl(nlohmann::json& state)
 	{
 		for (Command* command : m_Ordered)
-			if (command->IsSaved() && !(command->KeepsSavedValue() && state.contains(command->GetName())))
+			if (command->IsSaved())
 				command->SaveState(state[command->GetName()]);
 	}
 

@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "Standardwerte wiederherstellen" },
 { "Restore Loot", "Beute wiederherstellen" },
 { "Restore Snapshot", "Schnappschuss wiederherstellen" },
-{ "Restore Toggles on Start", "Schalter beim Start wiederherstellen" },
 { "Restores your inventory from the snapshot slot.", "Stellt dein Inventar aus dem Snapshot wieder her." },
 { "Resume", "Fortsetzen" },
 { "Returns impact Coordinates.", "Gibt die Einschlagkoordinaten aus." },

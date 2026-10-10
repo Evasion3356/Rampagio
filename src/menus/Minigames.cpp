@@ -3,8 +3,7 @@
 	Rampage), linked as static libraries from their submodules (Goal B in
 	CLAUDE.md). Each library holds the mechanism; the rows here own its
 	options, so they save in Rampagio.json like any other row, and come
-	back on start like options do (SetAlwaysRestore), the way the
-	standalone mods' INIs work.
+	back on start, the way the standalone mods' INIs work.
 
 	Five Finger Fillet: external/FFFCheat (FFFCheatLib). Patches the
 	fillet_sp script while it runs, each patch behind its own row; see that
@@ -67,7 +66,7 @@ namespace
 		Ui::Toggle(menu, id, caption, [option](bool on) {
 			g_fillet.*option = on;
 			FFFCheat::Reapply();
-		}, FilletTick)->SetAlwaysRestore();
+		}, FilletTick);
 	}
 
 	void BuildFiveFingerFillet(MenuBase* minigames)
@@ -130,7 +129,7 @@ namespace
 			case Option::Kind::Bool:
 			{
 				bool* value = static_cast<bool*>(option.value);
-				Ui::Toggle(menu, id, option.label, [value](bool on) { *value = on; })->SetDefault(*value)->SetAlwaysRestore();
+				Ui::Toggle(menu, id, option.label, [value](bool on) { *value = on; })->SetDefault(*value);
 				break;
 			}
 			case Option::Kind::Int:
@@ -152,7 +151,7 @@ namespace
 		MenuBase* menu = Ui::Submenu(minigames, title);
 		Advisor* a = &advisor;
 		Ui::Toggle(menu, std::format("{}.enabled", prefix), "Advisor", [a](bool on) { a->setEnabled(on); },
-			[a] { AdvisorTick(*a); })->SetAlwaysRestore();
+			[a] { AdvisorTick(*a); });
 		Ui::Describe(menu, "Reads the table's cards from the game's memory and shows them, with advice, while you play.");
 		BuildOptionRows(menu, prefix, options);
 	}

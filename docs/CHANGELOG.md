@@ -10,9 +10,8 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Rampagio.json, as you change them (it replaces Rampagio.ini,
   Rampagio_Settings.ini, Rampagio_Toggles.ini and Rampagio_Themes.ini).
   Number, choice and text values are saved too. Settings > Load / Save >
-  "Restore Toggles on Start" brings saved toggles back on start (off by
-  default); with it off, the saved toggles stay in the file for later.
-  "Load Settings" brings everything back, toggles included.
+  Toggles you left ticked come back on at the next start.
+  "Load Settings" re-reads the file and applies it.
 - Ejecting Rampagio (ScriptHookRDR2's Ctrl+R reload) switches its
   features off first, where the game allows it.
 - Hotkeys can be key combinations (F11 on a row, hold the keys, let go)

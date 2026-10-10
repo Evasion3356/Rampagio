@@ -903,9 +903,9 @@ namespace Menus
 		hair->SetOnOpen([](MenuBase*) { ReadHair(); if (!g_lockWeight) ReadWeight(); });
 		Ui::Transient(hair);
 		Ui::Looped(hair, "wardrobe.lockweight", "Lock Weight", [] { if (!g_lockWeight) { g_lockWeight = true; ReadWeight(); } LockWeightTick(); },
-			[] { g_lockWeight = false; })->SetAlwaysRestore();
+			[] { g_lockWeight = false; });
 		Ui::Looped(hair, "wardrobe.lockhair", "Lock Hair", [] { if (!g_lockHair) { g_lockHair = true; ReadHair(); } LockHairTick(); },
-			[] { g_lockHair = false; })->SetAlwaysRestore();
+			[] { g_lockHair = false; });
 
 		// SubSelfPedMetaTags.
 		MenuBase* tags = Menus::Shared().metaTags = Ui::Submenu(wardrobe, "Meta Ped Tags");

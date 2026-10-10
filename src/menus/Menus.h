@@ -88,11 +88,10 @@ namespace Menus
 	// Settings.cpp. RegisterSettings creates the "general", "style"
 	// and "themes" parts of Rampagio.json and calls RegisterHotkeys (before
 	// Settings::Initialize); ApplyLoadedSettings applies the loaded command
-	// states, honouring settings.restoretoggles unless restoreAll (Load
-	// Settings restores everything); TickSettings runs hotkeys and overlays
-	// every frame.
+	// states (ticked toggles come back on); TickSettings runs hotkeys and
+	// overlays every frame.
 	void RegisterSettings();
-	void ApplyLoadedSettings(bool restoreAll = false);
+	void ApplyLoadedSettings();
 	void TickSettings();
 	// Hotkeys.cpp (docs/HOTKEYS_PLAN.md): Settings > Hotkeys, the F11 Hotkey
 	// window (ImGui overlay) and Y-on-a-pad binding, and running the

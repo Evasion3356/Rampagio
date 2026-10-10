@@ -793,8 +793,7 @@ namespace Menus
 		MenuBase* collectibles = Ui::Submenu(recovery, "Collectibles");
 		// Ours: applies to every Show on Map below.
 		Ui::Toggle(collectibles, "collectibles.hidefound", "Hide Found", [](bool on) { g_hideFound = on; })
-			->SetDefault(true)
-			->SetAlwaysRestore();
+			->SetDefault(true);
 		Ui::Describe(collectibles, "Show on Map leaves out what you've already found. The location lists still show everything.");
 		BuildCigaretteCards(collectibles);
 		BuildCategory(collectibles, g_categories[0]); // Dino Bones

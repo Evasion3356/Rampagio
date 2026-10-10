@@ -49,19 +49,12 @@ namespace Rampagio
 		m_Saved = value.get<bool>();
 	}
 
-	void BoolCommand::ApplyLoaded(bool restoreFeatures)
+	void BoolCommand::ApplyLoaded()
 	{
 		if (!m_Saved)
 			return;
 		const bool saved = *m_Saved;
 		m_Saved.reset();
-		if (!restoreFeatures)
-		{
-			if (saved != m_State)
-				KeepSavedValue();
-			return;
-		}
-		DropSavedValue();
 		if (saved == m_State)
 			return;
 		m_State = saved;

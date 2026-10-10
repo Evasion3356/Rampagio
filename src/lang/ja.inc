@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "デフォルトに戻す" },
 { "Restore Loot", "戦利品を復元" },
 { "Restore Snapshot", "スナップショットを復元" },
-{ "Restore Toggles on Start", "起動時にトグルを復元" },
 { "Restores your inventory from the snapshot slot.", "スナップショットからインベントリを復元します。" },
 { "Resume", "再開" },
 { "Returns impact Coordinates.", "着弾地点の座標を返します。" },

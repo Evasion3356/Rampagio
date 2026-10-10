@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "恢复默认值" },
 { "Restore Loot", "恢复战利品" },
 { "Restore Snapshot", "还原快照" },
-{ "Restore Toggles on Start", "启动时恢复开关" },
 { "Restores your inventory from the snapshot slot.", "从快照槽位恢复你的物品栏。" },
 { "Resume", "继续" },
 { "Returns impact Coordinates.", "返回命中点坐标。" },

@@ -51,7 +51,7 @@ namespace Rampagio
 		bool HasState() const override { return true; }
 		void SaveState(nlohmann::json& value) override;
 		void LoadState(const nlohmann::json& value) override;
-		void ApplyLoaded(bool restoreFeatures) override;
+		void ApplyLoaded() override;
 		void ResetToDefault() override
 		{
 			SetState(m_Default);

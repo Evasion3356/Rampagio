@@ -109,13 +109,12 @@ and live checklist in `docs/HOTKEYS_PLAN.md`, built 2026-10-09, untested).
   list build). `SetDefault` sets a toggle's starting state, `Sync` shows
   a game state without running hooks, `SetTransient`/`Ui::Transient`
   keep runs and mirrors of game state out of the file, and
-  `SetHotkeyable(false)` marks actions that open the keyboard. Toggles and
-  values with a change hook only come back on start when
-  `settings.restoretoggles` is on (the file keeps their saved values until
-  they're changed); plain values (parameters), `settings.*` and commands
-  marked `SetAlwaysRestore()` (option-like toggles, e.g. the sibling
-  mods' rows) always do.
-  Load / Save > Load Settings restores everything.
+  `SetHotkeyable(false)` marks actions that open the keyboard. Every saved command
+  comes back on start (`Commands::ApplyLoaded`): ticked toggles are on
+  again through their hooks (there was a Restore Toggles on Start setting
+  and a `SetAlwaysRestore()` exception; both removed 2026-10-09 because
+  the inconsistency read as a bug).
+  Load / Save > Load Settings re-reads the file and applies it.
   `ListMenu` rebuilds its rows each time it opens. Don't nest a `ListMenu`
   or `Submenu` inside a `ListMenu`'s build (each rebuild would register a
   new menu); use one `DetachedListMenu` built once and open it with
@@ -608,9 +607,8 @@ repo's CLAUDE.md has a "Library" section with its specifics):
   (ScriptHookSDK, RDR-Classes, minhook), all on the same fork commit as
   Rampagio's; clone with `--recurse-submodules` (the release workflow
   already does).
-- Rows that stand in for a sibling's INI setting use
-  `SetAlwaysRestore()` (Command.h) so they come back on start whatever
-  `settings.restoretoggles` says. Only the FishingFix fixes default to
+- Rows that stand in for a sibling's INI setting save and restore like
+  any other row. Only the FishingFix fixes default to
   on (they stand down while a standalone `FishingFix.asi` is loaded);
   Keep Weapons on Dismount, the fillet patches and the advisors stay off
   until the user turns them on (user, 2026-10-09).

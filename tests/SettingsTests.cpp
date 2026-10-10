@@ -105,7 +105,7 @@ namespace
 		Check(!hookOn && intStorage == 10 && s->GetState() == "default", "ResetToDefaults restores defaults through the hooks");
 
 		Settings::Reload();
-		Commands::ApplyLoaded(true);
+		Commands::ApplyLoaded();
 		Check(b->GetState() && hookOn, "bool restored and its hook ran");
 		Check(l->GetState(), "looped restored");
 		Check(intStorage == 35, "int restored");
@@ -122,7 +122,7 @@ namespace
 		const std::wstring path = FilePath("clamp.json");
 		WriteText(path, R"({"commands":{"test.clamp.int":999,"test.clamp.list":-4}})");
 		Settings::Initialize(path);
-		Commands::ApplyLoaded(true);
+		Commands::ApplyLoaded();
 		Check(i->GetState() == 10, "int above max clamped on load");
 		Check(li->GetState() == 0, "list index below 0 clamped on load");
 		i->SetState(-3);
@@ -137,7 +137,7 @@ namespace
 		const std::wstring path = FilePath("unknown.json");
 		WriteText(path, R"({"future":{"x":1},"commands":{"gone.command":true,"test.unknown.int":3}})");
 		Settings::Initialize(path);
-		Commands::ApplyLoaded(true);
+		Commands::ApplyLoaded();
 		i->SetState(7);
 		Settings::Flush();
 		const nlohmann::json saved = ReadJson(path);
@@ -152,7 +152,7 @@ namespace
 		const std::wstring path = FilePath("corrupt.json");
 		WriteText(path, "{\"commands\": {\"test.corrupt.bool\": fal");
 		Settings::Initialize(path);
-		Commands::ApplyLoaded(true);
+		Commands::ApplyLoaded();
 		Check(b->GetState(), "corrupt file: defaults kept");
 		Check(fs::exists(path + L".bad"), "corrupt file copied to .bad");
 		Check(Settings::Flush() && ReadJson(path).is_object(), "corrupt file replaced by valid JSON on save");
@@ -160,7 +160,7 @@ namespace
 		const std::wstring wrongType = FilePath("wrongtype.json");
 		WriteText(wrongType, R"({"commands":{"test.corrupt.bool":"yes"}})");
 		Settings::Initialize(wrongType);
-		Commands::ApplyLoaded(true);
+		Commands::ApplyLoaded();
 		Check(b->GetState(), "wrong value type ignored");
 	}
 
@@ -197,47 +197,43 @@ namespace
 		Check(ticks == 1, "ticks again after Resume");
 	}
 
-	void RestoreOff()
+	void Restore()
 	{
 		static bool hook = false;
 		static int liveValue = 0, plainValue = 0, changes = 0;
 		auto* b = new BoolCommand("test.restore.bool", "Bool", "", [&](bool on) { hook = on; });
+		auto* looped = new LoopedCommand("test.restore.looped", "Looped");
 		auto* live = new IntCommand("test.restore.live", "Live", "", 0, 10, 1, 1, &liveValue, [&] { changes++; });
 		auto* plain = new IntCommand("test.restore.plain", "Plain", "", 0, 10, 1, 1, &plainValue);
-		auto* setting = new BoolCommand("settings.testrestore", "Setting");
 		const std::wstring path = FilePath("restore.json");
-		WriteText(path, R"({"commands":{"test.restore.bool":true,"test.restore.live":5,"test.restore.plain":6,"settings.testrestore":true}})");
+		WriteText(path, R"({"commands":{"test.restore.bool":true,"test.restore.looped":true,"test.restore.live":5,"test.restore.plain":6}})");
 		Settings::Initialize(path);
-		Commands::ApplyLoaded(false);
-		Check(!b->GetState() && !hook, "restore off: bool stays at default");
-		Check(liveValue == 1 && changes == 0, "restore off: value with onChange stays at default");
-		Check(plainValue == 6, "restore off: plain value loads");
-		Check(setting->GetState(), "restore off: settings. commands still load");
+		Commands::ApplyLoaded();
+		Check(b->GetState() && hook, "ticked toggle comes back on through its hook");
+		Check(looped->GetState(), "ticked looped toggle comes back on");
+		Check(liveValue == 5 && changes == 1, "value with onChange applied through it");
+		Check(plainValue == 6, "plain value loads");
 
+		// A toggle turned on in this session is written, and read back on the next start.
+		b->SetState(false);
+		looped->SetState(false);
+		looped->SetState(true);
 		Settings::Flush();
 		nlohmann::json saved = ReadJson(path)["commands"];
-		Check(saved["test.restore.bool"] == true && saved["test.restore.live"] == 5, "restore off: the file keeps the unapplied saved values");
-		b->SetState(false); // no change: still kept
+		Check(saved["test.restore.bool"] == false && saved["test.restore.looped"] == true, "changed toggles are saved");
+		hook = false;
+		b->SetState(true);
 		Settings::Flush();
-		Check(ReadJson(path)["commands"]["test.restore.bool"] == true, "restore off: kept until the state changes");
-
 		Settings::Reload();
-		Commands::ApplyLoaded(true);
-		Check(b->GetState() && hook, "restore on: bool restored through its hook");
-		Check(liveValue == 5 && changes == 1, "restore on: value applied through onChange");
-
-		// Changing a kept value replaces it in the file.
+		b->SetState(false);
 		Settings::Reload();
+		Commands::ApplyLoaded();
+		Check(b->GetState() && hook, "a toggle ticked and saved comes back after a reload");
+
 		Commands::ResetToDefaults();
 		Settings::Flush();
 		saved = ReadJson(path)["commands"];
 		Check(saved["test.restore.bool"] == false && saved["test.restore.live"] == 1, "ResetToDefaults saves the defaults");
-		WriteText(path, R"({"commands":{"test.restore.live":5}})");
-		Settings::Initialize(path);
-		Commands::ApplyLoaded(false);
-		live->SetState(3);
-		Settings::Flush();
-		Check(ReadJson(path)["commands"]["test.restore.live"] == 3, "restore off: a changed value replaces the kept one");
 	}
 
 	void Hotkeys()
@@ -374,7 +370,7 @@ namespace
 		const std::wstring path = FilePath("transient.json");
 		WriteText(path, R"({"commands":{"test.transient":true}})");
 		Settings::Initialize(path);
-		Commands::ApplyLoaded(true);
+		Commands::ApplyLoaded();
 		Check(!t->GetState(), "transient command ignores its saved state");
 		Settings::Flush();
 		t->SetState(true);
@@ -427,7 +423,7 @@ int main()
 	CorruptFile();
 	Duplicates();
 	Suspend();
-	RestoreOff();
+	Restore();
 	Hotkeys();
 	HotkeyModes();
 	Presets();

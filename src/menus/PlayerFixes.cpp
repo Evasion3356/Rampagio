@@ -60,12 +60,12 @@ namespace Menus
 				return;
 			InitFishingFix();
 			FishingFix::Tick();
-		})->SetDefault(true)->SetAlwaysRestore();
+		})->SetDefault(true);
 		Ui::Looped(self, "player.deadeyefix", "Dead Eye Fix", [] {
 			if (StandaloneLoaded())
 				return;
 			InitFishingFix();
 			FishingFix::DeadEyeFix::OnTick();
-		})->SetDefault(true)->SetAlwaysRestore();
+		})->SetDefault(true);
 	}
 }

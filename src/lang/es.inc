@@ -1472,7 +1472,6 @@
 { "Restore Defaults", "Restaurar valores predeterminados" },
 { "Restore Loot", "Restaurar botín" },
 { "Restore Snapshot", "Restaurar instantánea" },
-{ "Restore Toggles on Start", "Restaurar interruptores al iniciar" },
 { "Restores your inventory from the snapshot slot.", "Restaura tu inventario desde la instantánea." },
 { "Resume", "Reanudar" },
 { "Returns impact Coordinates.", "Devuelve las coordenadas del impacto." },
