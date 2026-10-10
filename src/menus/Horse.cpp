@@ -462,10 +462,11 @@ namespace
 		const char* name;
 		int attribute;
 		int value;
+		int max; // base-rank ceilings from HorseStatLock (cores 8, levels 9, weight 100 with 50 ideal)
 	};
 	HorseStat g_stats[] = {
-		{ "Health Core", 0, 0 }, { "Stamina Core", 1, 0 }, { "Handling Level", 4, 0 }, { "Speed Level", 5, 0 },
-		{ "Acceleration Level", 6, 0 }, { "Bonding Level", 7, 0 }, { "Weight", 13, 0 },
+		{ "Health Core", 0, 0, 8 }, { "Stamina Core", 1, 0, 8 }, { "Handling Level", 4, 0, 9 }, { "Speed Level", 5, 0, 9 },
+		{ "Acceleration Level", 6, 0, 9 }, { "Bonding Level", 7, 0, 4 }, { "Weight", 13, 50, 100 },
 	};
 
 	std::string MaxBonding()
@@ -670,16 +671,16 @@ namespace Menus
 		for (HorseStat& s : g_stats)
 		{
 			HorseStat* stat = &s;
-			Ui::Number(stats, Ui::Id("horse.stat", s.name), s.name, &s.value, 0, 10, 1,
-				[stat] { OnMount([stat](Ped m) { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, stat->attribute, stat->value); }); }, true);
+			Ui::Number(stats, Ui::Id("horse.stat", s.name), s.name, &s.value, 0, s.max, 1,
+				[stat] { OnMount([stat](Ped m) { ATTRIBUTE::SET_ATTRIBUTE_BASE_RANK(m, stat->attribute, stat->value); }); }, true)->SetAlwaysRestore();
 		}
 		stats->SetOnOpen([](MenuBase*) {
-			// While locked the values are the lock's targets, not a readout.
-			if (HorseLock::Locked())
-				return;
 			if (const Ped m = Mount())
 			{
 				g_gender = PED::_GET_CHAR_EXPRESSION(m, kGenderExpression) < 0.5f ? 1 : 0;
+				// While locked the values are the lock's targets, not a readout.
+				if (HorseLock::Locked())
+					return;
 				for (HorseStat& s : g_stats)
 					s.value = ATTRIBUTE::GET_ATTRIBUTE_BASE_RANK(m, s.attribute);
 			}
