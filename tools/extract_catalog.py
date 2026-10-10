@@ -36,14 +36,27 @@ tools/data/ci_categories.txt, which the default --names includes), item type @16
 Items live in the PMAP block whose wrapper struct (a map entry: hash @0,
 struct @8, 216 bytes) points at 0xEDD9A017.
 
-Output lines are { key, "type", category, "NAME" or nullptr }, grouped by type in
-TYPE_ORDER, then by key. Types are lowercased, and the catalog's one-offs
-(CURRENCY, Component) become "other"; the root "character" item is left
-out.
+Tags: each item's tag array (item @40) holds 16-byte {tag @8, tag type @12}
+entries (struct 0x5663E91C). The arrays' PSO pointers wrap past 1 MB, so they
+are read in item order from that struct's block, which they exactly fill.
+Tag types: TAG_ITEM_PROPERTY (CI_TAG_ITEM_*, CI_TAG_CATEGORY_* = the satchel
+page, CI_TAG_SHOP_*) and TAG_SATCHEL_FOLDER (CI_TAG_FOLDER_* = the folder on
+that page). Names found so far, by brute force over item-name tokens, are in
+tools/data/ci_tags.txt. Acquire costs (@56) and sell prices (@72) are only
+counted: an item with neither can't be bought or sold.
+
+classify() sorts each item into the Give Items list it belongs in, from
+those tags (see its comments); items it returns None for aren't listed.
+
+Output lines are { key, "type", category, "NAME" or nullptr, "group" or
+nullptr, "subgroup" or nullptr }, grouped by type in TYPE_ORDER, then by key.
+Types are lowercased, and the catalog's one-offs (CURRENCY, Component)
+become "other"; the root "character" item is left out.
 """
 import argparse, collections, json, os, struct, sys
 
 ITEM_STRUCT = 0xEDD9A017
+TAG_STRUCT = 0x5663E91C
 MAP_VALUE_FIELD = 0x063FA3F2
 
 # Menu order. Types other menus own (clothing, weapon, horse) are still
@@ -111,10 +124,16 @@ def ymt_items(sections, blocks, schema):
                    and any(f[0] == MAP_VALUE_FIELD and f[4] == ITEM_STRUCT for f in v[2]))
     size = schema[wrapper][1]
     block = next(b for b in blocks if b[0] == wrapper)
+    tags_at = next(b for b in blocks if b[0] == TAG_STRUCT)[1]
+    count = lambda e, off: struct.unpack(">H", e[off + 8:off + 10])[0]  # a PSO array's count
     for i in range(block[3] // size):
         e = data[block[1] + size * i:block[1] + size * (i + 1)]
         key, category, kind, _, flags, model = struct.unpack(">IIIIII", e[16:40])
-        yield key, category, kind, flags, model
+        item = e[8:]
+        n = count(item, 40)
+        tags = [struct.unpack(">II", data[tags_at + 16 * j + 8:tags_at + 16 * j + 16]) for j in range(n)]
+        tags_at += 16 * n
+        yield key, category, kind, flags, model, tags, count(item, 56), count(item, 72)
 
 
 # ---- names -------------------------------------------------------------------
@@ -143,18 +162,102 @@ def rows_from_ymt(path, names):
     sections = load_sections(path)
     _, blocks, schema = parse(sections)
     name = lambda h: names.get(h, hex_name(h))
-    return [dict(key=k, name=name(k), category=name(c), type=name(t), flags=f, model=name(m))
-            for k, c, t, f, m in ymt_items(sections, blocks, schema)]
+    return [dict(key=k, name=name(k), category=name(c), type=name(t), flags=f, model=name(m),
+                 tags=[[name(tag), name(kind)] for tag, kind in tags], buy=buy, sell=sell)
+            for k, c, t, f, m, tags, buy, sell in ymt_items(sections, blocks, schema)]
 
 
 def rows_from_json(path, names):
     rows = json.load(open(path, encoding="utf-8"))
+    named = lambda s: names.get(int(s, 16), s) if is_hex(s) else s
     for r in rows:
         if is_hex(r["name"]) and r["key"] in names:
             r["name"] = names[r["key"]]
-        if is_hex(r["category"]) and int(r["category"], 16) in names:
-            r["category"] = names[int(r["category"], 16)]
+        r["category"] = named(r["category"])
+        r["tags"] = [[named(t), named(k)] for t, k in r.get("tags", [])]
     return rows
+
+
+# ---- Give Items groups ---------------------------------------------------------
+
+# The materials page: no CI_TAG_CATEGORY_* name found for its tag yet.
+MATERIALS_PAGE = "0x85B3CEDE"
+PAGES = {"CI_TAG_CATEGORY_PROVISION": "provisions", "CI_TAG_CATEGORY_REMEDY": "remedies",
+         "CI_TAG_CATEGORY_INGREDIENT": "ingredients", "CI_TAG_CATEGORY_KIT": "kit",
+         "CI_TAG_CATEGORY_VALUABLE": "valuables", "CI_TAG_CATEGORY_DOCUMENT": "documents",
+         MATERIALS_PAGE: "materials"}
+# Document folders (TAG_SATCHEL_FOLDER), merged into the Documents lists.
+DOCUMENT_FOLDERS = {
+    "CI_TAG_FOLDER_LETTERS": "letters", "CI_TAG_FOLDER_NOTES": "notes",
+    "CI_TAG_FOLDER_NEWSPAPERS": "newspapers", "CI_TAG_FOLDER_NEWSPAPER_SCRAPS": "newspapers",
+    "CI_TAG_FOLDER_RECIPE_PAMPHLETS": "recipes", "CI_TAG_FOLDER_BOOKS": "books", "0x575B70B5": "books",
+    "CI_TAG_FOLDER_TREASURE_MAPS": "maps", "CI_TAG_FOLDER_MAPS": "maps",
+    "CI_TAG_FOLDER_BOUNTY_POSTERS": "posters",
+    "CI_TAG_FOLDER_PHOTOGRAPHS": "photos", "CI_TAG_FOLDER_DRAWINGS": "photos",
+    "CI_TAG_FOLDER_DINOSAUR_NOTES": "collectors", "CI_TAG_FOLDER_ROCK_CARVING_NOTES": "collectors",
+    "CI_TAG_FOLDER_TAXIDERMIST_ORDERS": "collectors", "CI_TAG_FOLDER_BUSINESS_CARDS": "collectors",
+    "0x699AB030": "collectors",
+}
+# Containers the inventory keeps for itself.
+INTERNAL = {"KIT_WARDROBE", "KIT_CAMP", "KIT_CAMP_SIMPLE"}
+STORY_FOLDERS = {"CI_TAG_FOLDER_KIT_KEEPSAKES", "CI_TAG_FOLDER_KIT_KEYCHAIN"}
+# Tags that explain why a provision can't be bought or sold other than it
+# being a story item: rare orchids, used-up leftovers, crafting materials,
+# collector loot.
+NOT_STORY = {"CI_TAG_ITEM_RARE_ORCHID", "CI_TAG_ITEM_FLOWER", "CI_TAG_ITEM_COLLECTIBLE", "CI_TAG_ITEM_USED",
+             "CI_TAG_ITEM_MATERIAL", "CI_TAG_FOLDER_SELL_CATCHER"}
+
+
+def classify(r):
+    """(group, subgroup) for Give Items, or None when the item isn't listed."""
+    t = item_type(r["type"])
+    name = "" if is_hex(r["name"]) else r["name"]
+    tags = r.get("tags", [])
+    props = {tag for tag, kind in tags if kind == "TAG_ITEM_PROPERTY"}
+    folder = next((tag for tag, kind in tags if kind == "TAG_SATCHEL_FOLDER"), None)
+    page = next((PAGES[p] for p in PAGES if p in props), None)
+    used = "CI_TAG_ITEM_USED" in props or name.endswith("_USED")
+    if t == "ammo":
+        return None  # the ped's ammo, given from Weapon > Ammunition
+    if t == "kit" and ("CI_TAG_ITEM_POUCH_UPGRADE" in props or "CI_TAG_ITEM_IS_SATCHEL" in props
+                       or name.startswith("KIT_POUCH") or name == "CUSTOM_SATCHEL"):
+        return ("satchel", None)
+    if "CI_TAG_ITEM_FISHING_BAIT" in props or "CI_TAG_ITEM_FISHING_LURE" in props or name.startswith("UPGRADE_FSH_"):
+        return None if name.endswith("_NONE") else ("fishing", None)  # the bait tins too
+    if name in INTERNAL:
+        return None
+    if "CI_TAG_ITEM_TRINKET" in props or "CI_TAG_ITEM_TALISMAN" in props:
+        return ("trinkets", None)
+    # Story items: the game's Keepsakes and Keychain folders, plus
+    # provisions that can't be bought or sold (the broken pistol, Mary's
+    # ring, the companions' things) unless another tag explains it.
+    if folder in STORY_FOLDERS:
+        return ("story", None)
+    if (t == "provision" and not r.get("buy") and not r.get("sell") and page in (None, "kit", "valuables")
+            and not props & NOT_STORY and not used and folder != "CI_TAG_FOLDER_KIT_WATCHES"
+            and not name.startswith("PROVISION_JEWELRY_BOX")):
+        return ("story", None)
+    if used or t not in ("consumable", "provision", "document", "kit", "upgrade"):
+        return None  # clothing and weapons have their own menus
+    if name == "PROVISION_GOLDTOOTH":
+        return ("valuables", None)  # filed as a material, sold to the fence like jewelry
+    if page == "documents":
+        if (folder and folder.startswith("CI_TAG_FOLDER_CIG_CARD")) or name.startswith("DOCUMENT_CIG_CARD"):
+            return ("documents", "cards")
+        return ("documents", DOCUMENT_FOLDERS.get(folder, "other"))
+    if page == "materials":
+        if "CI_TAG_SHOP_ANIMAL_LEGENDARY" in props or "LEGENDARY" in name:
+            return ("materials", "legendary")
+        if "CI_TAG_ITEM_MEAT_FISH" in props or "CI_TAG_ITEM_FISH" in props or "_FISH_" in name:
+            return ("materials", "fish")
+        if "CI_TAG_ITEM_ANIMAL_CARCASS" in props or "CI_TAG_SHOP_ANIMAL_CARCASS" in props:
+            return ("materials", "carcasses")
+        if "CI_TAG_SHOP_ANIMAL_PELT" in props:
+            return ("materials", "pelts")
+        if "CI_TAG_ITEM_ANIMAL_FEATHER" in props or folder == "CI_TAG_FOLDER_CRAFT_FEATHERS":
+            return ("materials", "feathers")
+        return ("materials", "parts")
+    return (page, None) if page else None
 
 
 def print_schema(path, names):
@@ -196,18 +299,23 @@ def write_inc(rows, out, source):
         if t not in TYPE_ORDER:
             sys.exit("unknown item type %r (key 0x%08X): add it to TYPE_ORDER" % (r["type"], r["key"]))
         items.append((TYPE_ORDER.index(t), r["key"], t, category_hash(r["category"]),
-                      None if is_hex(r["name"]) else r["name"]))
-    items.sort()
+                      None if is_hex(r["name"]) else r["name"], classify(r)))
+    items.sort(key=lambda i: i[:2])
     lines = ["// Generated by tools/extract_catalog.py from %s;" % source,
-             "// regenerate rather than edit. { item hash, item type, ci_category_* hash, internal name or nullptr }"]
-    for _, key, t, category, name in items:
-        lines.append("{ 0x%08X, %s, 0x%08X, %s }," % (key, c_string(t), category, c_string(name) if name else "nullptr"))
+             "// regenerate rather than edit. { item hash, item type, ci_category_* hash, internal name or nullptr,",
+             "// Give Items group or nullptr, subgroup or nullptr }"]
+    opt = lambda s: c_string(s) if s else "nullptr"
+    for _, key, t, category, name, group in items:
+        g, sub = group or (None, None)
+        lines.append("{ 0x%08X, %s, 0x%08X, %s, %s, %s }," % (key, c_string(t), category, opt(name), opt(g), opt(sub)))
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w", encoding="utf-8", newline="") as f:
         f.write("\r\n".join(lines) + "\r\n")
     counts = collections.Counter(i[2] for i in items)
     print("items", len(items), "named", sum(i[4] is not None for i in items))
     print(", ".join("%s %d" % (t, counts[t]) for t in TYPE_ORDER if counts[t]))
+    groups = collections.Counter("/".join(g for g in i[5] if g) for i in items if i[5])
+    print("groups:", ", ".join("%s %d" % kv for kv in sorted(groups.items())))
 
 
 def main():
@@ -219,7 +327,8 @@ def main():
     ap.add_argument("--schema", action="store_true", help="print the PSO schema (from a .ymt)")
     args = ap.parse_args()
 
-    names = load_names([os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ci_categories.txt")] + args.names)
+    data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    names = load_names([os.path.join(data, "ci_categories.txt"), os.path.join(data, "ci_tags.txt")] + args.names)
     from_json = args.input.lower().endswith(".json")
     if args.schema:
         if from_json:

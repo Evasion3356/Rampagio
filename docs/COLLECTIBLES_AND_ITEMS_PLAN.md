@@ -254,6 +254,26 @@ scripts. A later Windows session built it: it compiles clean with MSVC
   does), uses the backup inventory while the game does, logs each add and
   fails unless the item count rose. Live report: Aged Pirate Rum was
   accepted but never showed in the satchel; cause not yet known.
+- B2 second pass (2026-10-09, second live look; the log showed why): Give
+  Items is grouped like the satchel's pouches (Food, Tonics and Remedies,
+  Ingredients and Herbs, Kit, Valuables, Materials and Documents, the last
+  two split by internal-name keywords), plus Ammo (added to the ped by
+  ammo type, Amount clips, up to the maximum), Bait and Lures and Satchel
+  Upgrades. Camp upgrades and story kit are dropped: they're one-offs the
+  player already owns (count 1, refused). The parent row is "Items" again.
+  A refusal when the item count is already above 0 reads "You already
+  have as many ... as the game allows"; the native can return false and
+  still add (bait), so success is judged by the count.
+- B2 third pass (2026-10-09): Give Items is grouped from the catalog's own
+  item tags instead of name keywords (tags @40 in the item struct; see
+  `tools/extract_catalog.py`'s docstring and `classify()`): Provisions,
+  Remedies, Ingredients, Kit, Valuables, Materials, Documents (the
+  satchel's pages and folders), Trinkets and Talismans, Story Items, Ammo,
+  Fishing Bait and Lures, Satchel Upgrades. No tag marks quest items; Story
+  Items is the Keepsakes and Keychain folders plus provisions with no
+  acquire cost and no sell price (e.g. the broken pistol,
+  PROVISION_RCM_OLD_GUN from rcm_slave_catcher2, which the game files under
+  Valuables), minus orchids, used leftovers, materials and jewelry boxes.
 - B3: `ItemNames.inc`, `extract_items.py` and `catalog_dump.py` are gone;
   only Give Items used the list.
 - B4 (2026-10-09): 181 of the 291 `ci_category_*` hashes are named in
@@ -267,3 +287,9 @@ scripts. A later Windows session built it: it compiles clean with MSVC
   items are in one category, or, for weapon mods/decorations, in dozens of
   one- or two-item ones). Unnamed big ones: `0x83E3C493` and `0xDBB9ABD6`
   (ammo boxes and special ammo), `0x1F5EEA44` (18 upgrades).
+- Ammo left Give Items (2026-10-09): Weapon > Ammunition gives it, grouped
+  by weapon (Revolvers ... Thrown Weapons), rows named by the game
+  (`Weapons.cpp`; details in `docs/GIVE_ITEMS_JOURNAL.md`, "Ammo").
+- Recovery > Items (2026-10-09) is Unlimited Items, Max Items, Give Items
+  and an Inventory submenu holding the other rows (add/remove, wipe,
+  backup, snapshot). Command ids are unchanged.

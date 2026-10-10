@@ -109,9 +109,10 @@ namespace GameUtil
 	// Adds `quantity` of `item` to ActiveSpInventory() the way the game's
 	// scripts do (flow_controller func_698's slot choice): upgrades in the
 	// upgrade slot or under the wardrobe, else satchel, wardrobe, currency
-	// or the item's default slot under the character. Logs the attempt and
-	// checks the item count rose. On failure `error` says why.
-	bool AddInventoryItem(Hash item, int quantity, std::string& error);
+	// or the item's default slot under the character. Logs the attempt.
+	// Succeeds when the item count rose (the native can report failure
+	// and still add); `added` gets how many. On failure `error` says why.
+	bool AddInventoryItem(Hash item, int quantity, std::string& error, int* added = nullptr);
 
 	// Adds `quantity` of `item` through the game's own add function,
 	// flow_controller func_290 (Rampage's Shift path), so its side effects

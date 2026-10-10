@@ -89,12 +89,20 @@ namespace
 	class CommandChoiceItem : public MenuItemDefault
 	{
 		Rampagio::ListCommand* m_command;
+		std::function<void(int)> m_onSelect; // ChoiceAction's action, else select re-applies
 	public:
-		CommandChoiceItem(Rampagio::ListCommand* command) : MenuItemDefault(command->GetLabel()), m_command(command) {}
+		CommandChoiceItem(Rampagio::ListCommand* command, std::function<void(int)> onSelect = nullptr)
+			: MenuItemDefault(command->GetLabel()), m_command(command), m_onSelect(std::move(onSelect)) {}
 		Rampagio::Command* GetCommand() override { return m_command; }
 		void OnLeft() override { m_command->Step(-1); }
 		void OnRight() override { m_command->Step(1); }
-		void OnSelect() override { m_command->Call(); }
+		void OnSelect() override
+		{
+			if (m_onSelect)
+				m_onSelect(m_command->GetState());
+			else
+				m_command->Call();
+		}
 		void OnDraw(float lineTop, float lineLeft, bool active) override
 		{
 			MenuItemDefault::OnDraw(lineTop, lineLeft, active);
@@ -127,6 +135,7 @@ namespace
 		Rampagio::ActionCommand* m_command;
 	public:
 		CommandActionItem(Rampagio::ActionCommand* command) : MenuItemDefault(command->GetLabel()), m_command(command) {}
+		string GetCaption() override { return m_command->GetLabel(); } // follows SetLabel
 		Rampagio::Command* GetCommand() override { return m_command; }
 		void OnSelect() override
 		{
@@ -358,6 +367,13 @@ namespace Ui
 		auto change = onChange ? std::function<void()>([onChange, index] { onChange(*index); }) : nullptr;
 		auto* command = Registered(new Rampagio::ListCommand(id, caption, "", std::move(options), *index, index, std::move(change)));
 		menu->AddItem(new CommandChoiceItem(command));
+		return command;
+	}
+
+	Rampagio::ListCommand* ChoiceAction(MenuBase* menu, const std::string& id, const std::string& caption, std::vector<std::string> options, int* index, std::function<void(int)> action)
+	{
+		auto* command = Registered(new Rampagio::ListCommand(id, caption, "", std::move(options), *index, index, nullptr));
+		menu->AddItem(new CommandChoiceItem(command, std::move(action)));
 		return command;
 	}
 

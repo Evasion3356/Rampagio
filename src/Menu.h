@@ -103,6 +103,11 @@ namespace Ui
 	Rampagio::IntCommand* Number(MenuBase* menu, const std::string& id, const std::string& caption, int* value, int min, int max, int step, std::function<void()> onChange = nullptr, bool applyOnSelect = false);
 	Rampagio::FloatCommand* Number(MenuBase* menu, const std::string& id, const std::string& caption, float* value, float min, float max, float step, std::function<void()> onChange = nullptr, bool applyOnSelect = false);
 	Rampagio::ListCommand* Choice(MenuBase* menu, const std::string& id, const std::string& caption, std::vector<std::string> options, int* index, std::function<void(int)> onChange = nullptr);
+	// A Choice whose left/right only picks the option (saved as a plain
+	// value) and whose select runs `action` with it: "Drop Ammo <- Rifle ->".
+	// Use it instead of Choice's onChange when the hook does something
+	// rather than apply a setting, or stepping through would do it each time.
+	Rampagio::ListCommand* ChoiceAction(MenuBase* menu, const std::string& id, const std::string& caption, std::vector<std::string> options, int* index, std::function<void(int)> action);
 	Rampagio::StringCommand* Text(MenuBase* menu, const std::string& id, const std::string& caption, std::string* value, std::function<void()> onChange = nullptr);
 
 	// An id for a row built in a loop over a fixed table: prefix + "." +

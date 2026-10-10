@@ -681,7 +681,8 @@ namespace
 		return "";
 	}
 
-	// Ammunition > Drop Ammo: an ammo box pickup of the chosen kind.
+	// Ammunition > Drop Ammo: an ammo box pickup of the chosen kind, in
+	// the order of the row's options.
 	int g_dropAmmo = 0;
 	const char* const kAmmoPickups[] = { "PICKUP_AMMO_REVOLVER", "PICKUP_AMMO_PISTOL", "PICKUP_AMMO_REPEATER", "PICKUP_AMMO_RIFLE", "PICKUP_AMMO_SHOTGUN", "PICKUP_AMMO_ARROW" };
 
@@ -769,10 +770,7 @@ namespace Menus
 		Ui::Action(manage, "weapon.addcomponent", "Add Component", AddComponent)->SetHotkeyable(false);
 		Ui::Action(manage, "weapon.getduplicatemodel", "Get Duplicate Model", DuplicateModel);
 
-		std::vector<std::string> pickups;
-		for (const char* p : kAmmoPickups)
-			pickups.push_back(p + 12);
-		Ui::Choice(ammo, "weapon.dropammo", "Drop Ammo", pickups, &g_dropAmmo, DropAmmo);
+		Ui::ChoiceAction(ammo, "weapon.dropammo", "Drop Ammo", { "Revolver", "Pistol", "Repeater", "Rifle", "Shotgun", "Arrow" }, &g_dropAmmo, DropAmmo);
 
 		Ui::Looped(mods, "weapon.weaponscale", "Weapon Scale", WeaponScaleTick, [] { RemoveScaled(); g_scaledFor = 0; });
 		Ui::Number(mods, "weapon.weaponscalesize", "Weapon Scale Size", &g_weaponScale, 0.1f, 10.0f, 0.1f, [] { g_scaledFor = 0; });

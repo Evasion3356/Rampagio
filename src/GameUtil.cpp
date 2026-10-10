@@ -191,7 +191,7 @@ namespace GameUtil
 		}
 	}
 
-	bool AddInventoryItem(Hash item, int quantity, std::string& error)
+	bool AddInventoryItem(Hash item, int quantity, std::string& error, int* added)
 	{
 		if (item == 0 || !ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item, 0))
 		{
@@ -245,20 +245,17 @@ namespace GameUtil
 		const int before = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
 		// The reason the game's scripts pass with their own grants.
 		constexpr Hash kAddReason = 752097756;
-		const bool added = INVENTORY::_INVENTORY_ADD_ITEM_WITH_GUID(inventory, itemGuid.Ptr(), slot.Ptr(), item, slot.Slot(), quantity, kAddReason) != FALSE;
+		const bool accepted = INVENTORY::_INVENTORY_ADD_ITEM_WITH_GUID(inventory, itemGuid.Ptr(), slot.Ptr(), item, slot.Slot(), quantity, kAddReason) != FALSE;
 		const int after = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
 		Log::Write("[Inventory] Add {:#x} x{} (type {:#x}) to inventory {}, slot {:#x}: {} (count {} -> {})",
-			item, quantity, type, inventory, slot.Slot(), added ? "accepted" : "refused", before, after);
-		if (!added)
-		{
-			error = "The game refused the item";
-			return false;
-		}
+			item, quantity, type, inventory, slot.Slot(), accepted ? "accepted" : "refused", before, after);
 		if (after <= before)
 		{
-			error = "The game accepted the item but it isn't in the inventory";
+			error = accepted ? "The game accepted the item but it isn't in the inventory" : "The game refused the item";
 			return false;
 		}
+		if (added)
+			*added = after - before;
 		return true;
 	}
 

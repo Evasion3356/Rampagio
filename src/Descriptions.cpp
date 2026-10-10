@@ -43,6 +43,8 @@ namespace
 		{ "Object Manager", "Local Objects" },
 		{ "Ped Editor", "Edit Ped" },
 		{ "General", "Ped General" },
+		{ "Items", "Give Items" },
+		{ "Inventory", "Give Items" },
 	};
 
 	// Lowercase, without ~...~ codes, so "~COLOR_RED~Kill" matches "Kill".

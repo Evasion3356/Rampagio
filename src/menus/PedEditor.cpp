@@ -427,7 +427,7 @@ namespace
 	{
 		MenuBase* weapons = Ui::Submenu(editor, "Weapons");
 		Ui::Number(weapons, "pededitor.weaponaccuracy", "Weapon Accuracy", &g_accuracy, 0, 100, 5, [] { WithPed([](Ped p) { PED::SET_PED_ACCURACY(p, g_accuracy); }); });
-		Ui::Choice(weapons, "pededitor.remove", "Remove", { "All Weapons", "Current Weapon" }, &g_removeMode, [](int mode)
+		Ui::ChoiceAction(weapons, "pededitor.remove", "Remove", { "All Weapons", "Current Weapon" }, &g_removeMode, [](int mode)
 		{
 			WithPed([mode](Ped p) {
 				if (mode == 0)

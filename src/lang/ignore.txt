@@ -56,3 +56,4 @@ Watch and edit script globals, written as the decompiled scripts write them.\nTh
 Left
 Log
 Rampagio.log as it's written, in an overlay window.\nThe menu key closes it.
+22 05 17 00 00 66 00 37 FC 84 1C 63 15 03 00 50 05 00 66 00 2F 39 ? ? ? 05 8B 03 00 50 05 00 66 00 37 53 4F BC 6B 15

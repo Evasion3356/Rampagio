@@ -78,18 +78,61 @@ namespace
 		"WEAPON_LASSO", "WEAPON_LASSO_REINFORCED", "WEAPON_FISHINGROD", "WEAPON_KIT_BINOCULARS", "WEAPON_KIT_CAMERA",
 	};
 
-	const char* const kAmmo[] = {
-		"AMMO_REVOLVER", "AMMO_REVOLVER_EXPRESS", "AMMO_REVOLVER_EXPRESS_EXPLOSIVE", "AMMO_REVOLVER_HIGH_VELOCITY",
-		"AMMO_REVOLVER_SPLIT_POINT", "AMMO_PISTOL", "AMMO_PISTOL_EXPRESS", "AMMO_PISTOL_EXPRESS_EXPLOSIVE",
-		"AMMO_PISTOL_HIGH_VELOCITY", "AMMO_PISTOL_SPLIT_POINT", "AMMO_REPEATER", "AMMO_REPEATER_EXPRESS",
-		"AMMO_REPEATER_EXPRESS_EXPLOSIVE", "AMMO_REPEATER_HIGH_VELOCITY", "AMMO_REPEATER_SPLIT_POINT",
-		"AMMO_RIFLE", "AMMO_RIFLE_EXPRESS", "AMMO_RIFLE_EXPRESS_EXPLOSIVE", "AMMO_RIFLE_HIGH_VELOCITY",
-		"AMMO_RIFLE_SPLIT_POINT", "AMMO_RIFLE_VARMINT", "AMMO_RIFLE_ELEPHANT", "AMMO_22", "AMMO_SHOTGUN",
-		"AMMO_SHOTGUN_BUCKSHOT_INCENDIARY", "AMMO_SHOTGUN_SLUG", "AMMO_SHOTGUN_EXPRESS_EXPLOSIVE",
-		"AMMO_ARROW", "AMMO_ARROW_DYNAMITE", "AMMO_ARROW_FIRE", "AMMO_ARROW_IMPROVED", "AMMO_ARROW_POISON",
-		"AMMO_ARROW_SMALL_GAME", "AMMO_DYNAMITE", "AMMO_DYNAMITE_VOLATILE", "AMMO_MOLOTOV", "AMMO_MOLOTOV_VOLATILE",
-		"AMMO_THROWING_KNIVES", "AMMO_TOMAHAWK", "AMMO_POISONBOTTLE", "AMMO_BOLAS",
+	// Ammunition's ammo types by the weapon group that fires them. The rows
+	// show the game's name for each (an ammo type's hash is its catalog
+	// item and text label). The list is the SP catalog's ped ammo (ours:
+	// Rampage's has varmint/elephant rifle, express explosive shotgun,
+	// poison bottle and bolas types, which no SP script or catalog entry
+	// has). A thrown type's count is the weapon's, so it names the weapon
+	// it needs, from flow_controller func_556 (Position 0x12FE3): to add
+	// one, the game gives that weapon first (func_559, no ammo) and then
+	// adds the ammo by type (func_560).
+	const char* const kAmmoGroups[] = { "Revolvers", "Pistols", "Repeaters", "Rifles", "Shotguns", "Arrows", "Thrown Weapons" };
+	struct AmmoType { const char* name; int group; const char* weapon = nullptr; };
+	const AmmoType kAmmo[] = {
+		{ "AMMO_REVOLVER", 0 }, { "AMMO_REVOLVER_EXPRESS", 0 }, { "AMMO_REVOLVER_EXPRESS_EXPLOSIVE", 0 },
+		{ "AMMO_REVOLVER_HIGH_VELOCITY", 0 }, { "AMMO_REVOLVER_SPLIT_POINT", 0 },
+		{ "AMMO_PISTOL", 1 }, { "AMMO_PISTOL_EXPRESS", 1 }, { "AMMO_PISTOL_EXPRESS_EXPLOSIVE", 1 },
+		{ "AMMO_PISTOL_HIGH_VELOCITY", 1 }, { "AMMO_PISTOL_SPLIT_POINT", 1 },
+		{ "AMMO_REPEATER", 2 }, { "AMMO_REPEATER_EXPRESS", 2 }, { "AMMO_REPEATER_EXPRESS_EXPLOSIVE", 2 },
+		{ "AMMO_REPEATER_HIGH_VELOCITY", 2 }, { "AMMO_REPEATER_SPLIT_POINT", 2 },
+		{ "AMMO_RIFLE", 3 }, { "AMMO_RIFLE_EXPRESS", 3 }, { "AMMO_RIFLE_EXPRESS_EXPLOSIVE", 3 },
+		{ "AMMO_RIFLE_HIGH_VELOCITY", 3 }, { "AMMO_RIFLE_SPLIT_POINT", 3 }, { "AMMO_22", 3 },
+		{ "AMMO_SHOTGUN", 4 }, { "AMMO_SHOTGUN_BUCKSHOT_INCENDIARY", 4 }, { "AMMO_SHOTGUN_SLUG", 4 },
+		{ "AMMO_SHOTGUN_SLUG_EXPLOSIVE", 4 },
+		{ "AMMO_ARROW", 5 }, { "AMMO_ARROW_DYNAMITE", 5 }, { "AMMO_ARROW_FIRE", 5 }, { "AMMO_ARROW_IMPROVED", 5 },
+		{ "AMMO_ARROW_POISON", 5 }, { "AMMO_ARROW_SMALL_GAME", 5 },
+		{ "AMMO_DYNAMITE", 6, "WEAPON_THROWN_DYNAMITE" }, { "AMMO_DYNAMITE_VOLATILE", 6, "WEAPON_THROWN_DYNAMITE" },
+		{ "AMMO_MOLOTOV", 6, "WEAPON_THROWN_MOLOTOV" }, { "AMMO_MOLOTOV_VOLATILE", 6, "WEAPON_THROWN_MOLOTOV" },
+		{ "AMMO_THROWING_KNIVES", 6, "WEAPON_THROWN_THROWING_KNIVES" },
+		{ "AMMO_THROWING_KNIVES_IMPROVED", 6, "WEAPON_THROWN_THROWING_KNIVES" },
+		{ "AMMO_THROWING_KNIVES_POISON", 6, "WEAPON_THROWN_THROWING_KNIVES" },
+		{ "AMMO_TOMAHAWK", 6, "WEAPON_THROWN_TOMAHAWK" }, { "AMMO_TOMAHAWK_IMPROVED", 6, "WEAPON_THROWN_TOMAHAWK" },
+		{ "AMMO_TOMAHAWK_HOMING", 6, "WEAPON_THROWN_TOMAHAWK" }, { "AMMO_TOMAHAWK_ANCIENT", 6, "WEAPON_THROWN_TOMAHAWK_ANCIENT" },
+		{ "AMMO_HATCHET", 6, "WEAPON_MELEE_HATCHET" }, { "AMMO_HATCHET_HUNTER", 6, "WEAPON_MELEE_HATCHET_HUNTER" },
+		{ "AMMO_HATCHET_HUNTER_RUSTED", 6, "WEAPON_MELEE_HATCHET_HUNTER_RUSTED" }, { "AMMO_HATCHET_CLEAVER", 6, "WEAPON_MELEE_CLEAVER" },
+		{ "AMMO_HATCHET_DOUBLE_BIT", 6, "WEAPON_MELEE_HATCHET_DOUBLE_BIT" },
+		{ "AMMO_HATCHET_DOUBLE_BIT_RUSTED", 6, "WEAPON_MELEE_HATCHET_DOUBLE_BIT_RUSTED" },
+		{ "AMMO_HATCHET_HEWING", 6, "WEAPON_MELEE_HATCHET_HEWING" }, { "AMMO_HATCHET_VIKING", 6, "WEAPON_MELEE_HATCHET_VIKING" },
+		{ "AMMO_HATCHET_ANCIENT", 6, "WEAPON_MELEE_ANCIENT_HATCHET" },
 	};
+
+	// "AMMO_REVOLVER_SPLIT_POINT" -> "Revolver Split Point": the caption
+	// until the game's name is read, and when it has none.
+	std::string AmmoFallback(const char* name)
+	{
+		std::string s = name + 5;
+		bool start = true;
+		for (char& c : s)
+		{
+			if (c == '_')
+				c = ' ';
+			else
+				c = static_cast<char>(start ? std::toupper(static_cast<unsigned char>(c)) : std::tolower(static_cast<unsigned char>(c)));
+			start = c == ' ';
+		}
+		return s;
+	}
 
 	Hash CurrentWeapon()
 	{
@@ -548,10 +591,78 @@ namespace
 		WEAPON::_ADD_AMMO_TO_PED_BY_TYPE(Me(), ammo, 400, ADD_REASON_DEFAULT);
 	}
 
+	// The weapon an ammo type needs, given with no ammo the way
+	// flow_controller func_559 does. True if the ped didn't have it.
+	bool GiveWeaponForAmmo(Hash weapon)
+	{
+		const Ped ped = Me();
+		if (!WEAPON::IS_WEAPON_VALID(weapon) || WEAPON::HAS_PED_GOT_WEAPON(ped, weapon, 0, FALSE))
+			return false;
+		WEAPON::GIVE_WEAPON_TO_PED(ped, weapon, 0, FALSE, TRUE, 0, FALSE, 0.5f, 1.0f, ADD_REASON_DEFAULT, FALSE, 0.0f, FALSE);
+		return WEAPON::HAS_PED_GOT_WEAPON(ped, weapon, 0, FALSE) != FALSE;
+	}
+
+	// One ammo type, up to the game's maximum for it. A thrown type gets
+	// its weapon first, as the game does; any other type gets the weapon
+	// that fires it only when the add didn't take without it, so gun ammo
+	// never hands out guns. A melee weapon (the hatchets) has no ammo
+	// count to raise: the game zeroes it in func_559, so giving the weapon
+	// is the whole add.
+	//
+	// The game adds ammo with _ADD_AMMO_TO_PED_BY_TYPE alone (flow_controller
+	// func_563), and the engine stops at a per-type cap that is lower than
+	// the weapon's GET_MAX_AMMO (the special arrows stop at 8 where the bow
+	// holds 40; the live log shows 8 -> 8). So a type that didn't grow
+	// while the ped already holds some is full, not failed. The cap is the
+	// item's slot maximum (_GET_ITEM_SLOT_MAX_COUNT, what func_3188 reads);
+	// it is only logged, since which slot applies to ammo is unverified.
+	std::string FillAmmoType(const AmmoType& type)
+	{
+		const Ped me = Me();
+		const Hash ammo = GameUtil::Joaat(type.name);
+		const std::string name = GameUtil::ItemName(ammo, AmmoFallback(type.name));
+		const Hash weapon = type.weapon ? GameUtil::Joaat(type.weapon) : WEAPON::_GET_WEAPON_TYPE_FROM_AMMO_TYPE(ammo);
+		const int have = WEAPON::GET_PED_AMMO_BY_TYPE(me, ammo); // before the weapon is given
+		bool gave = type.weapon && GiveWeaponForAmmo(weapon);
+		if (type.weapon && WEAPON::IS_WEAPON_MELEE_WEAPON(weapon))
+		{
+			const bool has = WEAPON::HAS_PED_GOT_WEAPON(me, weapon, 0, FALSE) != FALSE;
+			Log::Write("[Ammo] {} {:#x} (melee weapon {:#x}): {}", type.name, ammo, weapon, gave ? "given" : has ? "already had" : "not given");
+			if (!has)
+				return TrFormat("~COLOR_RED~Error:~s~ {}", Tr("The game didn't add the ammo"));
+			AUDIO::PLAY_SOUND_FRONTEND("AMMO", "PICKUP_SOUNDSET", FALSE, 0);
+			return gave ? TrFormat("Gave you {}", name) : TrFormat("You already have {}", name);
+		}
+		int max = 0;
+		WEAPON::GET_MAX_AMMO(me, &max, weapon);
+		const int slotMax = INVENTORY::_GET_ITEM_SLOT_MAX_COUNT(ammo, GameUtil::Joaat("SLOTID_SATCHEL"));
+		if (max > 0 && have >= max && !gave)
+			return TrFormat("{} is already full", name);
+		FillAmmo(ammo);
+		int now = WEAPON::GET_PED_AMMO_BY_TYPE(me, ammo);
+		if (now <= have && !type.weapon && GiveWeaponForAmmo(weapon))
+		{
+			gave = true;
+			FillAmmo(ammo);
+			now = WEAPON::GET_PED_AMMO_BY_TYPE(me, ammo);
+		}
+		Log::Write("[Ammo] {} {:#x} (weapon {:#x}{}): max {}, slot max {}, {} -> {}", type.name, ammo, weapon, gave ? ", given" : "", max, slotMax, have, now);
+		if (now <= have)
+		{
+			if (have > 0)
+				return TrFormat("{} is already full", name);
+			return TrFormat("~COLOR_RED~Error:~s~ {}", Tr("The game didn't add the ammo"));
+		}
+		AUDIO::PLAY_SOUND_FRONTEND("AMMO", "PICKUP_SOUNDSET", FALSE, 0);
+		if (gave)
+			return TrFormat("Added {}x {} and gave you {}", now - have, name, GameUtil::ItemName(weapon, std::format("{:#x}", weapon)));
+		return TrFormat("Added {}x {}", now - have, name);
+	}
+
 	void FillAllAmmo()
 	{
-		for (const char* name : kAmmo)
-			FillAmmo(GameUtil::Joaat(name));
+		for (const AmmoType& type : kAmmo)
+			FillAmmo(GameUtil::Joaat(type.name));
 		AUDIO::PLAY_SOUND_FRONTEND("AMMO", "PICKUP_SOUNDSET", FALSE, 0);
 	}
 
@@ -625,10 +736,24 @@ namespace Menus
 		Ui::Do(ammo, "weapon.fillammoall", "Fill Ammo (All)", FillAllAmmo);
 		Ui::Do(ammo, "weapon.removeallammo", "Remove All Ammo", [] { WEAPON::_HIDE_PED_WEAPONS(Me(), 2, TRUE); WEAPON::_REMOVE_ALL_PED_AMMO(Me()); });
 		Ui::Section(ammo, "Ammo Types");
-		for (const char* name : kAmmo)
+		for (int group = 0; group < static_cast<int>(std::size(kAmmoGroups)); group++)
 		{
-			const Hash hash = GameUtil::Joaat(name);
-			Ui::Do(ammo, Ui::Id("weapon.fillammo", name + 5), name + 5, [hash] { FillAmmo(hash); });
+			MenuBase* types = Ui::Submenu(ammo, kAmmoGroups[group]);
+			std::vector<std::pair<Rampagio::ActionCommand*, Hash>> rows;
+			for (const AmmoType& type : kAmmo)
+			{
+				if (type.group != group)
+					continue;
+				// The id keeps the old SCREAM_CASE caption's slug.
+				rows.emplace_back(Ui::Action(types, Ui::Id("weapon.fillammo", type.name + 5), AmmoFallback(type.name),
+					[&type] { return FillAmmoType(type); }), GameUtil::Joaat(type.name));
+			}
+			// The game's names, in its current language, each time it opens.
+			types->SetOnOpen([rows](MenuBase*)
+			{
+				for (const auto& [command, hash] : rows)
+					command->SetLabel(GameUtil::ItemName(hash, command->GetLabel()));
+			});
 		}
 
 		MenuBase* mods = Ui::Submenu(weapons, "Weapon Modifiers");

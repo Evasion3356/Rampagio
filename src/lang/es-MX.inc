@@ -8,7 +8,6 @@
 { "Add Health Points", "Agregar puntos de salud" },
 { "Add Health Tank", "Agregar reserva de salud" },
 { "Add Item via Game Script", "Agregar objeto mediante script del juego" },
-{ "Add Items", "Agregar objetos" },
 { "Add lines to {}", "Agrega líneas a {}" },
 { "Add Money", "Agregar dinero" },
 { "Add Money via Game Script", "Agregar dinero mediante script del juego" },
