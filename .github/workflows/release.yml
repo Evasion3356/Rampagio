@@ -3,9 +3,8 @@
 # Runs when a version tag (e.g. 1.4) is pushed, or by hand from the Actions
 # tab ("Run workflow") for a tag that already exists. Steps: run every unit
 # test project under tests/, build the Release .asi, take the release notes
-# from the changelog section matching the tag, zip the .asi with the default
-# INI the build generates (for mods that have one), and create (or refresh)
-# the GitHub release.
+# from the changelog section matching the tag, and create (or refresh) the
+# GitHub release with the .asi as its only asset.
 #
 # Vendored into every sibling ASI project; only the env block below differs.
 
@@ -27,8 +26,6 @@ env:
   PROJECT: Rampagio
   ASI: bin/Release/Rampagio.asi
   CHANGELOG: docs/CHANGELOG.md
-  # No INI: settings live in Rampagio.json, created on first start.
-  INI: ''
 
 jobs:
   release:
@@ -86,21 +83,6 @@ jobs:
           (($body -join "`n").Trim()) | Set-Content notes.md -Encoding utf8
           "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
 
-      # The download: the .asi, plus the default INI the Release build
-      # generates from the mod's own Config code (tools/IniGen) for mods that
-      # have settings.
-      - name: Package
-        shell: pwsh
-        run: |
-          $files = @($env:ASI)
-          if ($env:INI) {
-            if (-not (Test-Path $env:INI)) { throw "$env:INI was not produced" }
-            $files += $env:INI
-          }
-          $zip = "$env:PROJECT-$env:TAG.zip"
-          Compress-Archive -Path $files -DestinationPath $zip -Force
-          "ZIP=$zip" >> $env:GITHUB_ENV
-
       - name: Publish release
         shell: pwsh
         env:
@@ -110,8 +92,8 @@ jobs:
           gh release view $env:TAG *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release edit $env:TAG --title $title --notes-file notes.md
-            gh release upload $env:TAG $env:ZIP $env:ASI --clobber
+            gh release upload $env:TAG $env:ASI --clobber
           } else {
-            gh release create $env:TAG $env:ZIP $env:ASI --title $title --notes-file notes.md --verify-tag
+            gh release create $env:TAG $env:ASI --title $title --notes-file notes.md --verify-tag
           }
           if ($LASTEXITCODE) { throw "Publishing the release failed" }

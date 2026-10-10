@@ -50,10 +50,10 @@ heading, commit, then `git tag -a X.Y -m "X.Y.Z - summary"` and
 `git push origin master X.Y`. `.github/workflows/release.yml` checks out
 the tag with all submodules, builds and runs every `tests\*.vcxproj`,
 builds the Release `.asi` (checked 2026-10-09: `bin\Release\Rampagio.asi`,
-about 9 MB, builds clean with `/p:PostBuildEventUseInBuild=false`), zips it
-as `Rampagio-X.Y.zip` (no INI: settings live in `Rampagio.json`), and
+about 9 MB, builds clean with `/p:PostBuildEventUseInBuild=false`), and
 publishes a GitHub release named "Rampagio X.Y.Z" with that changelog
-section as its notes. There is no Nexus step (removed 2026-10-10: Nexus
+section as its notes and `Rampagio.asi` as its only asset (no ZIP, no INI:
+settings live in `Rampagio.json`; changed 2026-10-10). There is no Nexus step (removed 2026-10-10: Nexus
 banned the mod for being a clean-room reverse engineering of Rampage;
 the user will host it elsewhere). The submodule pins must be pushed commits,
 or the runner's checkout fails. "Run workflow" on the Actions tab
