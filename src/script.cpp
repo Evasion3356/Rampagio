@@ -144,12 +144,20 @@ void ScriptMain()
 	Log::Write("Rampagio started");
 	g_scriptThreadId = GetCurrentThreadId();
 
-	BuildMenu();
-	ScriptMonitor::Register();
-	GlobalEditor::Register();
-	LogWindow::Register();
-	TeleportMap::Register();
-	LoadSettings();
+	// ScriptHook runs ScriptMain again when a save is loaded, with the DLL
+	// (menus, command registry, settings) still in memory: build once, or
+	// every command id would register a second time.
+	static bool initialized = false;
+	if (!initialized)
+	{
+		initialized = true;
+		BuildMenu();
+		ScriptMonitor::Register();
+		GlobalEditor::Register();
+		LogWindow::Register();
+		TeleportMap::Register();
+		LoadSettings();
+	}
 	// Resolved now so an eject can check for an active script thread
 	// (ScriptUnload); features resolve them on first use anyway.
 	GamePointers::Get();
