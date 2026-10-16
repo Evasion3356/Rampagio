@@ -728,8 +728,20 @@ int MenuBase::OnInput()
 
 	if (buttons.a || buttons.b || buttons.up || buttons.down || buttons.l || buttons.r)
 	{
-		MenuInput::MenuInputBeep();
 		waitTime = buttons.b ? 200 : (buttons.l || buttons.r) ? 100 : 150;
+		if (buttons.l || buttons.r)
+		{
+			// A step within 300 ms of the last one is the same hold; the
+			// repeat delay shrinks the longer it lasts (Rampage's way).
+			const unsigned long now = GetTickCount();
+			if (now - m_lastHorizontal > 300)
+				m_holdStart = now;
+			m_lastHorizontal = now;
+			const unsigned long held = now - m_holdStart;
+			waitTime = held < 500 ? 120 : held < 1200 ? 70 : held < 2200 ? 40 : 20;
+		}
+		if (waitTime >= 70)
+			MenuInput::MenuInputBeep();
 	}
 
 	if (buttons.a)

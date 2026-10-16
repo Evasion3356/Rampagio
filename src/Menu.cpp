@@ -8,7 +8,22 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cstdlib>
 #include <format>
+
+bool PromptNumberValue(double min, double max, double& out)
+{
+	std::string text;
+	const std::string title = TrFormat("Enter Value {} / {}", min, max);
+	if (!GameUtil::PromptText(title.c_str(), text, 16) || text.empty())
+		return false;
+	char* end = nullptr;
+	const double v = std::strtod(text.c_str(), &end);
+	if (end == text.c_str() || *end != '\0')
+		return false;
+	out = v;
+	return true;
+}
 
 namespace
 {
@@ -75,7 +90,14 @@ namespace
 		Rampagio::Command* GetCommand() override { return m_command; }
 		void OnLeft() override { m_command->Step(-1); }
 		void OnRight() override { m_command->Step(1); }
-		void OnSelect() override { if (m_applyOnSelect) m_command->Call(); }
+		void OnSelect() override
+		{
+			double typed;
+			if (PromptNumberValue(m_command->GetMinimum().value_or(-1e9), m_command->GetMaximum().value_or(1e9), typed))
+				m_command->SetState(static_cast<T>(typed));
+			else if (m_applyOnSelect)
+				m_command->Call();
+		}
 		void OnDraw(float lineTop, float lineLeft, bool active) override
 		{
 			MenuItemDefault::OnDraw(lineTop, lineLeft, active);

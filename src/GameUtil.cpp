@@ -2,6 +2,9 @@
 #include "Localization.h"
 #include "Log.h"
 #include "ScriptFunction.h"
+#include "PatternScan.h"
+
+#include "..\external\minhook\include\MinHook.h"
 
 #include <algorithm>
 #include <cctype>
@@ -110,13 +113,57 @@ namespace GameUtil
 		return saddle && ENTITY::DOES_ENTITY_EXIST(saddle) ? saddle : 0;
 	}
 
+	// The keyboard's title is a text label, and the game shows nothing for a
+	// label it doesn't know. While the keyboard is up, this hook on the label
+	// lookup gives an unknown label back as its own text (HorseMenu's
+	// GetTextLabel hook), so a plain string works as the title. Created on
+	// first use and enabled only while a prompt is open.
+	using GetTextLabelFn = const char* (*)(void*, const char*);
+	GetTextLabelFn g_getTextLabel = nullptr;
+	void* g_getTextLabelTarget = nullptr;
+	bool g_getTextLabelTried = false;
+
+	const char* GetTextLabelDetour(void* self, const char* label)
+	{
+		const char* result = g_getTextLabel(self, label);
+		return result && result[0] ? result : label;
+	}
+
+	bool EnableKeyboardTitleHook()
+	{
+		if (!g_getTextLabelTried)
+		{
+			g_getTextLabelTried = true;
+			const auto match = PatternScan::FindInMainModule("BB 1A 00 00 00 48 8D 0D");
+			if (!match)
+				Log::Write("GameUtil: GetTextLabel pattern not found, keyboard titles stay blank");
+			else
+			{
+				const MH_STATUS init = MH_Initialize();
+				g_getTextLabelTarget = reinterpret_cast<void*>(PatternScan::ResolveRip(*match, 0x12));
+				if ((init == MH_OK || init == MH_ERROR_ALREADY_INITIALIZED)
+					&& MH_CreateHook(g_getTextLabelTarget, reinterpret_cast<void*>(&GetTextLabelDetour), reinterpret_cast<void**>(&g_getTextLabel)) == MH_OK)
+					Log::Write("GameUtil: GetTextLabel hook created at {:#x}", reinterpret_cast<unsigned long long>(g_getTextLabelTarget));
+				else
+				{
+					Log::Write("GameUtil: GetTextLabel hook failed");
+					g_getTextLabel = nullptr;
+				}
+			}
+		}
+		return g_getTextLabel && MH_EnableHook(g_getTextLabelTarget) == MH_OK;
+	}
+
 	bool PromptText(const char* title, std::string& text, int maxLength)
 	{
 		const std::string shown(Tr(title));
+		const bool hooked = EnableKeyboardTitleHook();
 		MISC::DISPLAY_ONSCREEN_KEYBOARD(0, shown.c_str(), "", text.c_str(), "", "", "", maxLength);
 		int state;
 		while ((state = MISC::UPDATE_ONSCREEN_KEYBOARD()) == 0)
 			WAIT(0);
+		if (hooked)
+			MH_DisableHook(g_getTextLabelTarget);
 		if (state != 1)
 			return false;
 		const char* result = MISC::GET_ONSCREEN_KEYBOARD_RESULT();

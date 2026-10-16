@@ -53,7 +53,7 @@ nullptr, "subgroup" or nullptr }, grouped by type in TYPE_ORDER, then by key.
 Types are lowercased, and the catalog's one-offs (CURRENCY, Component)
 become "other"; the root "character" item is left out.
 """
-import argparse, collections, json, os, struct, sys
+import argparse, collections, json, os, re, struct, sys
 
 ITEM_STRUCT = 0xEDD9A017
 TAG_STRUCT = 0x5663E91C
@@ -208,6 +208,20 @@ NOT_STORY = {"CI_TAG_ITEM_RARE_ORCHID", "CI_TAG_ITEM_FLOWER", "CI_TAG_ITEM_COLLE
              "CI_TAG_ITEM_MATERIAL", "CI_TAG_FOLDER_SELL_CATCHER"}
 
 
+def is_quest_document(name, folder):
+    """Maps and posters that belong to a mission, stranger or random event
+    (the Discovery map halves, serial killer clues, the Skinner Brothers'
+    posters, ...). The purchasable-style treasure maps and the generic bounty
+    posters stay in Documents."""
+    if folder == "CI_TAG_FOLDER_MAPS":
+        return True
+    if folder == "CI_TAG_FOLDER_TREASURE_MAPS":
+        return not re.fullmatch(r"DOCUMENT_TREASURE_MAP_\d+", name)
+    if folder == "CI_TAG_FOLDER_BOUNTY_POSTERS":
+        return name not in ("DOCUMENT_BOUNTY_POSTER",) and not is_hex(name) and name != "DOCUMENT_BOUNTY_POSTER_RTL"
+    return False
+
+
 def classify(r):
     """(group, subgroup) for Give Items, or None when the item isn't listed."""
     t = item_type(r["type"])
@@ -243,7 +257,10 @@ def classify(r):
         return ("valuables", None)  # filed as a material, sold to the fence like jewelry
     if page == "documents":
         if (folder and folder.startswith("CI_TAG_FOLDER_CIG_CARD")) or name.startswith("DOCUMENT_CIG_CARD"):
-            return ("documents", "cards")
+            # DOCUMENT_CIG_CARD_<SET>_<N> and _<SET>_SET: one list per set.
+            return ("documents", "cards_" + name.split("_")[3].lower())
+        if is_quest_document(name, folder):
+            return ("story", None)
         return ("documents", DOCUMENT_FOLDERS.get(folder, "other"))
     if page == "materials":
         if "CI_TAG_SHOP_ANIMAL_LEGENDARY" in props or "LEGENDARY" in name:

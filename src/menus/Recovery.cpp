@@ -512,7 +512,7 @@ namespace
 
 	// The lists, in menu order, with the extractor's group and subgroup
 	// names. Captions follow the satchel's pages where there is one.
-	struct ItemGroup { const char* subgroup; const char* caption; };
+	struct ItemGroup { const char* subgroup; const char* caption; std::span<const ItemGroup> groups = {}; };
 	const ItemGroup kMaterialGroups[] = {
 		{ "pelts", "Pelts and Hides" },
 		{ "carcasses", "Carcasses" },
@@ -535,8 +535,24 @@ namespace
 		{ "vices", "Alcohol and Tobacco" },
 		{ "horse", "Horse Treats" },
 	};
+	// One list per card set (the extractor's cards_<set code>), in the
+	// collector's order.
+	const ItemGroup kCardGroups[] = {
+		{ "cards_gun", "Famous Gunslingers" },
+		{ "cards_art", "Artists and Poets" },
+		{ "cards_lnd", "Vistas of America" },
+		{ "cards_grl", "Gems of Beauty" },
+		{ "cards_plt", "Flora of North America" },
+		{ "cards_act", "Stars of the Stage" },
+		{ "cards_aml", "Fauna of North America" },
+		{ "cards_veh", "Marvels of Travel" },
+		{ "cards_spt", "World's Champions" },
+		{ "cards_inv", "Amazing Inventions" },
+		{ "cards_hor", "Breeds of Horses" },
+		{ "cards_pam", "Prominent Americans" },
+	};
 	const ItemGroup kDocumentGroups[] = {
-		{ "cards", "Cigarette Cards" },
+		{ "cards", "Cigarette Cards", kCardGroups },
 		{ "letters", "Letters" },
 		{ "notes", "Notes" },
 		{ "newspapers", "Newspapers" },
@@ -607,6 +623,39 @@ namespace
 		return TrFormat("Added {}x {}", added, name);
 	}
 
+	// Name order with numbers compared as numbers, so "Card 2" comes before
+	// "Card 10".
+	bool NaturalLess(const std::string& a, const std::string& b)
+	{
+		size_t i = 0, j = 0;
+		while (i < a.size() && j < b.size())
+		{
+			if (std::isdigit(static_cast<unsigned char>(a[i])) && std::isdigit(static_cast<unsigned char>(b[j])))
+			{
+				size_t ie = i, je = j;
+				while (ie < a.size() && std::isdigit(static_cast<unsigned char>(a[ie]))) ie++;
+				while (je < b.size() && std::isdigit(static_cast<unsigned char>(b[je]))) je++;
+				const std::string x = a.substr(i, ie - i), y = b.substr(j, je - j);
+				const size_t xs = x.find_first_not_of('0'), ys = y.find_first_not_of('0');
+				const std::string xt = xs == std::string::npos ? "" : x.substr(xs), yt = ys == std::string::npos ? "" : y.substr(ys);
+				if (xt.size() != yt.size())
+					return xt.size() < yt.size();
+				if (xt != yt)
+					return xt < yt;
+				i = ie;
+				j = je;
+			}
+			else
+			{
+				if (a[i] != b[j])
+					return a[i] < b[j];
+				i++;
+				j++;
+			}
+		}
+		return a.size() - i < b.size() - j;
+	}
+
 	// One row per item the game knows and has a name for, sorted by name.
 	void AddItemRows(MenuBase* list, const std::vector<const CatalogItem*>& items)
 	{
@@ -621,7 +670,7 @@ namespace
 			if (!shown.empty())
 				rows.push_back({ std::move(shown), item });
 		}
-		std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) { return a.caption < b.caption; });
+		std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) { return NaturalLess(a.caption, b.caption); });
 		for (const Row& row : rows)
 		{
 			const CatalogItem* item = row.item;
@@ -658,8 +707,10 @@ namespace
 	}
 
 	// The rows for a list's items, or one of its subgroups'.
-	void AddGroupRows(MenuBase* list, std::string_view group, std::string_view subgroup)
+	void AddGroupRows(MenuBase* list, std::string_view group, std::string_view subgroup, const char* setLabel = nullptr)
 	{
+		if (setLabel)
+			Ui::Action(list, "Give Set", [setLabel] { return Menus::GiveCardSet(setLabel); });
 		std::vector<const CatalogItem*> items;
 		for (const CatalogItem& item : kItemCatalog)
 			if (item.group && group == item.group && (subgroup.empty() || (item.subgroup && subgroup == item.subgroup)))
@@ -685,7 +736,18 @@ namespace
 				for (const ItemGroup& g : list.groups)
 				{
 					const std::string_view subgroup = g.subgroup;
-					Ui::ListMenu(sub, g.caption, [group, subgroup](MenuBase* menu) { AddGroupRows(menu, group, subgroup); });
+					if (g.groups.empty())
+					{
+						Ui::ListMenu(sub, g.caption, [group, subgroup](MenuBase* menu) { AddGroupRows(menu, group, subgroup); });
+						continue;
+					}
+					MenuBase* nested = Ui::Submenu(sub, g.caption);
+					for (const ItemGroup& set : g.groups)
+					{
+						const std::string_view setGroup = set.subgroup;
+						const char* label = set.caption;
+						Ui::ListMenu(nested, set.caption, [group, setGroup, label](MenuBase* menu) { AddGroupRows(menu, group, setGroup, label); });
+					}
 				}
 			}
 			if (list.description)

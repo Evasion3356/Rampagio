@@ -70,6 +70,8 @@ namespace Menus
 	void BuildRecovery(MenuBase* root);
 	void BuildRecoveryUnlocks(MenuBase* recovery); // Unlocks.cpp
 	void BuildRecoveryCollectibles(MenuBase* recovery); // Collectibles.cpp
+	// Give Items' Give Set: Complete Set for the card set with this label.
+	std::string GiveCardSet(std::string_view label); // Collectibles.cpp
 	// Challenges.cpp: Recovery > Challenges; TickChallenges runs every frame
 	// (main loop), ShutdownChallenges removes its hook on eject (DllMain).
 	void BuildRecoveryChallenges(MenuBase* recovery);

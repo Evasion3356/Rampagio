@@ -788,6 +788,14 @@ namespace
 
 namespace Menus
 {
+	std::string GiveCardSet(std::string_view label)
+	{
+		for (const CardSet& set : kCardSets)
+			if (label == set.label)
+				return CompleteSetMessage(CompleteSet(set));
+		return "";
+	}
+
 	void BuildRecoveryCollectibles(MenuBase* recovery)
 	{
 		MenuBase* collectibles = Ui::Submenu(recovery, "Collectibles");

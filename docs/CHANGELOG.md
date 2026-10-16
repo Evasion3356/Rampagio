@@ -5,6 +5,14 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- Give Items: Cigarette Cards has a list per set, in numeric order, each with
+  a Give Set row (the missing cards, and the set document when it's due).
+  Mission and event maps and posters moved from Documents to Story Items.
+- Number rows: select types a value, and holding left or right repeats faster
+  the longer it's held.
+- On-screen keyboard prompts show their title.
+
 ## [1.0.0] - 2026-10-09
 
 First release. A singleplayer trainer menu for RDR2 (game build 1491.50,

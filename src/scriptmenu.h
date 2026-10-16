@@ -405,6 +405,10 @@ void FindMenuTextFormat();
 // drawn once loaded), centered at x, y.
 void DrawMenuSprite(const char* dict, const char* name, float x, float y, float width, float height, float heading, ColorRgba color);
 
+// Rampagio: asks for a number between min and max on the on-screen keyboard
+// (Menu.cpp). False if cancelled or not a number.
+bool PromptNumberValue(double min, double max, double& out);
+
 // Rampagio addition: a number edited with NUMPAD 4/6, drawn as "<- value ->"
 // on the right. The value lives with the feature (`value` points at it);
 // onChange runs after every step, and on select if applyOnSelect.
@@ -428,7 +432,21 @@ public:
 		m_value(value), m_min(min), m_max(max), m_step(step), m_onChange(onChange), m_applyOnSelect(applyOnSelect) {}
 	virtual void OnLeft() override { Step(-m_step); }
 	virtual void OnRight() override { Step(m_step); }
-	virtual void OnSelect() override { if (m_applyOnSelect && m_onChange) m_onChange(); }
+	// Select types a value; cancelling it re-applies the current one when the
+	// row applies on select.
+	virtual void OnSelect() override
+	{
+		double typed;
+		if (PromptNumberValue(m_min, m_max, typed))
+		{
+			T v = static_cast<T>(typed);
+			*m_value = v < m_min ? m_min : v > m_max ? m_max : v;
+			if (m_onChange)
+				m_onChange();
+		}
+		else if (m_applyOnSelect && m_onChange)
+			m_onChange();
+	}
 	virtual void OnDraw(float lineTop, float lineLeft, bool active) override
 	{
 		MenuItemDefault::OnDraw(lineTop, lineLeft, active);
@@ -476,6 +494,9 @@ class MenuBase
 	// Rampagio: one absolute index; the page comes from Style().linesPerScreen
 	// at draw time, so changing it in Settings can't strand the selection.
 	int		m_activeIndex;
+	// Left/right held: when the last step ran and when the hold began, so the
+	// repeat speeds up the longer it is held.
+	unsigned long	m_lastHorizontal = 0, m_holdStart = 0;
 	// The rows drawn this frame, for mouse hit-testing (OnDraw fills it).
 	struct DrawnRow { int index; float left, top, width, height; };
 	vector<DrawnRow>	m_drawnRows;
