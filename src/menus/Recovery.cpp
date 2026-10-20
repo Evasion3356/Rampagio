@@ -362,32 +362,6 @@ namespace
 		return "";
 	}
 
-	std::string RemoveFromInventory()
-	{
-		Hash item;
-		int amount;
-		if (!PromptItem(item, amount))
-			return "";
-		if (!ItemValid(item))
-			return ItemInvalid();
-		if (!INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEM_WITH_ITEMID(GameUtil::kInventorySp, item, amount, GameUtil::kRemoveReasonDefault))
-			return "Nothing removed";
-		return TrFormat("Removed {}x {}", amount, GameUtil::ItemName(item, std::format("{:#x}", item)));
-	}
-
-	std::string RemoveItemViaScript()
-	{
-		Hash item;
-		int amount;
-		if (!PromptItem(item, amount))
-			return "";
-		if (!ItemValid(item))
-			return ItemInvalid();
-		if (!g_removeItemScript.Call(item, amount, FALSE, GameUtil::kRemoveReasonDefault, TRUE))
-			return "flow_controller call failed (see log)";
-		return "";
-	}
-
 	// Unlimited Items: game scripts' removals succeed without removing
 	// anything. Rampage blocks only the by-item-id removal; we also block
 	// the by-GUID one, which the scripts use about three times as often
@@ -623,6 +597,29 @@ namespace
 		return TrFormat("Added {}x {}", added, name);
 	}
 
+	int g_removeAmount = 1;
+	int g_removeMethod = 0;
+
+	std::string RemoveItem(const CatalogItem& entry)
+	{
+		const Hash item = entry.key;
+		const std::string name = GameUtil::ItemName(item, CatalogFallback(entry));
+		const int inventory = GameUtil::ActiveSpInventory();
+		const int before = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
+		if (g_removeMethod == 1)
+		{
+			if (!g_removeItemScript.Call(item, g_removeAmount, FALSE, GameUtil::kRemoveReasonDefault, TRUE))
+				return "flow_controller call failed (see log)";
+		}
+		else if (!INVENTORY::_INVENTORY_REMOVE_INVENTORY_ITEM_WITH_ITEMID(GameUtil::kInventorySp, item, g_removeAmount, GameUtil::kRemoveReasonDefault))
+			return "Nothing removed";
+		const int after = INVENTORY::_INVENTORY_GET_INVENTORY_ITEM_COUNT_WITH_ITEMID(inventory, item, FALSE);
+		Log::Write("[Inventory] Remove {:#x} x{} (method {}): count {} -> {}", item, g_removeAmount, g_removeMethod, before, after);
+		if (before > after)
+			return TrFormat("Removed {}x {}", before - after, name);
+		return "Nothing removed";
+	}
+
 	// Name order with numbers compared as numbers, so "Card 2" comes before
 	// "Card 10".
 	bool NaturalLess(const std::string& a, const std::string& b)
@@ -657,7 +654,7 @@ namespace
 	}
 
 	// One row per item the game knows and has a name for, sorted by name.
-	void AddItemRows(MenuBase* list, const std::vector<const CatalogItem*>& items)
+	void AddItemRows(MenuBase* list, const std::vector<const CatalogItem*>& items, bool remove)
 	{
 		struct Row { std::string caption; const CatalogItem* item; };
 		std::vector<Row> rows;
@@ -674,7 +671,7 @@ namespace
 		for (const Row& row : rows)
 		{
 			const CatalogItem* item = row.item;
-			Ui::Action(list, row.caption, [item] { return GiveItem(*item); });
+			Ui::Action(list, row.caption, [item, remove] { return remove ? RemoveItem(*item) : GiveItem(*item); });
 		}
 		if (rows.empty())
 			Ui::Section(list, "No matches");
@@ -688,7 +685,7 @@ namespace
 
 	// Search: part of a name, matched against the game's name and the
 	// internal one, over everything Give Items lists.
-	void SearchItems(MenuBase* results)
+	void SearchItems(MenuBase* results, bool remove)
 	{
 		std::string text;
 		if (!GameUtil::PromptText("Search:", text) || text.empty())
@@ -703,33 +700,42 @@ namespace
 				|| Lower(GameUtil::ItemName(item.key, "")).find(text) != std::string::npos)
 				matches.push_back(&item);
 		}
-		AddItemRows(results, matches);
+		AddItemRows(results, matches, remove);
 	}
 
 	// The rows for a list's items, or one of its subgroups'.
-	void AddGroupRows(MenuBase* list, std::string_view group, std::string_view subgroup, const char* setLabel = nullptr)
+	void AddGroupRows(MenuBase* list, std::string_view group, std::string_view subgroup, const char* setLabel = nullptr, bool remove = false)
 	{
-		if (setLabel)
+		if (setLabel && !remove)
 			Ui::Action(list, "Give Set", [setLabel] { return Menus::GiveCardSet(setLabel); });
 		std::vector<const CatalogItem*> items;
 		for (const CatalogItem& item : kItemCatalog)
 			if (item.group && group == item.group && (subgroup.empty() || (item.subgroup && subgroup == item.subgroup)))
 				items.push_back(&item);
-		AddItemRows(list, items);
+		AddItemRows(list, items, remove);
 	}
 
-	void BuildGiveItems(MenuBase* items)
+	// Give Items, or the same lists with rows that remove (remove).
+	void BuildGiveItems(MenuBase* items, bool remove = false)
 	{
-		MenuBase* give = Ui::Submenu(items, "Give Items");
-		Ui::Number(give, "recovery.giveitems.amount", "Amount", &g_giveAmount, 1, kMaxItemAmount, 1);
-		Ui::Choice(give, "recovery.method", "Method", kGiveMethods, &g_giveMethod);
-		Ui::ListMenu(give, "Search", SearchItems);
+		MenuBase* give = Ui::Submenu(items, remove ? "Remove Items" : "Give Items");
+		if (remove)
+		{
+			Ui::Number(give, "recovery.removeitems.amount", "Amount", &g_removeAmount, 1, kMaxItemAmount, 1);
+			Ui::Choice(give, "recovery.removemethod", "Method", kGiveMethods, &g_removeMethod);
+		}
+		else
+		{
+			Ui::Number(give, "recovery.giveitems.amount", "Amount", &g_giveAmount, 1, kMaxItemAmount, 1);
+			Ui::Choice(give, "recovery.method", "Method", kGiveMethods, &g_giveMethod);
+		}
+		Ui::ListMenu(give, "Search", [remove](MenuBase* results) { SearchItems(results, remove); });
 		Ui::Section(give, "Categories");
 		for (const ItemList& list : kItemLists)
 		{
 			const std::string_view group = list.group;
 			if (list.groups.empty())
-				Ui::ListMenu(give, list.caption, [group](MenuBase* menu) { AddGroupRows(menu, group, {}); });
+				Ui::ListMenu(give, list.caption, [group, remove](MenuBase* menu) { AddGroupRows(menu, group, {}, nullptr, remove); });
 			else
 			{
 				MenuBase* sub = Ui::Submenu(give, list.caption);
@@ -738,7 +744,7 @@ namespace
 					const std::string_view subgroup = g.subgroup;
 					if (g.groups.empty())
 					{
-						Ui::ListMenu(sub, g.caption, [group, subgroup](MenuBase* menu) { AddGroupRows(menu, group, subgroup); });
+						Ui::ListMenu(sub, g.caption, [group, subgroup, remove](MenuBase* menu) { AddGroupRows(menu, group, subgroup, nullptr, remove); });
 						continue;
 					}
 					MenuBase* nested = Ui::Submenu(sub, g.caption);
@@ -746,7 +752,7 @@ namespace
 					{
 						const std::string_view setGroup = set.subgroup;
 						const char* label = set.caption;
-						Ui::ListMenu(nested, set.caption, [group, setGroup, label](MenuBase* menu) { AddGroupRows(menu, group, setGroup, label); });
+						Ui::ListMenu(nested, set.caption, [group, setGroup, label, remove](MenuBase* menu) { AddGroupRows(menu, group, setGroup, label, remove); });
 					}
 				}
 			}
@@ -839,8 +845,7 @@ namespace Menus
 		MenuBase* inventory = Ui::Submenu(items, "Inventory");
 		Ui::Action(inventory, "recovery.addtoinventory", "Add to Inventory", AddToInventory);
 		Ui::Action(inventory, "recovery.additemviagamescript", "Add Item via Game Script", AddItemViaScript);
-		Ui::Action(inventory, "recovery.removefrominventory", "Remove from Inventory", RemoveFromInventory);
-		Ui::Action(inventory, "recovery.removeitemviagamescript", "Remove Item via Game Script", RemoveItemViaScript);
+		BuildGiveItems(inventory, true);
 		Ui::Action(inventory, "recovery.collectible", "Collectible", SpawnCollectible)->SetHotkeyable(false);
 		Ui::Action(inventory, "recovery.wipeinventory", "~COLOR_RED~Wipe Inventory", WipeInventory)->SetHotkeyable(false);
 		// Shows the game's state, read each time the menu opens.
