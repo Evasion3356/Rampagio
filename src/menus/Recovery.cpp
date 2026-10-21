@@ -211,17 +211,6 @@ namespace
 		ClearWanted();
 	}
 
-	void ClearBounty()
-	{
-		const Player me = PLAYER::PLAYER_ID();
-		LAW::_REPORT_CRIME(me, GameUtil::Joaat("CRIME_WANTED_LEVEL_UP_DEBUG_LOW"), 0, 0, TRUE);
-		PLAYER::_SET_MAX_WANTED_LEVEL_2(-1);
-		LAW::CLEAR_WANTED_SCORE(me);
-		LAW::_SET_BOUNTY_HUNTER_PURSUIT_CLEARED();
-		LAW::SET_BOUNTY(me, 0);
-		LAW::SET_WANTED_SCORE(me, 0);
-	}
-
 	// Each state's bounty is Global_40.f_358[state].f_0 (12-slot entries;
 	// short_update's per-state bounty setter, which also mirrors it to the
 	// StateBounty* compendium stats). Index order is the game's.
@@ -235,13 +224,51 @@ namespace
 		return GameUtil::Global(40 + 358 + 1 + 12 * index);
 	}
 
+	// The red outline of a state's bounty on the map is a region blip,
+	// "LBS_<STATE>_BOUNTY" in BLIP_STYLE_WANTED_REGION. short_update latches
+	// it in bit 4 of Global_40.f_358[state].f_5 when the state's bounty
+	// reaches the first wanted threshold and only drops it from its bounty
+	// setter, which also runs at 0, so writing the bounty alone leaves the
+	// outline up. It re-reads the bit only on its own state refresh, so the
+	// region is disabled here as well.
+	constexpr int kBountyOutlineBit = 4;
+	const char* const kBountyRegions[] = {
+		"LBS_AMBARINO_BOUNTY", "LBS_NEW_HANOVER_BOUNTY", "LBS_LEMOYNE_BOUNTY",
+		"LBS_W_ELIZABETH_BOUNTY", "LBS_NEW_AUSTIN_BOUNTY", "LBS_GUARMA_BOUNTY",
+	};
+
 	std::string ClearStateBounty(int index)
 	{
 		if (SCRIPT::IS_LOADING_SCREEN_VISIBLE())
 			return "";
+		if (index < 0 || index >= static_cast<int>(std::size(kBountyRegions)))
+			return "";
 		if (UINT64* bounty = StateBounty(index))
+		{
 			*reinterpret_cast<int*>(bounty) = 0;
+			*reinterpret_cast<int*>(bounty + 5) &= ~kBountyOutlineBit;
+		}
+		const Hash region = GameUtil::Joaat(kBountyRegions[index]);
+		if (MAP::_MAP_IS_REGION_HIGHLIGHTED_WITH_STYLE(region, GameUtil::Joaat("BLIP_STYLE_WANTED_REGION")) ||
+			MAP::_MAP_IS_REGION_HIGHLIGHTED_WITH_STYLE(region, GameUtil::Joaat("BLIP_STYLE_REGION_LOCKDOWN")))
+			MAP::_MAP_DISABLE_REGION_BLIP(region);
 		return "";
+	}
+
+	void ClearBounty()
+	{
+		const Player me = PLAYER::PLAYER_ID();
+		LAW::_REPORT_CRIME(me, GameUtil::Joaat("CRIME_WANTED_LEVEL_UP_DEBUG_LOW"), 0, 0, TRUE);
+		PLAYER::_SET_MAX_WANTED_LEVEL_2(-1);
+		LAW::CLEAR_WANTED_SCORE(me);
+		LAW::_SET_BOUNTY_HUNTER_PURSUIT_CLEARED();
+		LAW::SET_BOUNTY(me, 0);
+		LAW::SET_WANTED_SCORE(me, 0);
+		// short_update keeps each state's own bounty and its map outline;
+		// SET_BOUNTY touches neither, and the player's current state is only
+		// one of them, so clear every state.
+		for (const State& state : kStates)
+			ClearStateBounty(state.index);
 	}
 
 	// ---- SubRecoveryCores ----
