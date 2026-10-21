@@ -22,36 +22,32 @@ namespace GameUtil
 
 	bool TeleportToGround(Entity entity, float x, float y)
 	{
-		// Collision far from the player isn't loaded yet, so the ground
-		// probe fails until it streams in: park the entity high above the
-		// target, request collision, and retry from the top down for ~2s.
-		constexpr float kProbeHeights[] = { 1000.0f, 800.0f, 600.0f, 400.0f, 300.0f, 200.0f, 150.0f, 100.0f, 50.0f, 25.0f, 0.0f };
-		// Physics entities (a stagecoach, a wagon) would fall while parked and
-		// land with that speed, so hold it still and clear its velocity.
-		const auto settle = [entity] {
-			ENTITY::SET_ENTITY_VELOCITY(entity, 0.0f, 0.0f, 0.0f);
-			ENTITY::FREEZE_ENTITY_POSITION(entity, FALSE);
-		};
+		// Same approach as Rampage's Teleport to Waypoint: hold the entity
+		// still, then step through heights, moving it to each one and waiting
+		// a moment so the collision around it can stream in before probing the
+		// ground there. Probing in the same frame as the move finds nothing.
+		constexpr float kProbeHeights[] = { 100.0f, 150.0f, 50.0f, 0.0f, 200.0f, 250.0f, 300.0f, 350.0f, 400.0f, 450.0f, 500.0f, 550.0f, 600.0f, 650.0f, 700.0f, 750.0f, 800.0f };
 		ENTITY::FREEZE_ENTITY_POSITION(entity, TRUE);
-		for (int attempt = 0; attempt < 20; attempt++)
+		bool found = false;
+		float groundZ = 0.0f;
+		for (int pass = 0; pass < 2 && !found; pass++)
 		{
 			for (float height : kProbeHeights)
 			{
-				ENTITY::SET_ENTITY_COORDS_NO_OFFSET(entity, x, y, height, FALSE, FALSE, FALSE);
-				STREAMING::REQUEST_COLLISION_AT_COORD(x, y, height);
-				float groundZ = 0.0f;
+				ENTITY::SET_ENTITY_COORDS_NO_OFFSET(entity, x, y, height, TRUE, TRUE, TRUE);
+				WAIT(100);
 				if (MISC::GET_GROUND_Z_FOR_3D_COORD(x, y, height, &groundZ, FALSE))
 				{
-					ENTITY::SET_ENTITY_COORDS_NO_OFFSET(entity, x, y, groundZ + 1.0f, FALSE, FALSE, FALSE);
-					settle();
-					return true;
+					found = true;
+					break;
 				}
 			}
-			WAIT(100);
 		}
-		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(entity, x, y, 1000.0f, FALSE, FALSE, FALSE);
-		settle();
-		return false;
+		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(entity, x, y, found ? groundZ + 1.5f : 1000.0f, TRUE, TRUE, TRUE);
+		ENTITY::SET_ENTITY_VELOCITY(entity, 0.0f, 0.0f, 0.0f);
+		ENTITY::FREEZE_ENTITY_POSITION(entity, FALSE);
+		WAIT(200);
+		return found;
 	}
 
 	namespace
