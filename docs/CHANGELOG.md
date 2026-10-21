@@ -5,6 +5,11 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- Lock Hair now holds: it restarts the hair and beard growth clocks to the
+  current game time (a zero timestamp made the game grow a week at once) and
+  saves the lengths it holds, so they return after a restart or save load.
+
 ### Changed
 - Give Items: Cigarette Cards has a list per set, in numeric order, each with
   a Give Set row (the missing cards, and the set document when it's due).

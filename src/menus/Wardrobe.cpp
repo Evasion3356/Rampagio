@@ -602,12 +602,22 @@ namespace
 	// Global_40.f_7731[3 /*5*/]: chin, chops and mustache length (0..10)
 	// with a growth timestamp in .f_3; Global_40.f_7748: hair, length in
 	// .f_1 (0..9) and timestamp in .f_5. Global_40.f_11095.f_11[13]: body
-	// weight (-100..100). Rampage zeroes the timestamps so the hair doesn't
-	// grow back at once.
+	// weight (-100..100). The game's growth (flow_controller func_1044 and
+	// func_1046) counts hours from the timestamp to the current game time
+	// (Global_1899515), capped at 168, and adds a length per elapsed interval,
+	// so a zero timestamp means a week's growth at once. Stamping the current
+	// time restarts the clock instead.
 	int g_beard[3] = {};
 	int g_hair = 0;
 
 	UINT64* Global40() { return GameUtil::Global(40); }
+
+	// The game time the growth timestamps are measured against.
+	UINT64 GrowthNow()
+	{
+		const UINT64* now = GameUtil::Global(1899515);
+		return now ? *now : 0;
+	}
 
 	void ReadHair()
 	{
@@ -624,7 +634,7 @@ namespace
 		if (UINT64* g = Global40())
 		{
 			g[7732 + 5 * i] = g_beard[i];
-			g[7735 + 5 * i] = 0;
+			g[7735 + 5 * i] = GrowthNow();
 		}
 	}
 
@@ -633,7 +643,7 @@ namespace
 		if (UINT64* g = Global40())
 		{
 			g[7749] = g_hair;
-			g[7753] = 0;
+			g[7753] = GrowthNow();
 		}
 	}
 
@@ -646,6 +656,59 @@ namespace
 	float g_weight = 0.0f;
 	bool g_lockWeight = false;
 	bool g_lockHair = false;
+
+	// The lengths Lock Hair holds, saved so they come back after a restart or
+	// a save load (the sliders are re-read from the game, not saved). Index 0..2
+	// are the beards, 3 the hair; -1 means nothing captured yet.
+	Rampagio::IntCommand* g_lockTarget[4] = {};
+	Rampagio::LoopedCommand* g_lockHairCommand = nullptr;
+
+	void RegisterLockTargets()
+	{
+		const char* const kIds[] = { "wardrobe.lockhair.chin", "wardrobe.lockhair.chops", "wardrobe.lockhair.stache", "wardrobe.lockhair.hair" };
+		for (int i = 0; i < 4; i++)
+			g_lockTarget[i] = new Rampagio::IntCommand(kIds[i], "Lock Hair Target", "", -1, i == 3 ? 9 : 10, 1, -1);
+	}
+
+	bool HasLockTargets() { return g_lockTarget[0] && g_lockTarget[0]->GetState() >= 0; }
+
+	void ClearLockTargets()
+	{
+		for (auto* target : g_lockTarget)
+			if (target)
+				target->SetState(-1);
+	}
+
+	// The sliders are the targets while locked; keep the saved copy in step.
+	void SaveLockTargets()
+	{
+		for (int i = 0; i < 4; i++)
+			if (g_lockTarget[i])
+				g_lockTarget[i]->SetState(i == 3 ? g_hair : g_beard[i]);
+	}
+
+	// What the player does with the sliders or the open menu while the lock is
+	// off is the new state to lock, so saved lengths from an earlier lock go.
+	void ForgetStaleLockTargets()
+	{
+		if (!g_lockHair)
+			ClearLockTargets();
+	}
+
+	// Lock Hair turned on: resume the saved lengths, else lock what the game has.
+	void StartLockHair()
+	{
+		g_lockHair = true;
+		if (HasLockTargets())
+		{
+			for (int i = 0; i < 3; i++)
+				g_beard[i] = g_lockTarget[i]->GetState();
+			g_hair = g_lockTarget[3]->GetState();
+		}
+		else
+			ReadHair();
+		SaveLockTargets();
+	}
 
 	void ReadWeight()
 	{
@@ -687,11 +750,12 @@ namespace
 		UINT64* g = Global40();
 		if (!g)
 			return;
+		SaveLockTargets();
+		// Restart the growth clocks too, not only the lengths: the game
+		// grows hair from the timestamp's age.
 		for (int i = 0; i < 3; i++)
-			if (static_cast<int>(g[7732 + 5 * i]) != g_beard[i])
-				SetBeard(i);
-		if (static_cast<int>(g[7749]) != g_hair)
-			SetHair();
+			SetBeard(i);
+		SetHair();
 	}
 
 	// After the write Rampage raises Global_1347477.f_201 and clears f_198
@@ -889,8 +953,8 @@ namespace Menus
 		Ui::Action(hair, "wardrobe.changeweight", "Change Weight", ChangeWeight)->SetHotkeyable(false);
 		const char* const kBeard[] = { "Chin Length", "Chops Length", "Stache Length" };
 		for (int i = 0; i < 3; i++)
-			Ui::Number(hair, Ui::Id("wardrobe.beard", kBeard[i]), kBeard[i], &g_beard[i], 0, 10, 1, [i] { SetBeard(i); });
-		Ui::Number(hair, "wardrobe.hairlength", "Hair Length", &g_hair, 0, 9, 1, SetHair);
+			Ui::Number(hair, Ui::Id("wardrobe.beard", kBeard[i]), kBeard[i], &g_beard[i], 0, 10, 1, [i] { ForgetStaleLockTargets(); SetBeard(i); });
+		Ui::Number(hair, "wardrobe.hairlength", "Hair Length", &g_hair, 0, 9, 1, [] { ForgetStaleLockTargets(); SetHair(); });
 		Ui::Do(hair, "wardrobe.applyinstantly", "Apply Instantly", [] {
 			CAMERA::DO_SCREEN_FADE_OUT(500);
 			WAIT(1000);
@@ -900,12 +964,18 @@ namespace Menus
 		Ui::Do(hair, "wardrobe.gotobarber", "Go to Barber", [] {
 			ENTITY::SET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), -307.223f, 821.904f, 118.738f, true, true, true, false);
 		});
-		hair->SetOnOpen([](MenuBase*) { ReadHair(); if (!g_lockWeight) ReadWeight(); });
+		hair->SetOnOpen([](MenuBase*) { ForgetStaleLockTargets(); ReadHair(); if (!g_lockWeight) ReadWeight(); });
 		Ui::Transient(hair);
 		Ui::Looped(hair, "wardrobe.lockweight", "Lock Weight", [] { if (!g_lockWeight) { g_lockWeight = true; ReadWeight(); } LockWeightTick(); },
 			[] { g_lockWeight = false; });
-		Ui::Looped(hair, "wardrobe.lockhair", "Lock Hair", [] { if (!g_lockHair) { g_lockHair = true; ReadHair(); } LockHairTick(); },
-			[] { g_lockHair = false; });
+		g_lockHairCommand = Ui::Looped(hair, "wardrobe.lockhair", "Lock Hair", [] { if (!g_lockHair) StartLockHair(); LockHairTick(); },
+			[] {
+				g_lockHair = false;
+				// Turned off by the user, not by the online kill switch or eject.
+				if (g_lockHairCommand && !g_lockHairCommand->IsSuspended())
+					ClearLockTargets();
+			});
+		RegisterLockTargets();
 
 		// SubSelfPedMetaTags.
 		MenuBase* tags = Menus::Shared().metaTags = Ui::Submenu(wardrobe, "Meta Ped Tags");
