@@ -26,6 +26,13 @@ namespace GameUtil
 		// probe fails until it streams in: park the entity high above the
 		// target, request collision, and retry from the top down for ~2s.
 		constexpr float kProbeHeights[] = { 1000.0f, 800.0f, 600.0f, 400.0f, 300.0f, 200.0f, 150.0f, 100.0f, 50.0f, 25.0f, 0.0f };
+		// Physics entities (a stagecoach, a wagon) would fall while parked and
+		// land with that speed, so hold it still and clear its velocity.
+		const auto settle = [entity] {
+			ENTITY::SET_ENTITY_VELOCITY(entity, 0.0f, 0.0f, 0.0f);
+			ENTITY::FREEZE_ENTITY_POSITION(entity, FALSE);
+		};
+		ENTITY::FREEZE_ENTITY_POSITION(entity, TRUE);
 		for (int attempt = 0; attempt < 20; attempt++)
 		{
 			for (float height : kProbeHeights)
@@ -36,12 +43,14 @@ namespace GameUtil
 				if (MISC::GET_GROUND_Z_FOR_3D_COORD(x, y, height, &groundZ, FALSE))
 				{
 					ENTITY::SET_ENTITY_COORDS_NO_OFFSET(entity, x, y, groundZ + 1.0f, FALSE, FALSE, FALSE);
+					settle();
 					return true;
 				}
 			}
 			WAIT(100);
 		}
 		ENTITY::SET_ENTITY_COORDS_NO_OFFSET(entity, x, y, 1000.0f, FALSE, FALSE, FALSE);
+		settle();
 		return false;
 	}
 
