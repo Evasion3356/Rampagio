@@ -724,6 +724,12 @@ namespace
 			refresh[201] = 1;
 			refresh[198] = 0;
 			refresh[200] = 0;
+			// short_update only swaps the head (f_185 is the applied head hash) and
+			// the face morph (f_183 is the applied stage) when they differ from what
+			// the weight calls for, so forget both: a head the game thinks is right
+			// but isn't (a weight change that skipped it) gets redone.
+			refresh[185] = 0;
+			refresh[183] = 99;
 		}
 	}
 
@@ -758,22 +764,18 @@ namespace
 		SetHair();
 	}
 
-	// After the write Rampage raises Global_1347477.f_201 and clears f_198
-	// and f_200, which makes the game re-apply the player's body.
+	// Same as the Weight slider, with the value typed in: the slider shows it
+	// afterwards, and SetWeight raises Global_1347477.f_201 and clears f_198
+	// and f_200 as Rampage does, which makes the game re-apply the body.
 	std::string ChangeWeight()
 	{
 		std::string text;
 		if (!GameUtil::PromptText("Enter Weight -100 to 100", text) || text.empty())
 			return {};
-		float* slot = WeightSlot();
-		UINT64* refresh = GameUtil::Global(1347477);
-		if (!slot || !refresh)
+		if (!WeightSlot() || !GameUtil::Global(1347477))
 			return "Script globals not found";
-		*slot = std::clamp(static_cast<float>(std::atof(text.c_str())), -100.0f, 100.0f);
-		WAIT(300);
-		refresh[201] = 1;
-		refresh[198] = 0;
-		refresh[200] = 0;
+		g_weight = std::clamp(static_cast<float>(std::atof(text.c_str())), -100.0f, 100.0f);
+		SetWeight();
 		return {};
 	}
 
