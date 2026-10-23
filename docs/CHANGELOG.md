@@ -5,7 +5,11 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-23
+
 ### Fixed
+- Gamepad: the game no longer acts on controller input while the menu is open
+  (D-pad whistling, B reloading, ...). Movement and the camera still work.
 - Lock Hair now holds: it restarts the hair and beard growth clocks to the
   current game time (a zero timestamp made the game grow a week at once) and
   saves the lengths it holds, so they return after a restart or save load.

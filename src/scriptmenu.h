@@ -713,8 +713,22 @@ public:
 	// Rampagio addition: the menu ignores input while a hotkey is being
 	// bound (Settings.cpp), so the keys and buttons only go to the binding.
 	void BlockInput(bool blocked)	{	m_inputBlocked = blocked; }
+	// While the menu is on screen with a gamepad, the d-pad, A, B and the
+	// rest must not also act in the game (whistle, reload, ...). Everything is
+	// disabled for the game, then movement and the camera come back; the menu
+	// and the features read disabled controls, so they are unaffected.
+	void BlockGameplayPadInput()
+	{
+		if (!HasActiveMenu() || !Style().gamepad || PAD::IS_USING_KEYBOARD_AND_MOUSE(2))
+			return;
+		constexpr Hash INPUT_LOOK_LR = 0xA987235F, INPUT_LOOK_UD = 0xD2047988, INPUT_MOVE_LR = 0x4D8FB4C1, INPUT_MOVE_UD = 0xFDA83190;
+		PAD::DISABLE_ALL_CONTROL_ACTIONS(0);
+		for (Hash input : { INPUT_LOOK_LR, INPUT_LOOK_UD, INPUT_MOVE_LR, INPUT_MOVE_UD })
+			PAD::ENABLE_CONTROL_ACTION(0, input, TRUE);
+	}
 	void Update()
 	{
+		BlockGameplayPadInput();
 		OnDraw();
 		OnInput();
 		if (m_reopenPending)
