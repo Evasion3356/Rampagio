@@ -7,6 +7,7 @@
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\keyboard.h"
+#include "..\NativeHooks.h"
 
 namespace
 {
@@ -69,6 +70,78 @@ namespace
 		PLAYER::SET_EVERYONE_IGNORE_PLAYER(MyPlayer(), TRUE);
 		EVENT::SUPPRESS_SHOCKING_EVENTS_NEXT_FRAME();
 		EVENT::REMOVE_ALL_SHOCKING_EVENTS(TRUE);
+	}
+
+	// Mission Stealth (ours): missions don't wait for the AI to react; they
+	// run their own "was the player seen" check every frame (e.g. gang1's
+	// func_1746 -> func_2461/func_2462: perception cone, line of sight,
+	// hearing, stealth noise) and then task the guards into combat, which
+	// SET_EVERYONE_IGNORE_PLAYER can't stop. These hooks make those natives
+	// answer "no" for game scripts whenever the one being looked for is
+	// the player or their mount. Damage, shots and shoves still count.
+	// The handlers run inside the script VM, so they compare against
+	// handles cached by the tick instead of calling natives.
+	Ped g_stealthPed = 0, g_stealthMount = 0;
+
+	bool IsPlayerTarget(Entity e) { return e != 0 && (e == g_stealthPed || e == g_stealthMount); }
+
+	// (ped, target, ...): a ped looking for someone.
+	template <std::uint64_t Hash, typename R>
+	void UnseenHook(rage::scrNativeCallContext* ctx)
+	{
+		const Entity looker = ctx->GetArg<Entity>(0);
+		if (IsPlayerTarget(ctx->GetArg<Entity>(1)) && !IsPlayerTarget(looker))
+			ctx->SetReturnValue<R>(R{});
+		else
+			NativeHooks::Original(Hash)(ctx);
+	}
+
+	// _CAN_PED_HEAR_TARGET_PED(source, listener, includeNoiseBoost): the
+	// player is the source.
+	void UnheardHook(rage::scrNativeCallContext* ctx)
+	{
+		if (IsPlayerTarget(ctx->GetArg<Entity>(0)) && !IsPlayerTarget(ctx->GetArg<Entity>(1)))
+			ctx->SetReturnValue<BOOL>(FALSE);
+		else
+			NativeHooks::Original(0x0EA9EACBA3B01601)(ctx);
+	}
+
+	void SilentHook(rage::scrNativeCallContext* ctx) { ctx->SetReturnValue<float>(0.0f); }
+
+	constexpr std::uint64_t IS_TARGET_PED_IN_PERCEPTION_AREA_ = 0x06087579E7AA85A9;
+	constexpr std::uint64_t CAN_PED_SEE_ENTITY_ = 0x7F9B9791D4CB71F6;
+	constexpr std::uint64_t CAN_PED_SEE_PED_CACHED_ = 0x9D9473CB82D83A30;
+	constexpr std::uint64_t HAS_ENTITY_CLEAR_LOS_TO_ENTITY_ = 0xFCDFF7B72D23A1AC;
+	constexpr std::uint64_t HAS_ENTITY_CLEAR_LOS_TO_ENTITY_IN_FRONT_ = 0xE88F19660651D566;
+	constexpr std::uint64_t CAN_PED_HEAR_TARGET_PED_ = 0x0EA9EACBA3B01601;
+	constexpr std::uint64_t GET_PLAYER_CURRENT_STEALTH_NOISE_ = 0xD7ECC25E176ECBA5;
+
+	NativeHooks::Id g_stealthIds[7] = {};
+
+	void MissionStealthTick()
+	{
+		g_stealthPed = Me();
+		g_stealthMount = PED::GET_MOUNT(g_stealthPed);
+	}
+
+	void SetMissionStealth(bool on)
+	{
+		for (NativeHooks::Id& id : g_stealthIds)
+		{
+			NativeHooks::Remove(id);
+			id = 0;
+		}
+		if (!on)
+			return;
+		MissionStealthTick();
+		constexpr auto all = NativeHooks::kAllScripts;
+		g_stealthIds[0] = NativeHooks::Add(all, IS_TARGET_PED_IN_PERCEPTION_AREA_, UnseenHook<IS_TARGET_PED_IN_PERCEPTION_AREA_, BOOL>);
+		g_stealthIds[1] = NativeHooks::Add(all, CAN_PED_SEE_ENTITY_, UnseenHook<CAN_PED_SEE_ENTITY_, int>);
+		g_stealthIds[2] = NativeHooks::Add(all, CAN_PED_SEE_PED_CACHED_, UnseenHook<CAN_PED_SEE_PED_CACHED_, int>);
+		g_stealthIds[3] = NativeHooks::Add(all, HAS_ENTITY_CLEAR_LOS_TO_ENTITY_, UnseenHook<HAS_ENTITY_CLEAR_LOS_TO_ENTITY_, BOOL>);
+		g_stealthIds[4] = NativeHooks::Add(all, HAS_ENTITY_CLEAR_LOS_TO_ENTITY_IN_FRONT_, UnseenHook<HAS_ENTITY_CLEAR_LOS_TO_ENTITY_IN_FRONT_, BOOL>);
+		g_stealthIds[5] = NativeHooks::Add(all, CAN_PED_HEAR_TARGET_PED_, UnheardHook);
+		g_stealthIds[6] = NativeHooks::Add(all, GET_PLAYER_CURRENT_STEALTH_NOISE_, SilentHook);
 	}
 
 	void SetAnimalsIgnore(bool on) { PED::_SET_PED_ANIMAL_DETECTION_MODIFIER(Me(), on ? 0.0f : 1.0f); }
@@ -329,6 +402,8 @@ namespace Menus
 		Ui::Looped(self, "player.neverwanted", "Never Wanted", NeverWantedTick, NeverWantedOff);
 		Ui::Do(self, "player.endpursuit", "End Pursuit", EndPursuit);
 		Ui::Toggle(self, "player.everyoneignore", "Everyone Ignore", SetEveryoneIgnore, EveryoneIgnoreTick);
+		Ui::Toggle(self, "player.missionstealth", "Mission Stealth", SetMissionStealth, MissionStealthTick);
+		Ui::Describe(self, "Mission and camp guards can't see or hear you. Damage, gunshots and shoves still give you away.\nSome missions may need you to be seen to continue.");
 		Ui::Toggle(self, "player.wildanimalsignore", "Wild Animals Ignore", SetAnimalsIgnore);
 		Ui::Toggle(self, "player.lawignore", "Law Ignore", SetLawIgnore);
 		Ui::Looped(self, "player.infiniteswim", "Infinite Swim", InfiniteSwimTick);
