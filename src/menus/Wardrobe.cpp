@@ -20,10 +20,14 @@
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
 #include "..\Log.h"
+#include "..\PatternScan.h"
+#include "..\..\external\ScriptHookSDK\inc\main.h"
+#include "..\..\external\minhook\include\MinHook.h"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <charconv>
 #include <format>
 #include <map>
@@ -486,14 +490,76 @@ namespace
 		PED::_UPDATE_PED_VARIATION(ped, FALSE, TRUE, TRUE, TRUE, FALSE);
 	}
 
+	// Never Lose Hat: the engine's remove-prop-from-ped function (the one
+	// KNOCK_OFF_PED_PROP and a shot hat end in) is hooked, and a request to
+	// remove the hat from the player that comes with an instigator ped (someone
+	// shot it off) is dropped. Our own Drop Hat has no instigator, so it
+	// still works. The old hook from the user's MP script hook; the container
+	// is its ReClass of the first argument.
+	struct RemoveObjectContainer
+	{
+		char pad_0000[8];
+		void* pedToRemoveObjectFrom; // 0x08
+		char pad_0010[8];
+		void* instigatorPed; // 0x18
+		char pad_0020[0x40];
+	};
+	static_assert(sizeof(RemoveObjectContainer) == 0x60);
+
+	constexpr Hash kHatProp = 0x74A70540;
+
+	using RemovePropFromPedFn = void* (*)(RemoveObjectContainer*, Hash&, bool);
+	RemovePropFromPedFn g_removePropFromPed = nullptr;
+	void* g_removePropTarget = nullptr;
+	bool g_removePropTried = false;
+	std::atomic<void*> g_playerPedPtr{ nullptr };
+
+	void* RemovePropFromPedDetour(RemoveObjectContainer* container, Hash& prop, bool knockOff)
+	{
+		if (prop == kHatProp && container->instigatorPed
+			&& container->pedToRemoveObjectFrom == g_playerPedPtr.load(std::memory_order_relaxed))
+			return nullptr;
+		return g_removePropFromPed(container, prop, knockOff);
+	}
+
+	void NeverLoseHatOn(bool on)
+	{
+		if (!on)
+		{
+			if (g_removePropFromPed)
+				MH_DisableHook(g_removePropTarget);
+			g_playerPedPtr = nullptr;
+			return;
+		}
+		if (!g_removePropTried)
+		{
+			g_removePropTried = true;
+			const auto match = PatternScan::FindInMainModule("E8 ? ? ? ? 48 8B 4C 24 ? 0F B7 F6");
+			if (!match)
+				Log::Write("Wardrobe: RemovePropFromPed pattern not found, Never Lose Hat does nothing");
+			else
+			{
+				const MH_STATUS init = MH_Initialize();
+				g_removePropTarget = reinterpret_cast<void*>(PatternScan::ResolveRip(*match, 1));
+				if ((init == MH_OK || init == MH_ERROR_ALREADY_INITIALIZED)
+					&& MH_CreateHook(g_removePropTarget, reinterpret_cast<void*>(&RemovePropFromPedDetour),
+						reinterpret_cast<void**>(&g_removePropFromPed)) == MH_OK)
+					Log::Write("Wardrobe: RemovePropFromPed hook created at {:#x}", reinterpret_cast<unsigned long long>(g_removePropTarget));
+				else
+				{
+					Log::Write("Wardrobe: RemovePropFromPed hook failed");
+					g_removePropFromPed = nullptr;
+				}
+			}
+		}
+		if (g_removePropFromPed)
+			MH_EnableHook(g_removePropTarget);
+	}
+
+	// The player's ped pointer for the hook; the handle changes on a respawn.
 	void NeverLoseHatTick()
 	{
-		const Ped ped = Me();
-		if (PED::_IS_META_PED_USING_COMPONENT(ped, kHat))
-			return;
-		const Object hat = PED::_GET_PED_LAST_DROPPED_HAT(ped);
-		if (hat && ENTITY::DOES_ENTITY_EXIST(hat))
-			TASK::TASK_PICKUP_CARRIABLE_ENTITY(ped, hat);
+		g_playerPedPtr.store(getScriptHandleBaseAddress(PLAYER::PLAYER_PED_ID()), std::memory_order_relaxed);
 	}
 
 	// --- wardrobe cam ----------------------------------------------------
@@ -1138,7 +1204,7 @@ namespace Menus
 		Ui::Do(wardrobe, "wardrobe.drophat", "Drop Hat", [] { PED::KNOCK_OFF_PED_PROP(Me(), FALSE, FALSE, FALSE, TRUE); });
 		Ui::Looped(wardrobe, "wardrobe.removeoffhandholster", "Remove Off-Hand Holster", [] { RemoveTagTick(kOffHandHolster, true); });
 		Ui::Looped(wardrobe, "wardrobe.removesatchel", "Remove Satchel", [] { RemoveTagTick(kSatchel, false); });
-		Ui::Looped(wardrobe, "wardrobe.neverlosehat", "Never Lose Hat", NeverLoseHatTick);
+		Ui::Toggle(wardrobe, "wardrobe.neverlosehat", "Never Lose Hat", NeverLoseHatOn, NeverLoseHatTick);
 
 		// SubSelfWardrobeComponent / SubSelfWardrobeWearableState.
 		g_stateMenu = Ui::DetachedListMenu("Wearable State", BuildStateMenu);
