@@ -19,6 +19,7 @@
 #include "Menus.h"
 #include "..\GameUtil.h"
 #include "..\DataFile.h"
+#include "..\Log.h"
 
 #include <nlohmann/json.hpp>
 
@@ -277,6 +278,124 @@ namespace
 			}));
 	}
 
+	// --- wardrobe items (ours) -------------------------------------------
+	// Every clothing item of the game's SP catalog by group, from
+	// tools/extract_wardrobe_items.py. No XML needed.
+
+	struct WardrobeItem { Hash key; const char* group; const char* sub; const char* name; };
+	const WardrobeItem kWardrobeItems[] = {
+#include "..\data\WardrobeItems.inc"
+	};
+
+	MenuBase* g_wardrobeGroupMenu = nullptr;
+	std::string g_wardrobeGroup;
+
+	// The game's own name for the item (the label is the item hash, as in
+	// the tailor shop), else the catalog name with CLOTHING_ cut off, else the hash.
+	std::string WardrobeItemLabel(const WardrobeItem& item)
+	{
+		std::string fallback = item.name ? item.name : Hex(item.key);
+		if (fallback.size() > 9 && (fallback.starts_with("CLOTHING_") || fallback.starts_with("clothing_")))
+			fallback.erase(0, 9);
+		if (item.sub)
+			fallback = std::format("{} {}", item.sub, fallback);
+		return GameUtil::ItemName(item.key, fallback);
+	}
+
+	std::string g_wardrobeSearch;
+
+	void BuildWardrobeGroups(MenuBase* m)
+	{
+		std::vector<std::pair<std::string, int>> groups; // kept in the table's order
+		for (const WardrobeItem& item : kWardrobeItems)
+		{
+			auto it = std::find_if(groups.begin(), groups.end(), [&](auto& g) { return g.first == item.group; });
+			if (it == groups.end())
+				groups.emplace_back(item.group, 1);
+			else
+				it->second++;
+		}
+		// The common groups first, the odd ones after.
+		std::stable_sort(groups.begin(), groups.end(), [](auto& a, auto& b) { return a.second > b.second; });
+		for (auto& [group, count] : groups)
+			m->AddItem(new MenuItemAction(std::format("{} ({})", group, count), [group = group] {
+				g_wardrobeGroup = group;
+				g_wardrobeSearch.clear();
+				Ui::Push(g_wardrobeGroupMenu);
+			}));
+	}
+
+	void BuildWardrobeGroup(MenuBase* m)
+	{
+		Ui::Action(m, g_wardrobeSearch.empty() ? "Search" : "Search: " + g_wardrobeSearch, [] {
+			std::string text;
+			if (!GameUtil::PromptText("Search:", text))
+				return std::string("Cancelled");
+			g_wardrobeSearch = text;
+			Ui::Controller().ReopenActiveLater();
+			return std::string();
+		});
+		std::string needle = g_wardrobeSearch;
+		std::transform(needle.begin(), needle.end(), needle.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+
+		std::vector<std::pair<std::string, Hash>> rows;
+		int total = 0, invalid = 0;
+		for (const WardrobeItem& item : kWardrobeItems)
+		{
+			if (g_wardrobeGroup != item.group)
+				continue;
+			total++;
+			if (!ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item.key, 0))
+			{
+				if (invalid++ < 5)
+					Log::Write("Wardrobe: {} key {} ({}) is not valid", item.group, Hex(item.key), item.name ? item.name : "unnamed");
+				continue;
+			}
+			std::string label = WardrobeItemLabel(item);
+			if (!needle.empty())
+			{
+				std::string lower = label;
+				std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+				if (lower.find(needle) == std::string::npos)
+					continue;
+			}
+			rows.emplace_back(std::move(label), item.key);
+		}
+		std::stable_sort(rows.begin(), rows.end(), [](auto& a, auto& b) { return a.first < b.first; });
+		Log::Write("Wardrobe: {}: {} items, {} invalid, {} listed (search \"{}\")", g_wardrobeGroup, total, invalid, rows.size(), g_wardrobeSearch);
+
+		// Variants share a name (tints, honor versions): number them.
+		std::map<std::string, int> seen;
+		for (auto& [label, key] : rows)
+			seen[label]++;
+		std::map<std::string, int> index;
+		for (auto& [label, key] : rows)
+		{
+			std::string text = seen[label] > 1 ? std::format("{} ({})", label, ++index[label]) : label;
+			const Hash item = key;
+			Ui::Do(m, text, [item] { PickClothing(item); });
+		}
+	}
+
+	// Debug: what the game answers for every wardrobe item, to decide which
+	// ones to leave out (the ones without a readable name).
+	std::string DumpWardrobeNames()
+	{
+		nlohmann::json out = nlohmann::json::array();
+		for (const WardrobeItem& item : kWardrobeItems)
+		{
+			const char* text = HUD::GET_STRING_FROM_HASH_KEY(item.key);
+			out.push_back({
+				{ "key", Hex(item.key) },
+				{ "group", item.group },
+				{ "name", item.name ? item.name : "" },
+				{ "valid", ITEMDATABASE::_ITEMDATABASE_IS_KEY_VALID(item.key, 0) != FALSE },
+				{ "label", text ? text : "" },
+			});
+		}
+		return DataFile::SaveJson(L"Rampagio_WardrobeNames.json", out) ? "Saved Rampagio_WardrobeNames.json" : "Couldn't save";
+	}
+
 	// --- main rows -------------------------------------------------------
 
 	int g_outfitVariation = 0;
@@ -457,15 +576,6 @@ namespace
 			return err;
 		PED::_EQUIP_META_PED_OUTFIT(Me(), h);
 		PED::_UPDATE_PED_VARIATION(Me(), FALSE, TRUE, TRUE, TRUE, FALSE);
-		return {};
-	}
-
-	std::string ApplyShopItemPrompt()
-	{
-		Hash h = 0;
-		if (auto err = PromptHash("Enable a Ped Shop Item by Hash", h); !err.empty())
-			return err;
-		PED::_APPLY_SHOP_ITEM_TO_PED(Me(), h, TRUE, TRUE, FALSE);
 		return {};
 	}
 
@@ -1034,12 +1144,14 @@ namespace Menus
 		g_stateMenu = Ui::DetachedListMenu("Wearable State", BuildStateMenu);
 		g_categoryMenu = Ui::DetachedListMenu("Components", [](MenuBase* m) { BuildCategoryMenu(m, g_categoryIndex); });
 		Shared().components = Ui::ListMenu(wardrobe, "Components", BuildComponents);
+		g_wardrobeGroupMenu = Ui::DetachedListMenu("Wardrobe Items", BuildWardrobeGroup);
+		Ui::ListMenu(wardrobe, "Apply Wardrobe Item", BuildWardrobeGroups);
 
 		Ui::Section(wardrobe, "Custom");
+		Ui::Action(wardrobe, "Dump Wardrobe Names", DumpWardrobeNames);
 		Ui::Action(wardrobe, "wardrobe.enablepedcomponent", "Enable Ped Component", EnableComponent);
 		Ui::Action(wardrobe, "wardrobe.disablepedcomponent", "Disable Ped Component", DisableComponent);
 		Ui::Action(wardrobe, "wardrobe.setbodycomponent", "Set Body Component", SetBodyComponent);
-		Ui::Action(wardrobe, "wardrobe.applyshopitem", "Apply Shop Item", ApplyShopItemPrompt);
 		Ui::Action(wardrobe, "wardrobe.loadfromdatafile", "Load from Datafile", LoadOutfitPrompt)->SetHotkeyable(false);
 	}
 }

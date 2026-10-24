@@ -5,6 +5,15 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- Player > Wardrobe > Apply Wardrobe Item: every clothing item in the game's
+  SP catalog (the ones the game has a name for) sorted into Hats, Boots, Pants, Shirts, Coats, Vests,
+  Spurs, Gloves, Gunbelts, Bandoliers and so on. No XML file needed. Picking
+  one wears it (and opens its wearable states if it has any).
+
+### Removed
+- Wardrobe > Apply Shop Item (the hash prompt; Enable Ped Component still takes a hash).
+
 ## [1.0.1] - 2026-10-23
 
 ### Fixed
