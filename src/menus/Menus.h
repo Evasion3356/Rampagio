@@ -24,8 +24,10 @@ namespace Menus
 	void BuildPlayerEmotes(MenuBase* self);
 	void BuildPlayerSpeech(MenuBase* self);
 	// Wardrobe.cpp: the Wardrobe rows before and after Walk Styles / Damage Packs.
+	// ShutdownWardrobe removes Never Lose Hat's hook on eject (DllMain).
 	void BuildWardrobeTop(MenuBase* wardrobe);
 	void BuildWardrobe(MenuBase* wardrobe);
+	void ShutdownWardrobe();
 	void BuildModelChanger(MenuBase* wardrobe); // ModelChanger.cpp
 	void BuildPlayerPosse(MenuBase* self); // Posse.cpp
 	void BuildPlayerFixes(MenuBase* self); // PlayerFixes.cpp

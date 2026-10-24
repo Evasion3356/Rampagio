@@ -49,6 +49,7 @@ BOOL APIENTRY DllMain(HMODULE hInstance, DWORD reason, LPVOID lpReserved)
 			OnlineGuard::Shutdown();
 			YEEAHSM::StowWeaponsHook::Remove();
 			Menus::ShutdownChallenges();
+			Menus::ShutdownWardrobe();
 			// Last, after every MinHook user has removed its hooks.
 			MH_Uninitialize();
 			// Put the game's code back the way we found it.

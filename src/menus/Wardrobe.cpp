@@ -477,7 +477,6 @@ namespace
 	// Metaped tags Rampage strips every frame while the toggles are on.
 	constexpr Hash kOffHandHolster = 0xB6B6122D;
 	constexpr Hash kSatchel = 0x94504D26;
-	constexpr Hash kHat = 0x9925C067;
 
 	void RemoveTagTick(Hash tag, bool noDualWield)
 	{
@@ -492,10 +491,10 @@ namespace
 
 	// Never Lose Hat: the engine's remove-prop-from-ped function (the one
 	// KNOCK_OFF_PED_PROP and a shot hat end in) is hooked, and a request to
-	// remove the hat from the player that comes with an instigator ped (someone
-	// shot it off) is dropped. Our own Drop Hat has no instigator, so it
-	// still works. The old hook from the user's MP script hook; the container
-	// is its ReClass of the first argument.
+	// remove the hat from the protected ped that comes with an instigator ped
+	// (someone shot it off) is dropped. Our own Drop Hat has no instigator, so
+	// it still works. The old hook from the user's MP script hook; the
+	// container is its ReClass of the first argument.
 	struct RemoveObjectContainer
 	{
 		char pad_0000[8];
@@ -506,60 +505,69 @@ namespace
 	};
 	static_assert(sizeof(RemoveObjectContainer) == 0x60);
 
-	constexpr Hash kHatProp = 0x74A70540;
+	enum class HatHook { On, Off, Tick, Remove };
 
-	using RemovePropFromPedFn = void* (*)(RemoveObjectContainer*, Hash&, bool);
-	RemovePropFromPedFn g_removePropFromPed = nullptr;
-	void* g_removePropTarget = nullptr;
-	bool g_removePropTried = false;
-	std::atomic<void*> g_playerPedPtr{ nullptr };
-
-	void* RemovePropFromPedDetour(RemoveObjectContainer* container, Hash& prop, bool knockOff)
+	// All of the hook's state lives here. The detour is a captureless lambda,
+	// so it reaches the statics without capturing them. Tick stores the
+	// protected ped's pointer (Me(), as the other wardrobe ticks; its handle
+	// changes on a respawn); Remove is for eject (ShutdownWardrobe).
+	void NeverLoseHat(HatHook op)
 	{
-		if (prop == kHatProp && container->instigatorPed
-			&& container->pedToRemoveObjectFrom == g_playerPedPtr.load(std::memory_order_relaxed))
-			return nullptr;
-		return g_removePropFromPed(container, prop, knockOff);
-	}
+		using RemovePropFromPedFn = void* (*)(RemoveObjectContainer*, Hash&, bool);
+		constexpr Hash kHatProp = 0x74A70540;
+		static RemovePropFromPedFn original = nullptr;
+		static void* target = nullptr;
+		static bool tried = false;
+		static std::atomic<void*> protectedPed{ nullptr };
 
-	void NeverLoseHatOn(bool on)
-	{
-		if (!on)
+		switch (op)
 		{
-			if (g_removePropFromPed)
-				MH_DisableHook(g_removePropTarget);
-			g_playerPedPtr = nullptr;
+		case HatHook::Tick:
+			protectedPed.store(getScriptHandleBaseAddress(Me()), std::memory_order_relaxed);
 			return;
+		case HatHook::Off:
+			if (original)
+				MH_DisableHook(target);
+			protectedPed = nullptr;
+			return;
+		case HatHook::Remove:
+			if (original)
+				MH_RemoveHook(target);
+			original = nullptr;
+			return;
+		case HatHook::On:
+			break;
 		}
-		if (!g_removePropTried)
+
+		if (!tried)
 		{
-			g_removePropTried = true;
+			tried = true;
 			const auto match = PatternScan::FindInMainModule("E8 ? ? ? ? 48 8B 4C 24 ? 0F B7 F6");
 			if (!match)
 				Log::Write("Wardrobe: RemovePropFromPed pattern not found, Never Lose Hat does nothing");
 			else
 			{
+				const RemovePropFromPedFn detour = [](RemoveObjectContainer* container, Hash& prop, bool knockOff) -> void*
+				{
+					if (prop == kHatProp && container->instigatorPed
+						&& container->pedToRemoveObjectFrom == protectedPed.load(std::memory_order_relaxed))
+						return nullptr;
+					return original(container, prop, knockOff);
+				};
 				const MH_STATUS init = MH_Initialize();
-				g_removePropTarget = reinterpret_cast<void*>(PatternScan::ResolveRip(*match, 1));
+				target = reinterpret_cast<void*>(PatternScan::ResolveRip(*match, 1));
 				if ((init == MH_OK || init == MH_ERROR_ALREADY_INITIALIZED)
-					&& MH_CreateHook(g_removePropTarget, reinterpret_cast<void*>(&RemovePropFromPedDetour),
-						reinterpret_cast<void**>(&g_removePropFromPed)) == MH_OK)
-					Log::Write("Wardrobe: RemovePropFromPed hook created at {:#x}", reinterpret_cast<unsigned long long>(g_removePropTarget));
+					&& MH_CreateHook(target, reinterpret_cast<void*>(detour), reinterpret_cast<void**>(&original)) == MH_OK)
+					Log::Write("Wardrobe: RemovePropFromPed hook created at {:#x}", reinterpret_cast<unsigned long long>(target));
 				else
 				{
 					Log::Write("Wardrobe: RemovePropFromPed hook failed");
-					g_removePropFromPed = nullptr;
+					original = nullptr;
 				}
 			}
 		}
-		if (g_removePropFromPed)
-			MH_EnableHook(g_removePropTarget);
-	}
-
-	// The player's ped pointer for the hook; the handle changes on a respawn.
-	void NeverLoseHatTick()
-	{
-		g_playerPedPtr.store(getScriptHandleBaseAddress(PLAYER::PLAYER_PED_ID()), std::memory_order_relaxed);
+		if (original)
+			MH_EnableHook(target);
 	}
 
 	// --- wardrobe cam ----------------------------------------------------
@@ -1204,7 +1212,8 @@ namespace Menus
 		Ui::Do(wardrobe, "wardrobe.drophat", "Drop Hat", [] { PED::KNOCK_OFF_PED_PROP(Me(), FALSE, FALSE, FALSE, TRUE); });
 		Ui::Looped(wardrobe, "wardrobe.removeoffhandholster", "Remove Off-Hand Holster", [] { RemoveTagTick(kOffHandHolster, true); });
 		Ui::Looped(wardrobe, "wardrobe.removesatchel", "Remove Satchel", [] { RemoveTagTick(kSatchel, false); });
-		Ui::Toggle(wardrobe, "wardrobe.neverlosehat", "Never Lose Hat", NeverLoseHatOn, NeverLoseHatTick);
+		Ui::Toggle(wardrobe, "wardrobe.neverlosehat", "Never Lose Hat",
+			[](bool on) { NeverLoseHat(on ? HatHook::On : HatHook::Off); }, [] { NeverLoseHat(HatHook::Tick); });
 
 		// SubSelfWardrobeComponent / SubSelfWardrobeWearableState.
 		g_stateMenu = Ui::DetachedListMenu("Wearable State", BuildStateMenu);
@@ -1219,5 +1228,10 @@ namespace Menus
 		Ui::Action(wardrobe, "wardrobe.disablepedcomponent", "Disable Ped Component", DisableComponent);
 		Ui::Action(wardrobe, "wardrobe.setbodycomponent", "Set Body Component", SetBodyComponent);
 		Ui::Action(wardrobe, "wardrobe.loadfromdatafile", "Load from Datafile", LoadOutfitPrompt)->SetHotkeyable(false);
+	}
+
+	void ShutdownWardrobe()
+	{
+		NeverLoseHat(HatHook::Remove);
 	}
 }
