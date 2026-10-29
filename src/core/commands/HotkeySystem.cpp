@@ -423,6 +423,7 @@ namespace Rampagio
 		{
 		case kWheelUp: return "Wheel Up";
 		case kWheelDown: return "Wheel Down";
+		case kNumpadEnter: return "Num Enter";
 		case VK_LBUTTON: return "Mouse Left";
 		case VK_RBUTTON: return "Mouse Right";
 		case VK_MBUTTON: return "Mouse Middle";

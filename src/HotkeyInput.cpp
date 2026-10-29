@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 
 namespace HotkeyInput
@@ -48,6 +49,16 @@ namespace HotkeyInput
 		};
 
 		bool KeyDown(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
+
+		// Each Enter's down state from its key messages: [0] main, [1] numpad.
+		// Written on the window thread, read on the script thread.
+		std::atomic<bool> g_enterDown[2]{};
+	}
+
+	void NoteKeyMessage(unsigned vk, bool extended, bool down)
+	{
+		if (vk == VK_RETURN)
+			g_enterDown[extended ? 1 : 0].store(down, std::memory_order_relaxed);
 	}
 
 	const char* const kPadNames[] = { "A", "B", "X", "Y", "LB", "RB", "LT", "RT", "LS", "RS", "Up", "Down", "Left", "Right", "Select" };
@@ -87,6 +98,10 @@ namespace HotkeyInput
 			return PAD::IS_DISABLED_CONTROL_JUST_PRESSED(0, INPUT_CURSOR_SCROLL_UP) != 0;
 		if (id == kWheelDown)
 			return PAD::IS_DISABLED_CONTROL_JUST_PRESSED(0, INPUT_CURSOR_SCROLL_DOWN) != 0;
+		if (id == Rampagio::kNumpadEnter || id == VK_RETURN)
+			// GetAsyncKeyState clears a state whose key-up was missed (focus
+			// lost); until its key-down message arrives, neither Enter is down.
+			return KeyDown(VK_RETURN) && g_enterDown[id == Rampagio::kNumpadEnter ? 1 : 0].load(std::memory_order_relaxed);
 		return id > 0 && id < 0xFF && KeyDown(static_cast<int>(id));
 	}
 
@@ -126,7 +141,14 @@ namespace HotkeyInput
 				// The generic VK_SHIFT/VK_CONTROL/VK_MENU stand for both sides.
 				if (vk >= VK_LSHIFT && vk <= VK_RMENU)
 					continue;
-				if (KeyDown(vk))
+				if (vk == VK_RETURN)
+				{
+					if (IsDown(Rampagio::kNumpadEnter))
+						out.push_back(Rampagio::kNumpadEnter);
+					else if (IsDown(VK_RETURN))
+						out.push_back(VK_RETURN);
+				}
+				else if (KeyDown(vk))
 					out.push_back(static_cast<InputId>(vk));
 			}
 			if (IsDown(kWheelUp))

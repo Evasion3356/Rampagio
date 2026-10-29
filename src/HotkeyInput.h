@@ -33,6 +33,12 @@ namespace HotkeyInput
 	// The game reads the pad now, not keyboard and mouse.
 	bool PadInUse();
 
+	// Key-downs and key-ups with their extended bit, for telling
+	// kNumpadEnter from VK_RETURN: GetAsyncKeyState can't. Fed from
+	// keyboard.cpp and from the overlay's window proc, which swallows key
+	// messages while a window is open.
+	void NoteKeyMessage(unsigned vk, bool extended, bool down);
+
 	bool IsDown(InputId id);
 	// The held ones of `ids` into `out` (cleared first).
 	void Poll(std::span<const InputId> ids, std::vector<InputId>& out);

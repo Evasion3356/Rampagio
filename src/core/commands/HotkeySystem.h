@@ -35,11 +35,14 @@ namespace Rampagio
 	class Command;
 
 	// 0x01..0xFE: Windows virtual keys (mouse buttons included);
-	// kPadBase + n: pad button n; kWheelUp/kWheelDown: one wheel notch.
+	// kPadBase + n: pad button n; kWheelUp/kWheelDown: one wheel notch;
+	// kNumpadEnter: the numpad's Enter (VK_RETURN is then the main one:
+	// Windows gives both the same virtual key).
 	using InputId = std::uint32_t;
 	constexpr InputId kPadBase = 0x10000;
 	constexpr InputId kWheelUp = 0x20000;
 	constexpr InputId kWheelDown = 0x20001;
+	constexpr InputId kNumpadEnter = 0x20002;
 	inline bool IsPadInput(InputId id) { return id >= kPadBase && id < kWheelUp; }
 	inline bool IsWheelInput(InputId id) { return id == kWheelUp || id == kWheelDown; }
 

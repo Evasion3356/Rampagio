@@ -1,5 +1,6 @@
 #include "OverlayInternal.h"
 #include "..\Log.h"
+#include "..\HotkeyInput.h"
 
 #include "MinHook.h"
 
@@ -102,6 +103,8 @@ namespace Overlay
 		LRESULT CALLBACK WndProc_hook(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		{
 			InHook guard;
+			if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN || msg == WM_KEYUP || msg == WM_SYSKEYUP)
+				HotkeyInput::NoteKeyMessage(static_cast<unsigned>(wparam), (lparam & (1 << 24)) != 0, msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
 			// The close key's key-up after its key-down closed the overlay: the
 			// native menu acts on key-up, so it mustn't see this one.
 			if ((msg == WM_KEYUP || msg == WM_SYSKEYUP) && (int)wparam == g_swallow_key_up)

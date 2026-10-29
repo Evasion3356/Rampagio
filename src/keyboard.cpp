@@ -1,9 +1,11 @@
 /*
 	Copied from the ScriptHookRDR2 SDK's NativeTrainer sample (Alexander Blade,
-	http://dev-c.com). One addition: IsKeyWithAlt() at the end.
+	http://dev-c.com). Additions: IsKeyWithAlt() at the end, and key
+	messages passed to HotkeyInput::NoteKeyMessage (numpad Enter).
 */
 
 #include "keyboard.h"
+#include "HotkeyInput.h"
 
 const int KEYS_SIZE = 255;
 
@@ -16,6 +18,7 @@ struct {
 
 void OnKeyboardMessage(DWORD key, WORD repeats, BYTE scanCode, BOOL isExtended, BOOL isWithAlt, BOOL wasDownBefore, BOOL isUpNow)
 {
+	HotkeyInput::NoteKeyMessage(key, isExtended != FALSE, !isUpNow);
 	if (key < KEYS_SIZE)
 	{
 		keyStates[key].time = GetTickCount();
