@@ -516,7 +516,11 @@ void MenuBase::OnDraw()
 	const MenuStyle& style = Style();
 	const float x = style.left, y = style.top;
 	const float centerX = x + 0.114f, boxLeft = centerX - kWidth / 2.0f;
-	GRAPHICS::SET_SCRIPT_GFX_DRAW_ORDER(0);
+	// The script GFX draw order is global state the game's own UI inherits
+	// (the book pages drew blank when a frame left it at 0). The game's
+	// scripts all draw at 4, so the whole menu does too; the layering inside
+	// it is the order the pieces are submitted in.
+	GRAPHICS::SET_SCRIPT_GFX_DRAW_ORDER(4);
 
 	// Header: the title over the header color.
 	DrawBox(centerX, y + 0.046f, kWidth, 0.105f, style.header);
@@ -618,7 +622,6 @@ void MenuBase::OnDraw()
 			}
 			const float lines = static_cast<float>(s_lines.size());
 			const float boxTop = footerY + kRowHeight / 2.0f + 0.005f;
-			GRAPHICS::SET_SCRIPT_GFX_DRAW_ORDER(4);
 			DrawBox(centerX, boxTop + lines * 0.011f, kWidth, lines * 0.022f, style.base);
 			DrawBox(centerX, boxTop, kWidth, 0.0025f, style.main);
 			for (size_t i = 0; i < s_lines.size(); i++)

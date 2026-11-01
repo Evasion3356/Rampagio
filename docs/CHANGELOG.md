@@ -11,6 +11,11 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Spurs, Gloves, Gunbelts, Bandoliers and so on. No XML file needed. Picking
   one wears it (and opens its wearable states if it has any).
 
+### Fixed
+- Book pages (camp book, journal, ...) no longer go blank until the game restarts after the menu
+  highlights a row without a description (Recovery, Debug). The menu left the
+  game's script draw order at 0; it now draws at 4, like the game's own scripts.
+
 ### Removed
 - Wardrobe > Apply Shop Item (the hash prompt; Enable Ped Component still takes a hash).
 
