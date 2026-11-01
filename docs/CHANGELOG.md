@@ -5,6 +5,8 @@ loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-01
+
 ### Added
 - Player > Wardrobe > Apply Wardrobe Item: every clothing item in the game's
   SP catalog (the ones the game has a name for) sorted into Hats, Boots, Pants, Shirts, Coats, Vests,
